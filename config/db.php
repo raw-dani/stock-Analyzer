@@ -1,5 +1,16 @@
 <?php
 
+use yii\db\Connection;
+use yii\base\Event;
+
+// Aktifkan enforcement foreign key untuk SQLite (default OFF).
+// Pada MySQL/PostgreSQL FK sudah di-enforce oleh server.
+Event::on(Connection::class, Connection::EVENT_AFTER_OPEN, function ($event) {
+    if ($event->sender->getDriverName() === 'sqlite') {
+        $event->sender->createCommand('PRAGMA foreign_keys = ON')->execute();
+    }
+});
+
 return [
     'class' => 'yii\db\Connection',
     // MVP: SQLite. Untuk produksi ganti ke MySQL/PostgreSQL (lihat desain §6)

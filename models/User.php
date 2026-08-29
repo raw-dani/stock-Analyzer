@@ -1,104 +1,115 @@
 <?php
 
+declare(strict_types=1);
+
 namespace app\models;
 
-class User extends \yii\base\BaseObject implements \yii\web\IdentityInterface
+use yii\db\ActiveRecord;
+use yii\behaviors\TimestampBehavior;
+use yii\web\IdentityInterface;
+
+/**
+ * User identity model (tabel {{%user}}).
+ *
+ * @property int $id
+ * @property string $username
+ * @property string $email
+ * @property string $password_hash
+ * @property string $auth_key
+ * @property string|null $access_token
+ * @property int $status
+ */
+class User extends ActiveRecord implements IdentityInterface
 {
-    public $id;
-    public $username;
-    public $password;
-    public $authKey;
-    public $accessToken;
+    public const STATUS_DELETED = 0;
+    public const STATUS_ACTIVE = 10;
 
-    private static $users = [
-        '100' => [
-            'id' => '100',
-            'username' => 'admin',
-            'password' => 'admin',
-            'authKey' => 'test100key',
-            'accessToken' => '100-token',
-        ],
-        '101' => [
-            'id' => '101',
-            'username' => 'demo',
-            'password' => 'demo',
-            'authKey' => 'test101key',
-            'accessToken' => '101-token',
-        ],
-    ];
-
-
-    /**
-     * {@inheritdoc}
-     */
-    public static function findIdentity($id)
+    public static function tableName(): string
     {
-        return isset(self::$users[$id]) ? new static(self::$users[$id]) : null;
+        return '{{%user}}';
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public static function findIdentityByAccessToken($token, $type = null)
+    public function behaviors(): array
     {
-        foreach (self::$users as $user) {
-            if ($user['accessToken'] === $token) {
-                return new static($user);
-            }
-        }
+        return [TimestampBehavior::class];
+    }
 
-        return null;
+    public function rules(): array
+    {
+        return [
+            [['username', 'email', 'password_hash', 'auth_key'], 'required'],
+            [['username'], 'string', 'max' => 64],
+            [['username'], 'unique'],
+            [['email'], 'email'],
+            [['email'], 'unique'],
+            [['status'], 'default', 'value' => self::STATUS_ACTIVE],
+            [['status'], 'in', 'range' => [self::STATUS_ACTIVE, self::STATUS_DELETED]],
+            [['access_token'], 'string', 'max' => 64],
+        ];
+    }
+
+    // ==== IdentityInterface ====
+
+    public static function findIdentity($id): ?IdentityInterface
+    {
+        return static::findOne(['id' => $id, 'status' => self::STATUS_ACTIVE]);
+    }
+
+    public static function findIdentityByAccessToken($token, $type = null): ?IdentityInterface
+    {
+        return static::findOne(['access_token' => $token, 'status' => self::STATUS_ACTIVE]);
     }
 
     /**
      * Finds user by username
-     *
-     * @param string $username
-     * @return static|null
      */
-    public static function findByUsername($username)
+    public static function findByUsername(string $username): ?self
     {
-        foreach (self::$users as $user) {
-            if (strcasecmp($user['username'], $username) === 0) {
-                return new static($user);
-            }
-        }
-
-        return null;
+        return static::findOne(['username' => $username, 'status' => self::STATUS_ACTIVE]);
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
+    public function getId(): ?int
     {
-        return $this->id;
+        return $this->getPrimaryKey();
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function getAuthKey()
+    public function getAuthKey(): ?string
     {
-        return $this->authKey;
+        return $this->auth_key;
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function validateAuthKey($authKey)
+    public function validateAuthKey($authKey): bool
     {
-        return $this->authKey === $authKey;
+        return $this->auth_key === $authKey;
     }
 
-    /**
-     * Validates password
-     *
-     * @param string $password password to validate
-     * @return bool if password provided is valid for current user
-     */
-    public function validatePassword($password)
+    // ==== Password ====
+
+    public function validatePassword(string $password): bool
     {
-        return $this->password === $password;
+        return \Yii::$app->security->validatePassword($password, $this->password_hash);
+    }
+
+    public function setPassword(string $password): void
+    {
+        $this->password_hash = \Yii::$app->security->generatePasswordHash($password);
+    }
+
+    public function generateAuthKey(): void
+    {
+        $this->auth_key = \Yii::$app->security->generateRandomString();
+    }
+
+    // ==== Relasi ====
+
+    public function getWatchlists(): \yii\db\ActiveQuery
+    {
+        return $this->hasMany(Watchlist::class, ['user_id' => 'id']);
+    }
+
+    public function getAlerts(): \yii\db\ActiveQuery
+    {
+        return $this->hasMany(Alert::class, ['user_id' => 'id']);
     }
 }
+
