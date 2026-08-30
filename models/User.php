@@ -18,11 +18,17 @@ use yii\web\IdentityInterface;
  * @property string $auth_key
  * @property string|null $access_token
  * @property int $status
+ * @property string $role
  */
 class User extends ActiveRecord implements IdentityInterface
 {
     public const STATUS_DELETED = 0;
     public const STATUS_ACTIVE = 10;
+
+    // RBAC sederhana (Modul 14.2)
+    public const ROLE_ADMIN = 'admin';
+    public const ROLE_USER = 'user';
+    public const ROLES = [self::ROLE_ADMIN => 'Admin', self::ROLE_USER => 'User'];
 
     public static function tableName(): string
     {
@@ -44,6 +50,8 @@ class User extends ActiveRecord implements IdentityInterface
             [['email'], 'unique'],
             [['status'], 'default', 'value' => self::STATUS_ACTIVE],
             [['status'], 'in', 'range' => [self::STATUS_ACTIVE, self::STATUS_DELETED]],
+            [['role'], 'in', 'range' => array_keys(self::ROLES)],
+            [['role'], 'default', 'value' => self::ROLE_USER],
             [['access_token'], 'string', 'max' => 64],
         ];
     }
@@ -71,6 +79,14 @@ class User extends ActiveRecord implements IdentityInterface
     public function getId(): ?int
     {
         return $this->getPrimaryKey();
+    }
+
+    /**
+     * Apakah user berperan admin (RBAC Modul 14.2).
+     */
+    public function isAdmin(): bool
+    {
+        return $this->role === self::ROLE_ADMIN;
     }
 
     public function getAuthKey(): ?string

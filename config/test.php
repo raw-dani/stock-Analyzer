@@ -9,6 +9,7 @@ $db = require __DIR__ . '/test_db.php';
 return [
     'id' => 'basic-tests',
     'basePath' => dirname(__DIR__),
+    'bootstrap' => [\app\components\SettingsBootstrap::class],
     'aliases' => [
         '@bower' => '@vendor/bower-asset',
         '@npm'   => '@vendor/npm-asset',

@@ -26,6 +26,10 @@ $sideMenu = [
     ['label' => '📈 Signals', 'url' => ['/signal/index'], 'active' => Yii::$app->controller->id === 'signal'],
     ['label' => '🔔 Alerts', 'url' => ['/alert/index'], 'active' => Yii::$app->controller->id === 'alert'],
 ];
+// Halaman settings khusus admin (RBAC Modul 14)
+if (!Yii::$app->user->isGuest && Yii::$app->user->identity instanceof app\models\User && Yii::$app->user->identity->isAdmin()) {
+    $sideMenu[] = ['label' => '⚙️ Settings', 'url' => ['/settings/index'], 'active' => Yii::$app->controller->id === 'settings'];
+}
 ?>
 <?php $this->beginPage() ?>
 <!DOCTYPE html>
@@ -97,8 +101,20 @@ $sideMenu = [
 </main>
 
 <footer id="footer" class="mt-auto py-2 bg-light">
+    <?php
+    $mkt = Yii::$container->get(app\services\MarketStatusService::class)->footerSummary();
+    ?>
     <div class="container-fluid text-center text-muted small">
         US Stock Volume Analyzer &copy; <?= date('Y') ?> — <?= Yii::powered() ?>
+        <span class="ms-2">•</span>
+        Provider: <?= yii\helpers\Html::encode($mkt['providerLabel']) ?>
+        <?= $mkt['providerConfigured']
+            ? '<span class="text-success">✓</span>'
+            : '<span class="text-danger">✗</span>' ?>
+        <span class="ms-2">•</span>
+        Data: <?= $mkt['lastDataAt'] ? Yii::$app->formatter->asRelativeTime($mkt['lastDataAt']) : '—' ?>
+        <span class="ms-2">•</span>
+        Sinyal: <?= yii\helpers\Html::encode((string) ($mkt['lastSignalDate'] ?? '—')) ?>
     </div>
 </footer>
 
