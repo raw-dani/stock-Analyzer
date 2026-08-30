@@ -21,6 +21,7 @@ $this->registerLinkTag(['rel' => 'icon', 'type' => 'image/x-icon', 'href' => Yii
 $sideMenu = [
     ['label' => '📊 Dashboard', 'url' => ['/dashboard/index'], 'active' => Yii::$app->controller->id === 'dashboard'],
     ['label' => '🔍 Scanner', 'url' => ['/scanner/index'], 'active' => Yii::$app->controller->id === 'scanner'],
+    ['label' => '🗺️ Sectors', 'url' => ['/sector/index'], 'active' => Yii::$app->controller->id === 'sector'],
     ['label' => '⭐ Watchlist', 'url' => ['/watchlist/index'], 'active' => Yii::$app->controller->id === 'watchlist'],
     ['label' => '📈 Signals', 'url' => ['/signal/index'], 'active' => Yii::$app->controller->id === 'signal'],
     ['label' => '🔔 Alerts', 'url' => ['/alert/index'], 'active' => Yii::$app->controller->id === 'alert'],
@@ -51,10 +52,11 @@ $sideMenu = [
     ]);
     echo Nav::widget([
         'options' => ['class' => 'navbar-nav ms-auto'],
-        'items' => [
-            Yii::$app->user->isGuest
-                ? ['label' => 'Login', 'url' => ['/site/login']]
-                : '<li class="nav-item">'
+        'items' => array_filter([
+            Yii::$app->user->isGuest ? ['label' => 'Login', 'url' => ['/site/login']] : null,
+            Yii::$app->user->isGuest ? ['label' => 'Register', 'url' => ['/site/register']] : null,
+            !Yii::$app->user->isGuest
+                ? '<li class="nav-item">'
                     . Html::beginForm(['/site/logout'])
                     . Html::submitButton(
                         'Logout (' . Yii::$app->user->identity->username . ')',
@@ -62,7 +64,8 @@ $sideMenu = [
                     )
                     . Html::endForm()
                     . '</li>'
-        ]
+                : null,
+        ])
     ]);
     NavBar::end();
     ?>
