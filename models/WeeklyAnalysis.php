@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace app\models;
 
 use yii\db\ActiveRecord;
+use yii\db\ActiveQuery;
 use yii\behaviors\TimestampBehavior;
 
 /**
@@ -67,8 +68,17 @@ class WeeklyAnalysis extends ActiveRecord
         ];
     }
 
-    public function getStock(): \yii\db\ActiveQuery
+    public function getStock(): ActiveQuery
     {
         return $this->hasOne(Stock::class, ['id' => 'stock_id']);
+    }
+
+    /**
+     * Scope: hanya rekaman weekly_analysis yang punya stock valid (filter orphan).
+     * Pakai INNER JOIN; aman dipanggil sebelum select().
+     */
+    public function innerJoinStock(): ActiveQuery
+    {
+        return $this->joinWith('stock', 'JOIN');
     }
 }

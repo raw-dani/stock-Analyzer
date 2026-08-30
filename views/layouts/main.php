@@ -15,9 +15,16 @@ AppAsset::register($this);
 $this->registerCsrfMetaTags();
 $this->registerMetaTag(['charset' => Yii::$app->charset], 'charset');
 $this->registerMetaTag(['name' => 'viewport', 'content' => 'width=device-width, initial-scale=1, shrink-to-fit=no']);
-$this->registerMetaTag(['name' => 'description', 'content' => $this->params['meta_description'] ?? '']);
-$this->registerMetaTag(['name' => 'keywords', 'content' => $this->params['meta_keywords'] ?? '']);
 $this->registerLinkTag(['rel' => 'icon', 'type' => 'image/x-icon', 'href' => Yii::getAlias('@web/favicon.ico')]);
+
+// menu sidebar (task 5.1)
+$sideMenu = [
+    ['label' => '📊 Dashboard', 'url' => ['/dashboard/index'], 'active' => Yii::$app->controller->id === 'dashboard'],
+    ['label' => '🔍 Scanner', 'url' => ['/scanner/index'], 'active' => Yii::$app->controller->id === 'scanner'],
+    ['label' => '⭐ Watchlist', 'url' => ['/watchlist/index'], 'active' => Yii::$app->controller->id === 'watchlist'],
+    ['label' => '📈 Signals', 'url' => ['/signal/index'], 'active' => Yii::$app->controller->id === 'signal'],
+    ['label' => '🔔 Alerts', 'url' => ['/alert/index'], 'active' => Yii::$app->controller->id === 'alert'],
+];
 ?>
 <?php $this->beginPage() ?>
 <!DOCTYPE html>
@@ -25,6 +32,12 @@ $this->registerLinkTag(['rel' => 'icon', 'type' => 'image/x-icon', 'href' => Yii
 <head>
     <title><?= Html::encode($this->title) ?></title>
     <?php $this->head() ?>
+    <style>
+        .sidebar { min-height: calc(100vh - 56px); border-right: 1px solid #dee2e6; }
+        .sidebar .nav-link { color: #333; border-radius: .375rem; }
+        .sidebar .nav-link.active { background: #0d6efd; color: #fff; }
+        .kpi { font-size: 1.6rem; font-weight: 700; }
+    </style>
 </head>
 <body class="d-flex flex-column h-100">
 <?php $this->beginBody() ?>
@@ -32,16 +45,13 @@ $this->registerLinkTag(['rel' => 'icon', 'type' => 'image/x-icon', 'href' => Yii
 <header id="header">
     <?php
     NavBar::begin([
-        'brandLabel' => Yii::$app->name,
+        'brandLabel' => '📈 US Stock Volume Analyzer',
         'brandUrl' => Yii::$app->homeUrl,
         'options' => ['class' => 'navbar-expand-md navbar-dark bg-dark fixed-top']
     ]);
     echo Nav::widget([
-        'options' => ['class' => 'navbar-nav'],
+        'options' => ['class' => 'navbar-nav ms-auto'],
         'items' => [
-            ['label' => 'Home', 'url' => ['/site/index']],
-            ['label' => 'About', 'url' => ['/site/about']],
-            ['label' => 'Contact', 'url' => ['/site/contact']],
             Yii::$app->user->isGuest
                 ? ['label' => 'Login', 'url' => ['/site/login']]
                 : '<li class="nav-item">'
@@ -59,21 +69,33 @@ $this->registerLinkTag(['rel' => 'icon', 'type' => 'image/x-icon', 'href' => Yii
 </header>
 
 <main id="main" class="flex-shrink-0" role="main">
-    <div class="container">
-        <?php if (!empty($this->params['breadcrumbs'])): ?>
-            <?= Breadcrumbs::widget(['links' => $this->params['breadcrumbs']]) ?>
-        <?php endif ?>
-        <?= Alert::widget() ?>
-        <?= $content ?>
+    <div class="container-fluid">
+        <div class="row">
+            <aside class="col-md-2 col-lg-2 d-none d-md-block pt-3 sidebar">
+                <nav class="nav flex-column gap-1">
+                    <?php foreach ($sideMenu as $item): ?>
+                        <?= Html::a($item['label'], $item['url'], [
+                            'class' => 'nav-link' . (!empty($item['active']) ? ' active' : ''),
+                        ]) ?>
+                    <?php endforeach ?>
+                </nav>
+                <?php if (!empty($this->params['breadcrumbs'])): ?>
+                    <div class="mt-3 small text-muted px-2">
+                        <?= Breadcrumbs::widget(['links' => $this->params['breadcrumbs']]) ?>
+                    </div>
+                <?php endif ?>
+            </aside>
+            <div class="col-md-10 col-lg-10 py-3">
+                <?= Alert::widget() ?>
+                <?= $content ?>
+            </div>
+        </div>
     </div>
 </main>
 
-<footer id="footer" class="mt-auto py-3 bg-light">
-    <div class="container">
-        <div class="row text-muted">
-            <div class="col-md-6 text-center text-md-start">&copy; My Company <?= date('Y') ?></div>
-            <div class="col-md-6 text-center text-md-end"><?= Yii::powered() ?></div>
-        </div>
+<footer id="footer" class="mt-auto py-2 bg-light">
+    <div class="container-fluid text-center text-muted small">
+        US Stock Volume Analyzer &copy; <?= date('Y') ?> — <?= Yii::powered() ?>
     </div>
 </footer>
 
@@ -81,3 +103,4 @@ $this->registerLinkTag(['rel' => 'icon', 'type' => 'image/x-icon', 'href' => Yii
 </body>
 </html>
 <?php $this->endPage() ?>
+

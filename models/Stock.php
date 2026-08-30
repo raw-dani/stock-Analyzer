@@ -91,8 +91,24 @@ class Stock extends ActiveRecord
         return $this->hasMany(WatchlistItem::class, ['stock_id' => 'id']);
     }
 
-    public function __toString(): string
+        public function __toString(): string
     {
         return $this->symbol;
+    }
+
+    /**
+     * Harga terakhir — diambil dari daily_price terbaru (task 7.2).
+     * @return float|null
+     */
+    public function getPrice(): ?float
+    {
+        $price = \Yii::$app->cache->getOrSet(
+            "stock-price-{$this->symbol}",
+            fn () => (float) DailyPrice::find()
+                ->where(['stock_id' => $this->id])
+                ->max('close'),
+            900,
+        );
+        return $price ?: null;
     }
 }
