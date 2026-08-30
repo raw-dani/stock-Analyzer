@@ -16,6 +16,15 @@ return [
     'language' => 'en-US',
     'components' => [
         'db' => $db,
+        'cache' => [
+            'class' => 'yii\caching\FileCache',
+        ],
+        'formatter' => [
+            'class' => \app\components\Formatter::class,
+        ],
+        'errorHandler' => [
+            'class' => \app\components\ApiErrorHandler::class,
+        ],
         'mailer' => [
             'class' => \yii\symfonymailer\Mailer::class,
             'viewPath' => '@app/mail',
@@ -44,4 +53,14 @@ return [
         ],
     ],
     'params' => $params,
+    'modules' => [
+        'api' => [
+            'class' => \app\modules\api\Module::class,
+            'modules' => [
+                'v1' => [
+                    'class' => \app\modules\api\v1\Module::class,
+                ],
+            ],
+        ],
+    ],
 ];

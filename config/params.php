@@ -51,4 +51,7 @@ return [
 
     // Alert
     'alertCooldownHours' => 24,
+
+    // REST API v1 (Modul 13): rate limit per klien (token/IP) per menit
+    'apiRateLimitPerMinute' => 120,
 ];

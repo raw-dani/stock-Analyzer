@@ -24,6 +24,7 @@ $config = [
             'enableAutoLogin' => true,
         ],
         'errorHandler' => [
+            'class' => \app\components\ApiErrorHandler::class,
             'errorAction' => 'site/error',
         ],
         'formatter' => [
@@ -66,6 +67,7 @@ $config = [
             'showScriptName' => false,
             'rules' => [
                 'stock/<symbol:[A-Z.]+>' => 'stock/view',
+                'api/v1/stocks/<symbol:[A-Z0-9.\-]+>' => 'api/v1/stocks/view',
                 'POST api/v1/<controller:[\w-]+>/<action:[\w-]+>' => 'api/v1/<controller>/<action>',
                 'api/v1/<controller:[\w-]+>/<action:[\w-]+>' => 'api/v1/<controller>/<action>',
                 'api/v1/<controller:[\w-]+>' => 'api/v1/<controller>/index',
@@ -73,6 +75,16 @@ $config = [
         ],
     ],
     'params' => $params,
+    'modules' => [
+        'api' => [
+            'class' => \app\modules\api\Module::class,
+            'modules' => [
+                'v1' => [
+                    'class' => \app\modules\api\v1\Module::class,
+                ],
+            ],
+        ],
+    ],
 ];
 
 if (YII_ENV_DEV) {
