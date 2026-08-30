@@ -27,6 +27,12 @@ $config = [
         'marketData' => [
             'class' => \app\services\market\DataProviderFactory::class,
         ],
+        'mailer' => [
+            'class' => \yii\symfonymailer\Mailer::class,
+            'viewPath' => '@app/mail',
+            // send all mails to a file by default (dev). Production: konfigurasi SMTP transport.
+            'useFileTransport' => true,
+        ],
         'log' => [
             'targets' => [
                 [
