@@ -8,72 +8,205 @@ use app\models\Alert;
 use app\models\AlertLog;
 use app\models\Stock;
 use app\models\WeeklyAnalysis;
+use app\services\RsiDoubleBottomService;
 use Yii;
 use yii\log\Logger;
 
 /**
- * Alert engine (task 10.3, 10.5, 10.6).
- *
- * Evaluasi setiap alert aktif terhadap weekly_analysis terbaru per simbol.
- * Cooldown anti-spam: alert tidak dikirim ulang sebelum alertCooldownHours
- * sejak last_triggered_at (params.php).
- *
- * Channel (10.5/10.6):
- *  - in-app: selalu — baris alert_log channel 'app' (list + read di /alert/notifications)
- *  - email: dikirim via Yii mailer ke email user (dev: useFileTransport → runtime/mail)
- * Telegram (10.7) P2: menyusul — cukup tambah channel baru di sini.
- */
-final class AlertService
-{
-    /**
-     * @param int|null $userId batasi ke user tertentu (null = semua user)
-     * @return array{evaluated: int, triggered: int, logs: int}
+     * Alert engine (task 10.3, 10.5, 10.6).
+     *
+     * Evaluasi setiap alert aktif terhadap weekly_analysis terbaru per simbol.
+     * Cooldown anti-spam: alert tidak dikirim ulang sebelum alertCooldownHours
+     * sejak last_triggered_at (params.php).
+     *
+     * Channel (10.5/10.6):
+     *  - in-app: selalu — baris alert_log channel 'app' (list + read di /alert/notifications)
+     *  - email: dikirim via Yii mailer ke email user (dev: useFileTransport → runtime/mail)
+     * Telegram (10.7) P2: menyusul — cukup tambah channel baru di sini.
      */
-    public function evaluate(?int $userId = null): array
+    final class AlertService
     {
-        $query = Alert::find()
-            ->where(['active' => true])
-            ->with(['user', 'stock']);
-        if ($userId !== null) {
-            $query->andWhere(['user_id' => $userId]);
-        }
-        $alerts = $query->all();
-
-        $cooldown = (int) (Yii::$app->params['alertCooldownHours'] ?? 24) * 3600;
-        $now = time();
-        $evaluated = 0;
-        $triggered = 0;
-        $logCount = 0;
-
-        foreach ($alerts as $alert) {
-            $evaluated++;
-
-            // cooldown anti-spam
-            if ($alert->last_triggered_at !== null && ($now - (int) $alert->last_triggered_at) < $cooldown) {
-                continue;
+        /**
+         * @param int|null $userId batasi ke user tertentu (null = semua user)
+         * @return array{evaluated: int, triggered: int, logs: int}
+         */
+        public function evaluate(?int $userId = null): array
+        {
+            $query = Alert::find()
+                ->where(['active' => true])
+                ->with(['user', 'stock']);
+            if ($userId !== null) {
+                $query->andWhere(['user_id' => $userId]);
             }
+            $alerts = $query->all();
 
-            foreach ($this->latestWeeklyRows($alert) as $weekly) {
-                $value = $weekly->{$alert->condition_type};
-                if ($value === null || !$alert->matches((float) $value)) {
+            $cooldown = (int) (Yii::$app->params['alertCooldownHours'] ?? 24) * 3600;
+            $now = time();
+            $evaluated = 0;
+            $triggered = 0;
+            $logCount = 0;
+
+            foreach ($alerts as $alert) {
+                $evaluated++;
+
+                // cooldown anti-spam
+                if ($alert->last_triggered_at !== null && ($now - (int) $alert->last_triggered_at) < $cooldown) {
                     continue;
                 }
 
-                $message = $this->buildMessage($alert, $weekly, (float) $value);
-                $logCount += $this->notify($alert, $weekly, $message);
-                $triggered++;
-                $alert->last_triggered_at = $now;
+                // Handle RSI Double Bottom condition type
+                if ($alert->condition_type === Alert::CONDITION_RSI_DOUBLE_BOTTOM) {
+                    $evaluated--;
+                    foreach ($this->evaluateRsiDoubleBottom($alert) as $result) {
+                        $evaluated++;
+                        if ($result['triggered']) {
+                            $logCount += $this->notify($alert, $result['weekly'], $result['message']);
+                            $triggered++;
+                            $alert->last_triggered_at = $now;
+                        }
+                    }
+                    if ($alert->isAttributeChanged('last_triggered_at')) {
+                        $alert->save(false, ['last_triggered_at']);
+                    }
+                    continue;
+                }
+
+                foreach ($this->latestWeeklyRows($alert) as $weekly) {
+                    $value = $weekly->{$alert->condition_type};
+                    if ($value === null || !$alert->matches((float) $value)) {
+                        continue;
+                    }
+
+                    $message = $this->buildMessage($alert, $weekly, (float) $value);
+                    $logCount += $this->notify($alert, $weekly, $message);
+                    $triggered++;
+                    $alert->last_triggered_at = $now;
+                }
+
+                if ($alert->isAttributeChanged('last_triggered_at')) {
+                    $alert->save(false, ['last_triggered_at']);
+                }
             }
 
-            if ($alert->isAttributeChanged('last_triggered_at')) {
-                $alert->save(false, ['last_triggered_at']);
-            }
+            Yii::info(sprintf('Alert evaluate: %d alerts evaluated, %d triggered, %d logs written.', $evaluated, $triggered, $logCount), 'app\services\AlertService');
+
+            return ['evaluated' => $evaluated, 'triggered' => $triggered, 'logs' => $logCount];
         }
 
-        Yii::info(sprintf('Alert evaluate: %d alerts evaluated, %d triggered, %d logs written.', $evaluated, $triggered, $logCount), 'app\services\AlertService');
+        /**
+         * Evaluasi alert RSI Double Bottom.
+         * Operator yang didukung:
+         *   - 'breakout' : RSI breakout neckline
+         *   - 'confidence': confidence >= threshold
+         *   - 'divergence': bullish divergence present
+         *   - 'found'     : pattern found (threshold diabaikan)
+         *
+         * @return array{triggered: bool, weekly: WeeklyAnalysis|null, message: string}[]
+         */
+        private function evaluateRsiDoubleBottom(Alert $alert): array
+        {
+            $results = [];
 
-        return ['evaluated' => $evaluated, 'triggered' => $triggered, 'logs' => $logCount];
-    }
+            // Get stocks to evaluate
+            $stockIds = $alert->stock_id !== null
+                ? [$alert->stock_id]
+                : Stock::find()->select('id')->where(['active' => true])->column();
+
+            // Default params from config
+            $defaults = Yii::$app->params['rsiDefaults'] ?? [];
+            $timeframe = (int) ($alert->threshold_data['timeframe'] ?? RsiDoubleBottomService::TIMEFRAME_4H);
+            $lookback  = (int) ($alert->threshold_data['lookback'] ?? ($defaults['lookback'] ?? 150));
+            $tolerance = (float) ($alert->threshold_data['tolerance'] ?? ($defaults['tolerance'] ?? 3.0));
+            $rsiPeriod = (int) ($alert->threshold_data['rsiPeriod'] ?? ($defaults['rsiPeriod'] ?? 14));
+            $maxRsi    = (float) ($alert->threshold_data['maxRsi'] ?? ($defaults['maxRsiForBottom'] ?? 40.0));
+            $minSep    = (int) ($alert->threshold_data['minSeparation'] ?? ($defaults['minSeparation'] ?? 5));
+            $maxSep    = (int) ($alert->threshold_data['maxSeparation'] ?? ($defaults['maxSeparation'] ?? 30));
+            $neckMin   = (float) ($alert->threshold_data['necklineMin'] ?? ($defaults['necklineMin'] ?? 2.0));
+
+            $service = new RsiDoubleBottomService();
+
+            foreach ($stockIds as $stockId) {
+                try {
+                    $pattern = $service->detectPattern(
+                        $stockId,
+                        $timeframe,
+                        $lookback,
+                        $tolerance,
+                        $rsiPeriod,
+                        $maxRsi,
+                        $minSep,
+                        $maxSep,
+                        $neckMin
+                    );
+                } catch (\Throwable $e) {
+                    Yii::warning("RSI Double Bottom alert eval failed for stock {$stockId}: " . $e->getMessage(), 'app\services\AlertService');
+                    $results[] = ['triggered' => false, 'weekly' => null, 'message' => ''];
+                    continue;
+                }
+
+                if ($pattern === null) {
+                    $results[] = ['triggered' => false, 'weekly' => null, 'message' => ''];
+                    continue;
+                }
+
+                // Create a pseudo-weekly object for message formatting
+                $weekly = new class($pattern, $alert->stock ?? null) {
+                    public $stock;
+                    public $stock_id;
+                    public $pattern;
+                    public function __construct(array $pattern, $stock = null) {
+                        $this->pattern = $pattern;
+                        $this->stock = $stock;
+                        $this->stock_id = $stock?->id ?? 0;
+                    }
+                    public function __get($name) {
+                        return $this->pattern[$name] ?? null;
+                    }
+                };
+
+                $triggered = false;
+                $message = '';
+
+                switch ($alert->operator) {
+                    case 'breakout':
+                        $triggered = (bool) ($pattern['breakout'] ?? false);
+                        $message = $triggered
+                            ? sprintf('%s: RSI Double Bottom BREAKOUT confirmed (confidence: %d%%)', $weekly->stock?->symbol ?? $stockId, $pattern['confidence'])
+                            : '';
+                        break;
+                    case 'confidence':
+                        $threshold = (float) $alert->threshold;
+                        $triggered = ($pattern['confidence'] ?? 0) >= $threshold;
+                        $message = $triggered
+                            ? sprintf('%s: RSI Double Bottom confidence %d%% >= %s%%', $weekly->stock?->symbol ?? $stockId, $pattern['confidence'], $threshold)
+                            : '';
+                        break;
+                    case 'divergence':
+                        $triggered = (bool) ($pattern['divergence'] ?? false);
+                        $message = $triggered
+                            ? sprintf('%s: RSI Double Bottom BULLISH DIVERGENCE detected (confidence: %d%%)', $weekly->stock?->symbol ?? $stockId, $pattern['confidence'])
+                            : '';
+                        break;
+                    case 'found':
+                    case '=':
+                    case '>=':
+                        $triggered = true; // pattern exists
+                        $message = sprintf('%s: RSI Double Bottom pattern found (confidence: %d%%, breakout: %s, divergence: %s)',
+                            $weekly->stock?->symbol ?? $stockId,
+                            $pattern['confidence'],
+                            ($pattern['breakout'] ?? false) ? 'YES' : 'NO',
+                            ($pattern['divergence'] ?? false) ? 'YES' : 'NO'
+                        );
+                        break;
+                    default:
+                        $triggered = false;
+                }
+
+                $results[] = ['triggered' => $triggered, 'weekly' => $triggered ? $weekly : null, 'message' => $message];
+            }
+
+            return $results;
+        }
 
     /**
      * Weekly analysis terbaru untuk scope alert:

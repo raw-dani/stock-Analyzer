@@ -63,6 +63,7 @@ final class AlertController extends Controller
             $alert->condition_type = $form->condition_type;
             $alert->operator = $form->operator;
             $alert->threshold = $form->threshold;
+            $alert->threshold_data = $form->threshold_data;
             $alert->active = $form->active;
             if ($alert->save()) {
                 Yii::$app->session->setFlash('success', 'Alert dibuat.');
@@ -81,6 +82,7 @@ final class AlertController extends Controller
         $form->condition_type = $alert->condition_type;
         $form->operator = $alert->operator;
         $form->threshold = (float) $alert->threshold;
+        $form->threshold_data = $alert->threshold_data;
         $form->active = (bool) $alert->active;
         $form->symbol = $alert->stock->symbol ?? null;
 
@@ -89,6 +91,7 @@ final class AlertController extends Controller
             $alert->condition_type = $form->condition_type;
             $alert->operator = $form->operator;
             $alert->threshold = $form->threshold;
+            $alert->threshold_data = $form->threshold_data;
             $alert->active = $form->active;
             if ($alert->save()) {
                 Yii::$app->session->setFlash('success', 'Alert diperbarui.');

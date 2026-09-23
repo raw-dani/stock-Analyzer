@@ -156,9 +156,17 @@ final class SignalEngineService extends Component
      */
     public function scoreAll(): int
     {
+        $stocks = \app\models\Stock::find()->where(['active' => true]);
+        return $this->scoreByQuery($stocks);
+    }
+
+    /**
+     * Scoring simbol sesuai query filter (mis. by exchange).
+     */
+    public function scoreByQuery(\yii\db\Query $query): int
+    {
         $total = 0;
-        $stocks = \app\models\Stock::find()->where(['active' => true])->all();
-        foreach ($stocks as $stock) {
+        foreach ($query->all() as $stock) {
             $total += $this->scoreStock($stock);
         }
         return $total;

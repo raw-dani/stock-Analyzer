@@ -23,7 +23,8 @@ class MarketStatusService extends BaseObject
         $provider = Yii::$container->get(SettingsService::class)->provider();
         $configured = true;
 
-        if ($provider !== 'csv') {
+        // yahoo_finance & csv tidak butuh API key
+        if (in_array($provider, ['alpha_vantage', 'polygon'], true)) {
             $key = Yii::$app->params['marketDataProviderConfig'][$provider]['apiKey'] ?? '';
             $configured = $key !== '';
         }
@@ -39,6 +40,7 @@ class MarketStatusService extends BaseObject
         return match ($this->providerStatus()['name']) {
             'alpha_vantage' => 'Alpha Vantage',
             'polygon' => 'Polygon',
+            'yahoo_finance' => 'Yahoo Finance',
             'csv' => 'CSV (dev)',
             default => '—',
         };

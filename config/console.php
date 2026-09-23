@@ -1,12 +1,16 @@
 <?php
 
+ini_set('memory_limit', '512M');
+
 $params = require __DIR__ . '/params.php';
-$db = require __DIR__ . '/db.php';
+$shared = require __DIR__ . '/shared.php';
+$db = $shared['db'];
+$queue = $shared['queue'];
 
 $config = [
     'id' => 'basic-console',
     'basePath' => dirname(__DIR__),
-    'bootstrap' => ['log'],
+    'bootstrap' => ['log', \app\components\SettingsBootstrap::class],
     'controllerNamespace' => 'app\commands',
     'aliases' => [
         '@bower' => '@vendor/bower-asset',
@@ -20,10 +24,7 @@ $config = [
         'formatter' => [
             'class' => \app\components\Formatter::class,
         ],
-        'queue' => [
-            'class' => \yii\queue\sync\Queue::class,
-            // Production: ganti ke redis driver + jalankan worker `php yii queue/listen --verbose`
-        ],
+        'queue' => $queue,
         'marketData' => [
             'class' => \app\services\market\DataProviderFactory::class,
         ],
@@ -34,7 +35,9 @@ $config = [
             'useFileTransport' => true,
         ],
         'log' => [
-            'targets' => [
+            // Target log dibangun lalu difilter agar tidak ada entri null
+            // (lihat errorAlertTarget di bawah — null bila ERROR_ALERT_EMAIL kosong).
+            'targets' => array_values(array_filter([
                 [
                     'class' => 'yii\log\FileTarget',
                     'levels' => ['error', 'warning'],
@@ -47,8 +50,12 @@ $config = [
                     'categories' => ['app\services\*'],
                     'logFile' => '@runtime/logs/services.log',
                     'maxLogFiles' => 20,
+                    'logVars' => [],
                 ],
-            ],
+                // Error alerting (Modul 15.5) — notifikasi email saat error/warning.
+                // Diaktifkan bila env ERROR_ALERT_EMAIL di-set (mis. di docker-compose).
+                \app\helpers\Log::errorAlertTarget(),
+            ])),
         ],
         'db' => $db,
     ],

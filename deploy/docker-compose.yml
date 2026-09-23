@@ -1,0 +1,83 @@
+# docker-compose — US Stock Volume Analyzer (Modul 15.4)
+#
+# Layanan:
+#   app   : PHP-FPM menjalankan aplikasi Yii2 (web + konsol via supervisor)
+#   nginx : web server (proxy ke app)
+#   db    : MySQL (opsional; untuk produksi. Default dev = SQLite di container)
+#   redis : antrian job (Modul 15.3) untuk QUEUE_DRIVER=redis
+#
+# Cara pakai:
+#   docker-compose up -d db redis          # hanya infra
+#   docker-compose run --rm app php yii migrate/up --interactive=0
+#   docker-compose up -d app nginx         # jalankan web
+#
+# Untuk mode Redis (produksi): set env QUEUE_DRIVER=redis dan aktifkan service redis.
+# Untuk MySQL: set DB_DRIVER=mysql + DB_* (lihat .env.example).
+
+version: "3.8"
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: stock-volume-analyzer:latest
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      # Default dev di dalam container: SQLite
+      DB_DRIVER: ${DB_DRIVER:-sqlite}
+      DB_DSN: ${DB_DSN:-sqlite:@app/data/stocks.db}
+      DB_HOST: ${DB_HOST:-db}
+      DB_NAME: ${DB_NAME:-stock_analyzer}
+      DB_USER: ${DB_USER:-stock}
+      DB_PASSWORD: ${DB_PASSWORD:-stock_pass}
+      QUEUE_DRIVER: ${QUEUE_DRIVER:-redis}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      ERROR_ALERT_EMAIL: ${ERROR_ALERT_EMAIL:-}
+      # Provider API key (dari .env)
+      ALPHAVANTAGE_API_KEY: ${ALPHAVANTAGE_API_KEY:-}
+      POLYGON_API_KEY: ${POLYGON_API_KEY:-}
+    volumes:
+      - ../: /var/www/html
+    depends_on:
+      - db
+      - redis
+    networks: [appnet]
+
+  nginx:
+    image: nginx:1.25-alpine
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - ../: /var/www/html
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app
+    networks: [appnet]
+
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_pass}
+      MYSQL_DATABASE: ${DB_NAME:-stock_analyzer}
+      MYSQL_USER: ${DB_USER:-stock}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-stock_pass}
+    command: --default-authentication-plugin=mysql_native_password
+    volumes:
+      - dbdata:/var/lib/mysql
+    networks: [appnet]
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    networks: [appnet]
+
+volumes:
+  dbdata:
+
+networks:
+  appnet:

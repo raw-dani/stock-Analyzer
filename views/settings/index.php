@@ -23,8 +23,9 @@ $this->params['breadcrumbs'][] = $this->title;
                 <div class="card-header">📡 Market Data Provider</div>
                 <div class="card-body">
                     <?= $form->field($model, 'provider')->dropDownList(SettingsForm::PROVIDERS) ?>
-                    <p class="small text-muted mb-0">
+                        <p class="small text-muted mb-0">
                         HTTP provider (Alpha Vantage / Polygon) butuh API key di <code>config/params.php</code>.
+                        Yahoo Finance & CSV (dev) tidak butuh API key.
                     </p>
                 </div>
             </div>

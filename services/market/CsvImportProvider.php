@@ -11,7 +11,7 @@ use yii\base\Exception;
  * Provider dari file CSV lokal (dev/test/backfill — task 2.2).
  * Format file: data/csv/SYMBOL.csv dengan header date,open,high,low,close,volume
  */
-final class CsvImportProvider implements DataProviderInterface
+final class CsvImportProvider implements DataProviderInterface, IntradayDataProviderInterface
 {
     public function __construct(public string $dataPath = '@app/data/csv')
     {
@@ -58,10 +58,19 @@ final class CsvImportProvider implements DataProviderInterface
     {
         $dir = Yii::getAlias($this->dataPath);
         $list = [];
-        foreach (glob($dir . '/*.csv') ?: [] as $file) {
+                foreach (glob($dir . '/*.csv') ?: [] as $file) {
             $symbol = strtoupper(basename($file, '.csv'));
             $list[] = ['symbol' => $symbol, 'name' => $symbol, 'exchange' => 'NASDAQ', 'sector' => null];
         }
         return $list;
+    }
+
+    /**
+     * CSV tidak menyimpan data intraday — kembalikan array kosong agar
+     * syncIntraday() tidak crash pada dev backend.
+     */
+    public function getIntradayBars(string $symbol, string $interval = '1h', ?string $fromDatetime = null, ?string $toDatetime = null): array
+    {
+        return [];
     }
 }

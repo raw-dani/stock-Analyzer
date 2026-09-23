@@ -29,6 +29,7 @@ final class AlertsController extends BaseController
                 'condition_type' => $a->condition_type,
                 'operator' => $a->operator,
                 'threshold' => (float) $a->threshold,
+                'threshold_data' => $a->threshold_data ?? null,
                 'active' => (bool) $a->active,
                 'last_triggered_at' => $a->last_triggered_at !== null
                     ? date('c', (int) $a->last_triggered_at)

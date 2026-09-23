@@ -1,0 +1,39 @@
+# =====================================================================
+# Crontab — US Stock Volume Analyzer (Modul 15.2)
+#
+# Jadwal mengikuti jam close pasar saham AS (16:00 ET).
+# Close 16:00 ET = 20:00 UTC (waktu standar, EST/EDT rata-rata ±1 jam).
+# Kami pakai 22:30 & 23:30 UTC sebagai buffer di atas jam close agar
+# data akhir hari sudah final diterima provider.
+#
+# Instal: crontab deploy/crontab.example    (dari root repo)
+# atau salin baris-baris di bawah ke `crontab -e`.
+#
+# Variabel lingkungan (DB_DRIVER, DB_HOST, QUEUE_DRIVER, dll.) bila dipakai
+# di-export pada baris CRON dgn format `DB_DRIVER=mysql QUEUE_DRIVER=redis ...`
+# =====================================================================
+
+SHELL=/bin/bash
+PATH=/usr/local/bin:/usr/bin:/bin
+# Ganti sesuai lokasi aplikasi:
+APP_DIR=/var/www/stock-volume-analyzer
+PHP_BIN=php
+
+# --- Harian (jam kerja pipeline), semua zona → UTC ---
+# 1) Fetch data harian semua simbol (via queue → redis worker)
+30 23 * * 1-5  cd $APP_DIR && $PHP_BIN yii data/fetch >/dev/null 2>&1
+
+# 2) Analisis buy/sell + agregasi mingguan + scoring sinyal
+45 23 * * 1-5  cd $APP_DIR && $PHP_BIN yii data/analyze >/dev/null 2>&1
+
+# 3) Evaluasi alert & dispatch notifikasi
+00 0 * * 1-5   cd $APP_DIR && $PHP_BIN yii alert/dispatch >/dev/null 2>&1
+
+# --- Mingguan (opsional; untuk refresh stock list dari provider) ---
+# 15 0 * * 0    cd $APP_DIR && $PHP_BIN yii market/refresh-stocklist >/dev/null 2>&1
+
+# --- Backup DB (contoh, sesuaikan driver & path) ---
+# 30 1 * * *    cd $APP_DIR && $PHP_BIN scripts/backup-db.php >/dev/null 2>&1
+
+# --- Health check / keepalive (failover opsional) ---
+# 0 * * * *     curl -fsS http://127.0.0.1/health >/dev/null || echo "Down!" | mail -s "Stock Analyzer Down" admin@example.com

@@ -6,7 +6,7 @@ return [
     'senderName' => 'Stock Volume Analyzer',
 
     // ==== US Stock Volume Analyzer ====
-    // Provider data pasar: alpha_vantage | polygon | csv (dev/backfill)
+    // Provider data pasar: alpha_vantage | polygon | yahoo_finance | csv (dev/backfill)
     'marketDataProvider' => 'csv',
     'marketDataProviderConfig' => [
         'alpha_vantage' => [
@@ -19,8 +19,11 @@ return [
             'baseUrl' => 'https://api.polygon.io',
             'rateLimitPerMinute' => 5,
         ],
+        'yahoo_finance' => [
+            'baseUrl' => 'https://query1.finance.yahoo.com',
+            'rateLimitPerMinute' => 30,
+        ],
         'csv' => [
-            // Folder berisi file CSV per simbol: SYMBOL.csv (date,open,high,low,close,volume)
             'dataPath' => '@app/data/csv',
         ],
     ],
@@ -54,4 +57,16 @@ return [
 
     // REST API v1 (Modul 13): rate limit per klien (token/IP) per menit
     'apiRateLimitPerMinute' => 120,
+
+    // RSI Double Bottom scanner (Modul tambahan)
+    'rsiDefaults' => [
+        'rsiPeriod'      => 14,
+        'maxRsiForBottom'=> 40.0,   // kedua lembah harus < nilai ini
+        'tolerance'      => 3.0,     // poin RSI: |RSI1 - RSI2| <= ini
+        'minSeparation'  => 5,       // candle minimum antar lembah
+        'maxSeparation'  => 30,      // candle maksimum antar lembah
+        'lookback'       => 150,     // jumlah candle yang dipindai
+        'necklineMin'    => 2.0,     // prominensi neckline minimum (poin RSI)
+        'logCategory'    => 'app\\services\\rsidoublebottom',
+    ],
 ];

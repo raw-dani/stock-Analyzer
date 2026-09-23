@@ -1,7 +1,11 @@
 <?php
 
+ini_set('memory_limit', '512M');
+
 $params = require __DIR__ . '/params.php';
-$db = require __DIR__ . '/db.php';
+$shared = require __DIR__ . '/shared.php';
+$db = $shared['db'];
+$queue = $shared['queue'];
 
 $config = [
     'id' => 'basic',
@@ -30,10 +34,7 @@ $config = [
         'formatter' => [
             'class' => \app\components\Formatter::class,
         ],
-        'queue' => [
-            'class' => \yii\queue\sync\Queue::class,
-            // Production: ganti ke redis driver (desain §15.3)
-        ],
+        'queue' => $queue,
         'marketData' => [
             'class' => \app\services\market\DataProviderFactory::class,
         ],
@@ -45,7 +46,7 @@ $config = [
         ],
         'log' => [
             'traceLevel' => YII_DEBUG ? 3 : 0,
-            'targets' => [
+            'targets' => array_values(array_filter([
                 [
                     'class' => 'yii\log\FileTarget',
                     'levels' => ['error', 'warning'],
@@ -58,14 +59,20 @@ $config = [
                     'categories' => ['app\services\*'],
                     'logFile' => '@runtime/logs/services.log',
                     'maxLogFiles' => 20,
+                    'logVars' => [],
                 ],
-            ],
+                // Error alerting (Modul 15.5) — notifikasi email saat error/warning.
+                // null bila ERROR_ALERT_EMAIL kosong → dibuang oleh array_filter.
+                \app\helpers\Log::errorAlertTarget(),
+            ])),
         ],
         'db' => $db,
         'urlManager' => [
             'enablePrettyUrl' => true,
             'showScriptName' => false,
             'rules' => [
+                'double-bottom/<symbol:[A-Z.]+>' => 'double-bottom/detail',
+                'double-bottom' => 'double-bottom/index',
                 'stock/<symbol:[A-Z.]+>' => 'stock/view',
                 'api/v1/stocks/<symbol:[A-Z0-9.\-]+>' => 'api/v1/stocks/view',
                 'POST api/v1/<controller:[\w-]+>/<action:[\w-]+>' => 'api/v1/<controller>/<action>',

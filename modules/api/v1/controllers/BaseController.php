@@ -18,7 +18,6 @@ abstract class BaseController extends Controller
     public function behaviors(): array
     {
         $behaviors = parent::behaviors();
-        $behaviors['rateLimit'] = ['class' => \app\filters\RateLimitFilter::class];
 
         if ($this->requiresAuth) {
             $behaviors['authenticator'] = ['class' => HttpBearerAuth::class];

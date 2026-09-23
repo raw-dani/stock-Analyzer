@@ -25,6 +25,7 @@ class DataProviderFactory extends \yii\base\Component
         $class = match ($provider) {
             'alpha_vantage' => AlphaVantageProvider::class,
             'polygon' => PolygonProvider::class,
+            'yahoo_finance' => YahooFinanceProvider::class,
             'csv' => CsvImportProvider::class,
             default => throw new InvalidConfigException("No provider class mapped for: {$provider}"),
         };

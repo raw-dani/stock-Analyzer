@@ -1,0 +1,10 @@
+<?php
+
+declare(strict_types=1);
+
+namespace app\views\rsi-double-bottom;
+
+/**
+ * Placeholder: direktori views/rsi-double-bottom/
+ * File view: index.php, detail.php, _pattern_details.php
+ */

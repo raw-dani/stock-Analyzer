@@ -8,7 +8,10 @@ use app\models\form\BacktestForm;
 use app\models\BacktestRun;
 use app\models\BacktestTrade;
 use app\models\DailyPrice;
+use app\models\IntradayPrice;
+use app\models\Stock;
 use app\models\WeeklyAnalysis;
+use app\services\RsiDoubleBottomService;
 use Yii;
 
 /**
@@ -28,14 +31,36 @@ final class BacktesterService
     {
         $run = new BacktestRun();
         $run->name = $form->resolvedName();
-        $run->params = json_encode([
-            'minBuyRatio' => $form->minBuyRatio,
-            'minRvol' => $form->minRvol,
-            'minScore' => $form->minScore,
-            'holdingDays' => $form->holdingDays,
-            'startDate' => $form->startDate,
-            'endDate' => $form->endDate,
-        ]);
+
+        if ($form->strategy === 'rsi_double_bottom') {
+            $run->params = json_encode([
+                'strategy' => 'rsi_double_bottom',
+                'timeframe' => $form->timeframe,
+                'lookback' => $form->lookback,
+                'tolerance' => $form->tolerance,
+                'rsiPeriod' => $form->rsiPeriod,
+                'maxRsi' => $form->maxRsi,
+                'minSeparation' => $form->minSeparation,
+                'maxSeparation' => $form->maxSeparation,
+                'necklineMin' => $form->necklineMin,
+                'minConfidence' => $form->minConfidence,
+                'breakoutOnly' => $form->breakoutOnly,
+                'holdingDays' => $form->holdingDays,
+                'startDate' => $form->startDate,
+                'endDate' => $form->endDate,
+            ]);
+        } else {
+            $run->params = json_encode([
+                'strategy' => 'signal',
+                'minBuyRatio' => $form->minBuyRatio,
+                'minRvol' => $form->minRvol,
+                'minScore' => $form->minScore,
+                'holdingDays' => $form->holdingDays,
+                'startDate' => $form->startDate,
+                'endDate' => $form->endDate,
+            ]);
+        }
+
         $run->start_date = $form->startDate ?: $this->earliestWeek();
         $run->end_date = $form->endDate ?: date('Y-m-d');
         $run->trades = 0;
@@ -60,6 +85,10 @@ final class BacktesterService
      */
     public function simulate(BacktestForm $form): array
     {
+        if ($form->strategy === 'rsi_double_bottom') {
+            return $this->simulateRsiDoubleBottom($form);
+        }
+
         $query = WeeklyAnalysis::find()
             ->joinWith(['stock'])
             ->andWhere(['{{%stock}}.active' => true])
@@ -83,6 +112,110 @@ final class BacktesterService
             if ($trade !== null) {
                 $trades[] = $trade;
             }
+        }
+
+        return $trades;
+    }
+
+    /**
+     * Simulasi strategi RSI Double Bottom.
+     * Entry: saat pattern terdeteksi (tanggal RSI2), exit: N hari trading setelahnya.
+     * @return BacktestTrade[]
+     */
+    private function simulateRsiDoubleBottom(BacktestForm $form): array
+    {
+        $service = new RsiDoubleBottomService();
+        $trades = [];
+        $cache = [];
+
+        // Get all active stocks
+        $stocks = Stock::find()->where(['active' => true])->all();
+
+        foreach ($stocks as $stock) {
+            $stockId = $stock->id;
+
+            // Load daily bars for exit calculation
+            if (!isset($cache[$stockId])) {
+                $cache[$stockId] = $this->loadBars($stockId);
+            }
+            $barsData = $cache[$stockId];
+
+            try {
+                $pattern = $service->detectPattern(
+                    $stockId,
+                    $form->timeframe,
+                    $form->lookback,
+                    $form->tolerance,
+                    $form->rsiPeriod,
+                    $form->maxRsi,
+                    $form->minSeparation,
+                    $form->maxSeparation,
+                    $form->necklineMin
+                );
+            } catch (\Throwable $e) {
+                Yii::warning("RSI Double Bottom backtest failed for {$stock->symbol}: " . $e->getMessage(), 'app\services\BacktesterService');
+                continue;
+            }
+
+            if ($pattern === null) {
+                continue;
+            }
+
+            // Filter by confidence
+            if ($form->minConfidence !== null && ($pattern['confidence'] ?? 0) < $form->minConfidence) {
+                continue;
+            }
+
+            // Filter breakout only
+            if ($form->breakoutOnly && !($pattern['breakout'] ?? false)) {
+                continue;
+            }
+
+            // Filter by date range
+            $patternDate = $pattern['rsi2_date'] ?? null;
+            if ($patternDate === null) {
+                continue;
+            }
+            $patternDate = substr($patternDate, 0, 10);
+            if ($form->startDate !== null && $patternDate < $form->startDate) {
+                continue;
+            }
+            if ($form->endDate !== null && $patternDate > $form->endDate) {
+                continue;
+            }
+
+            // Find entry index: first bar with date >= patternDate (RSI2 date)
+            $entryIdx = null;
+            foreach ($barsData['bars'] as $i => $bar) {
+                if ($bar['date'] >= $patternDate) {
+                    $entryIdx = $i;
+                    break;
+                }
+            }
+            if ($entryIdx === null) {
+                continue;
+            }
+
+            $exitIdx = $entryIdx + $form->holdingDays;
+            if ($exitIdx >= count($barsData['bars'])) {
+                continue; // not enough data for exit
+            }
+
+            $entry = $barsData['bars'][$entryIdx];
+            $exit = $barsData['bars'][$exitIdx];
+            if ($entry['close'] <= 0) {
+                continue;
+            }
+
+            $trade = new BacktestTrade();
+            $trade->stock_id = $stockId;
+            $trade->entry_date = $entry['date'];
+            $trade->entry_price = $entry['close'];
+            $trade->exit_date = $exit['date'];
+            $trade->exit_price = $exit['close'];
+            $trade->return_pct = round(($exit['close'] / $entry['close'] - 1) * 100, 4);
+
+            $trades[] = $trade;
         }
 
         return $trades;

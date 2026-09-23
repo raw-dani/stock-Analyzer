@@ -1,21 +1,87 @@
-<p align="center">
-    <a href="https://github.com/yiisoft" target="_blank">
-        <img src="https://avatars0.githubusercontent.com/u/993323" height="100px">
-    </a>
-    <h1 align="center">Yii 2 Basic Project Template</h1>
-    <br>
-</p>
+# US Stock Volume Analyzer
 
-Yii 2 Basic Project Template is a skeleton [Yii 2](https://www.yiiframework.com/) application best for
-rapidly creating small projects.
+Aplikasi web berbasis Yii 2 untuk menganalisis volume transaksi saham Amerika dan mengidentifikasi **buying pressure** mingguan. Sistem ini mengambil data OHLCV, mengklasifikasikan buy/sell volume, menghitung indikator mingguan (RVOL, volume growth, MA20/MA50), menilai saham dengan skor 0-100, dan menghasilkan sinyal BUY/SELL.
 
-The template contains the basic features including user login/logout and a contact page.
-It includes all commonly used configurations that would allow you to focus on adding new
-features to your application.
+> Dokumentasi lengkap (instalasi, konfigurasi, REST API, struktur proyek): lihat [`../README.md`](../README.md).
 
-[![Latest Stable Version](https://img.shields.io/packagist/v/yiisoft/yii2-app-basic.svg)](https://packagist.org/packages/yiisoft/yii2-app-basic)
-[![Total Downloads](https://img.shields.io/packagist/dt/yiisoft/yii2-app-basic.svg)](https://packagist.org/packages/yiisoft/yii2-app-basic)
-[![build](https://github.com/yiisoft/yii2-app-basic/workflows/build/badge.svg)](https://github.com/yiisoft/yii2-app-basic/actions?query=workflow%3Abuild)
+## Data Provider
+
+- **Yahoo Finance** (`yahoo_finance`, default produksi) — `GET https://query1.finance.yahoo.com/v8/finance/chart/{symbol}`, tanpa API key. Mendukung data **harian + intraday 1H**.
+- **Alpha Vantage / Polygon** — butuh API key (`.env`: `ALPHAVANTAGE_API_KEY` / `POLYGON_API_KEY`), hanya data harian.
+- **CSV** (`csv`, default dev) — backfill dari file `data/csv/`.
+
+Daftar statis Yahoo: **~136 simbol** (NASDAQ + NYSE + ETF spt. SPCX/ARKK), termasuk DKNG, SPCX, BABA, KLAC, SEDG, FSLR, WDC, ADI, PM, NOW, ETSY, GE, RTX.
+
+## Console Commands
+
+```bash
+# Refresh daftar saham dari provider aktif (~136 simbol Yahoo)
+php yii market/refresh-stocklist
+
+# Fetch data harian semua simbol aktif (via queue) / 1 simbol
+php yii data/fetch
+php yii data/fetch NVDA
+
+# Sync langsung 1 simbol tanpa queue (debug); opsi --from=YYYY-MM-DD --to=YYYY-MM-DD
+php yii data/sync NVDA
+
+# Refresh incremental SEMUA simbol aktif (cron harian); opsi --limit=50 --sleepMs=2000
+php yii data/refresh-all
+
+# Sync intraday 1H (hanya yahoo_finance): 1 simbol / semua simbol (cron 1-4 jam)
+php yii data/sync-intraday NVDA [--interval=1h]
+php yii data/sync-intraday-all [--interval=1h --limit=20]
+
+# Klasifikasi & agregasi mingguan: semua simbol / 1 simbol
+php yii data/analyze
+php yii data/analyze NVDA
+
+# Scan & generate sinyal
+php yii signal/scan
+
+# Dispatch alert (cron)
+php yii alert/dispatch
+
+# Backtest strategi signal / rsi_double_bottom + grid search
+php yii backtest/run --minScore=80 --holdingDays=5
+php yii backtest/run --strategy=rsi_double_bottom --timeframe=4 --lookback=150 --tolerance=3 --rsiPeriod=14 --maxRsi=40 --holdingDays=5
+php yii backtest/grid
+```
+
+### Menambah Saham Baru (alur wajib)
+
+Semua perintah hanya memproses saham `active = 1` di tabel `stock`. Setelah menambah simbol ke `services/market/YahooFinanceProvider.php::staticStockList()`, jalankan berurutan:
+
+```bash
+php yii market/refresh-stocklist   # daftarkan / reaktivasi ke tabel stock
+php yii data/sync DKNG             # ambil OHLCV (beri jeda antar simbol, rate limit Yahoo ~30 req/menit)
+php yii data/analyze DKNG          # isi weekly_analysis (syarat muncul di Scanner/Detail/chart)
+php yii signal/scan                # hasilkan sinyal
+```
+
+Troubleshooting: cek `stock` (ada? `active=1`?) → `daily_price` (ada bar?) → `weekly_analysis` (ada baris?). Jangan jalankan `refresh-stocklist` saat provider = `csv` (akan menonaktifkan simbol di luar CSV). `SPCX` wajar datanya sedikit (ETF baru, ±69 bar / 16 minggu).
+
+## Web Interface
+
+Jalankan dari folder ini (`stock-volume-analyzer/`):
+
+```bash
+php -S 127.0.0.1:8089 -t web
+```
+
+Lalu buka scanner & halaman analisis:
+
+```
+http://127.0.0.1:8089/scanner
+http://127.0.0.1:8089/double-bottom
+http://127.0.0.1:8089/rsi-double-bottom
+http://127.0.0.1:8089/backtest/index
+```
+
+## Logging
+
+- `runtime/logs/services.log` — progres scan per saham (mis. `[3/15] AAPL: 4 minggu discoring`).
+- `runtime/logs/app.log` — error/warning.
 
 DIRECTORY STRUCTURE
 -------------------

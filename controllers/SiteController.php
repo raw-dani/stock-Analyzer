@@ -9,6 +9,7 @@ use yii\web\Response;
 use yii\filters\VerbFilter;
 use app\models\LoginForm;
 use app\models\ContactForm;
+use app\models\form\RegisterForm;
 
 class SiteController extends Controller
 {
@@ -117,7 +118,7 @@ class SiteController extends Controller
     }
 
     /**
-     * Displays about page.
+     * Displays the about page.
      *
      * @return string
      */
@@ -125,4 +126,30 @@ class SiteController extends Controller
     {
         return $this->render('about');
     }
+
+    /**
+     * Register a new user (task 8.4).
+     *
+     * @return Response|string
+     */
+    public function actionRegister()
+    {
+        if (!Yii::$app->user->isGuest) {
+            return $this->goHome();
+        }
+
+        $model = new RegisterForm();
+        if ($model->load(Yii::$app->request->post()) && $model->validate()) {
+            $user = $model->register();
+            if ($user !== null) {
+                Yii::$app->session->setFlash('success', 'Registrasi berhasil. Silakan login.');
+                return $this->redirect(['login']);
+            }
+        }
+
+        return $this->render('register', [
+            'model' => $model,
+        ]);
+    }
 }
+

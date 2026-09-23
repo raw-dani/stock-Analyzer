@@ -45,12 +45,24 @@ final class MarketController extends Controller
                 $new++;
             } else {
                 $stock->name = $item['name'] ?? $stock->name;
+                $stock->exchange = $item['exchange'] ?? $stock->exchange;
                 $stock->sector = $item['sector'] ?? $stock->sector;
+                $stock->industry = $item['industry'] ?? $stock->industry;
+                $stock->market_cap = $item['market_cap'] ?? $stock->market_cap;
+                // Reaktivasi: simbol yang sempat dinonaktifkan tapi muncul lagi
+                // di list provider harus aktif kembali agar ikut fetch/analyze/scan.
+                $stock->active = true;
                 $stock->save(false);
             }
         }
 
-        $this->stdout("Stock list refreshed: {$new} new, " . (count($list) - $new) . " updated\n", Console::FG_GREEN);
+        $providerSymbols = array_map(fn ($item) => MarketDataService::normalizeSymbol($item['symbol']), $list);
+        $deactivated = Stock::updateAll(
+            ['active' => false],
+            ['and', ['active' => true], ['not', ['symbol' => $providerSymbols]]]
+        );
+
+        $this->stdout("Stock list refreshed: {$new} new, " . (count($list) - $new) . " updated, {$deactivated} deactivated\n", Console::FG_GREEN);
         return ExitCode::OK;
     }
 }

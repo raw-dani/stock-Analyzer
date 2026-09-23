@@ -6,6 +6,7 @@ namespace app\commands;
 
 use app\models\form\BacktestForm;
 use app\services\BacktesterService;
+use app\services\RsiDoubleBottomService;
 use Yii;
 use yii\console\Controller;
 use yii\console\ExitCode;
@@ -18,6 +19,7 @@ use yii\helpers\Console;
 final class BacktestController extends Controller
 {
     public $name = '';
+    public $strategy = 'signal'; // signal | rsi_double_bottom
     public $minBuyRatio;
     public $minRvol;
     public $minScore;
@@ -25,9 +27,29 @@ final class BacktestController extends Controller
     public $startDate;
     public $endDate;
 
+    // RSI Double Bottom params
+    public $timeframe;
+    public $lookback;
+    public $tolerance;
+    public $rsiPeriod;
+    public $maxRsi;
+    public $minSeparation;
+    public $maxSeparation;
+    public $necklineMin;
+    public $minConfidence;
+    public $breakoutOnly;
+
     public function options($actionID): array
     {
-        return ['name', 'minBuyRatio', 'minRvol', 'minScore', 'holdingDays', 'startDate', 'endDate', 'help'];
+        return [
+            'name', 'strategy',
+            'minBuyRatio', 'minRvol', 'minScore',
+            'holdingDays', 'startDate', 'endDate',
+            'timeframe', 'lookback', 'tolerance', 'rsiPeriod', 'maxRsi',
+            'minSeparation', 'maxSeparation', 'necklineMin',
+            'minConfidence', 'breakoutOnly',
+            'help'
+        ];
     }
 
     public function actionRun(): int
@@ -88,12 +110,45 @@ final class BacktestController extends Controller
     {
         $form = new BacktestForm();
         $form->name = (string) $this->name;
+        $form->strategy = (string) $this->strategy;
         $form->minBuyRatio = $this->minBuyRatio !== null ? (float) $this->minBuyRatio : null;
         $form->minRvol = $this->minRvol !== null ? (float) $this->minRvol : null;
         $form->minScore = $this->minScore !== null ? (int) $this->minScore : null;
         $form->holdingDays = (int) $this->holdingDays;
         $form->startDate = $this->startDate ?: null;
         $form->endDate = $this->endDate ?: null;
+
+        // RSI Double Bottom params
+        if ($this->timeframe !== null) {
+            $form->timeframe = (int) $this->timeframe;
+        }
+        if ($this->lookback !== null) {
+            $form->lookback = (int) $this->lookback;
+        }
+        if ($this->tolerance !== null) {
+            $form->tolerance = (float) $this->tolerance;
+        }
+        if ($this->rsiPeriod !== null) {
+            $form->rsiPeriod = (int) $this->rsiPeriod;
+        }
+        if ($this->maxRsi !== null) {
+            $form->maxRsi = (float) $this->maxRsi;
+        }
+        if ($this->minSeparation !== null) {
+            $form->minSeparation = (int) $this->minSeparation;
+        }
+        if ($this->maxSeparation !== null) {
+            $form->maxSeparation = (int) $this->maxSeparation;
+        }
+        if ($this->necklineMin !== null) {
+            $form->necklineMin = (float) $this->necklineMin;
+        }
+        if ($this->minConfidence !== null) {
+            $form->minConfidence = (int) $this->minConfidence;
+        }
+        if ($this->breakoutOnly !== null) {
+            $form->breakoutOnly = (bool) $this->breakoutOnly;
+        }
 
         return $form;
     }

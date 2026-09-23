@@ -21,6 +21,8 @@ $this->registerLinkTag(['rel' => 'icon', 'type' => 'image/x-icon', 'href' => Yii
 $sideMenu = [
     ['label' => '📊 Dashboard', 'url' => ['/dashboard/index'], 'active' => Yii::$app->controller->id === 'dashboard'],
     ['label' => '🔍 Scanner', 'url' => ['/scanner/index'], 'active' => Yii::$app->controller->id === 'scanner'],
+    ['label' => '📉 Double Bottom', 'url' => ['/double-bottom/index'], 'active' => Yii::$app->controller->id === 'double-bottom'],
+    ['label' => '📉 RSI Double Bottom', 'url' => ['/rsi-double-bottom/index'], 'active' => str_starts_with(Yii::$app->controller->id, 'rsi-double-bottom')],
     ['label' => '🗺️ Sectors', 'url' => ['/sector/index'], 'active' => Yii::$app->controller->id === 'sector'],
     ['label' => '⭐ Watchlist', 'url' => ['/watchlist/index'], 'active' => Yii::$app->controller->id === 'watchlist'],
     ['label' => '📈 Signals', 'url' => ['/signal/index'], 'active' => Yii::$app->controller->id === 'signal'],

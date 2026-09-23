@@ -35,7 +35,7 @@ class SettingsForm extends Model
     public $aboveMa20;
     public $aboveMa50;
 
-    public const PROVIDERS = ['csv' => 'CSV (dev)', 'alpha_vantage' => 'Alpha Vantage', 'polygon' => 'Polygon'];
+    public const PROVIDERS = ['csv' => 'CSV (dev)', 'alpha_vantage' => 'Alpha Vantage', 'polygon' => 'Polygon', 'yahoo_finance' => 'Yahoo Finance'];
     public const PROVIDER_POINTS = [
         'buyRatio' => [30, 20, 10],
         'volumeGrowth' => [25, 15, 10],

@@ -12,6 +12,9 @@
         "irc": "ircs://irc.libera.chat:6697/yii",
         "source": "https://github.com/yiisoft/yii2"
     },
+    "autoload": {
+        "psr-4": { "app\\": "" }
+    },
     "minimum-stability": "stable",
     "require": {
         "php": ">=7.4.0",

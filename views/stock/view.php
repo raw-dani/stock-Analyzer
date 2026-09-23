@@ -3,6 +3,7 @@
 /** @var yii\web\View $this */
 /** @var app\models\Stock $stock */
 /** @var app\models\WeeklyAnalysis|null $currentWeekly */
+/** @var app\models\Signal|null $currentSignal */
 /** @var yii\data\ActiveDataProvider $weeklyProvider */
 
 use app\widgets\SignalBadge;
@@ -40,20 +41,64 @@ $this->params['breadcrumbs'][] = ['label' => $stock->symbol, 'url' => ['view', '
     'options' => ['class' => 'table table-sm table-bordered'],
 ]) ?>
 
-<?php if ($currentWeekly !== null): ?>
-<div class="card mb-4">
-    <div class="card-header">Weekly Analysis (<?= $currentWeekly->week_start ?>)</div>
-    <div class="card-body">
-        <div class="row g-3">
-            <div class="col-md-2"><strong>Buy Ratio</strong><br><?= Yii::$app->formatter->asRatioPercent($currentWeekly->buy_ratio) ?></div>
-            <div class="col-md-2"><strong>Sell Ratio</strong><br><?= Yii::$app->formatter->asRatioPercent($currentWeekly->sell_ratio) ?></div>
-            <div class="col-md-2"><strong>Vol Growth</strong><br><?= $currentWeekly->volume_growth !== null ? Yii::$app->formatter->asPercent($currentWeekly->volume_growth) : '-' ?></div>
-            <div class="col-md-2"><strong>RVOL</strong><br><?= $currentWeekly->rvol !== null ? round($currentWeekly->rvol, 2) . 'x' : '-' ?></div>
-            <div class="col-md-2"><strong>Score</strong><br><?= $currentWeekly->score ?></div>
+    <?php if ($currentWeekly !== null): ?>
+    <div class="card mb-4">
+        <div class="card-header">Weekly Analysis (<?= $currentWeekly->week_start ?>)</div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-2"><strong>Buy Ratio</strong><br><?= Yii::$app->formatter->asRatioPercent($currentWeekly->buy_ratio) ?></div>
+                <div class="col-md-2"><strong>Sell Ratio</strong><br><?= Yii::$app->formatter->asRatioPercent($currentWeekly->sell_ratio) ?></div>
+                <div class="col-md-2"><strong>Vol Growth</strong><br><?= $currentWeekly->volume_growth !== null ? Yii::$app->formatter->asPercent($currentWeekly->volume_growth) : '-' ?></div>
+                <div class="col-md-2"><strong>RVOL</strong><br><?= $currentWeekly->rvol !== null ? round($currentWeekly->rvol, 2) . 'x' : '-' ?></div>
+                <div class="col-md-2"><strong>Score</strong><br><?= $currentWeekly->score ?>/100</div>
+            </div>
+
+            <hr class="my-2">
+
+            <div class="row g-3 mt-1">
+                <div class="col-md-4">
+                    <strong>Confidence</strong>
+                    <div class="progress" style="height:20px">
+                        <div class="progress-bar bg-<?= $currentWeekly->score >= 65 ? 'success' : ($currentWeekly->score >= 35 ? 'warning' : 'danger') ?>"
+                             role="progressbar" style="width:<?= $currentWeekly->score ?>%">
+                            <?= $currentWeekly->score ?>%
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <strong>Signal</strong><br>
+                    <?= SignalBadge::widget(['signal' => $currentWeekly->signal]) ?>
+                    <span class="text-muted small">
+                        threshold: <?php
+                        $thresholds = [
+                            'STRONG_BUY' => 80, 'BUY' => 65, 'WATCH' => 50, 'WEAK' => 35, 'SELL' => 0,
+                        ];
+                        echo isset($thresholds[$currentWeekly->signal]) ? '≥' . $thresholds[$currentWeekly->signal] : '-';
+                        ?>
+                    </span>
+                </div>
+                <div class="col-md-4 text-end">
+                    <a href="<?= \yii\helpers\Url::to(['/scanner/index', 'symbol' => $stock->symbol]) ?>" class="btn btn-outline-primary btn-sm">
+                        🔍 Scan Similar
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
-</div>
-<?php endif ?>
+
+    <?php if ($currentSignal !== null && count($currentSignal->getReasonList()) > 0): ?>
+    <div class="card mb-4">
+        <div class="card-header">Signal Reasons</div>
+        <div class="card-body">
+            <ul class="list-group list-group-flush">
+                <?php foreach ($currentSignal->getReasonList() as $reason): ?>
+                    <li class="list-group-item py-1">✓ <?= Html::encode($reason) ?></li>
+                <?php endforeach ?>
+            </ul>
+        </div>
+    </div>
+    <?php endif ?>
+    <?php endif ?>
 
 <div class="card mb-4">
     <div class="card-header">Price & Volume (candlestick + MA20/MA50)</div>
@@ -105,6 +150,61 @@ $this->params['breadcrumbs'][] = ['label' => $stock->symbol, 'url' => ['view', '
             myChart.setOption(option);
         })
         .catch(function (err) { console.error('Chart data fetch error:', err); });
+})();
+</script>
+
+<div class="card mb-4">
+    <div class="card-header">Weekly RVOL &amp; Buying Pressure Trend</div>
+    <div class="card-body">
+        <div id="chart-weekly-trend" style="width:100%;height:300px;"></div>
+    </div>
+</div>
+
+<script>
+(function () {
+    var trendDom = document.getElementById('chart-weekly-trend');
+    if (!trendDom || typeof echarts === 'undefined') { return; }
+
+    var trendOpt = {
+        tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
+        grid: { left: '3%', right: '3%', bottom: '10%', containLabel: true },
+        xAxis: { type: 'category', data: [] },
+        yAxis: [
+            { type: 'value', position: 'left', name: 'RVOL' },
+            { type: 'value', position: 'right', name: 'Buy Pressure', min: 0, max: 1 },
+        ],
+        series: []
+    };
+
+    var trendChart = echarts.init(trendDom);
+    trendChart.setOption(trendOpt);
+
+    fetch('<?= \yii\helpers\Url::to(['chart-data', 'symbol' => $stock->symbol]) ?>')
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+            trendOpt.xAxis.data = d.weeklyDates;
+            trendOpt.series = [
+                {
+                    name: 'RVOL',
+                    type: 'line',
+                    yAxisIndex: 0,
+                    data: d.weeklyRvol,
+                    lineStyle: { color: '#9a60b5' },
+                    emphasis: { focus: 'series' },
+                    areaStyle: { color: 'rgba(154, 96, 181, 0.1)' },
+                },
+                {
+                    name: 'Buy Pressure',
+                    type: 'bar',
+                    yAxisIndex: 1,
+                    data: d.weeklyBuyPressure.map(function (v) { return v !== null ? v : '-'; }),
+                    itemStyle: { color: '#91cc75' },
+                    emphasis: { focus: 'series' },
+                },
+            ];
+            trendChart.setOption(trendOpt);
+        })
+        .catch(function (err) { console.error('Trend chart fetch error:', err); });
 })();
 </script>
 
