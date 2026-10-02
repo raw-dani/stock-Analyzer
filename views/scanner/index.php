@@ -44,7 +44,7 @@ $weeklyColumns = [
         'label' => 'Price',
         'headerOptions' => ['class' => 'text-end'],
         'value' => function ($m) {
-            return $m->stock->price !== null ? Yii::$app->formatter->asCurrency($m->stock->price) : '-';
+            return Yii::$app->formatter->asCurrency($m->close_price);
         },
         'format' => 'raw',
     ],
@@ -109,6 +109,10 @@ $weeklyColumns = [
         'attribute' => 'score',
         'label' => 'Score',
         'headerOptions' => ['class' => 'text-end', 'style' => 'width: 70px'],
+        'value' => function ($m) {
+            return $m->score !== null ? (int) $m->score : '-';
+        },
+        'format' => 'raw',
     ],
     [
         'attribute' => 'signal',
@@ -161,8 +165,16 @@ $dailyColumns = [
         'label' => 'Volume',
         'headerOptions' => ['class' => 'text-end'],
         'value' => function ($m) {
-            return Yii::$app->formatter->asInteger($m->volume);
+            return $m->volume !== null ? Yii::$app->formatter->asInteger($m->volume) : '-';
         },
+    ],
+    [
+        'label' => 'Mkt Cap',
+        'headerOptions' => ['class' => 'text-end'],
+        'value' => function ($m) {
+            return $m->stock->market_cap !== null ? Yii::$app->formatter->asVolume($m->stock->market_cap) : '-';
+        },
+        'format' => 'raw',
     ],
     [
         'attribute' => 'buy_volume',
@@ -184,11 +196,11 @@ $dailyColumns = [
         'label' => 'Buy Ratio',
         'headerOptions' => ['class' => 'text-end', 'style' => 'width: 100px'],
         'value' => function ($m) {
-            $total = (int) $m->buy_volume + (int) $m->sell_volume;
+            $total = $m->buy_volume + $m->sell_volume;
             if ($total <= 0 || $m->buy_volume === null) return '-';
-            $ratio = (int) $m->buy_volume / $total;
+            $ratio = $m->buy_volume / $total;
             $color = $ratio >= 0.7 ? 'text-success' : ($ratio >= 0.5 ? 'text-warning' : 'text-danger');
-            return Html::tag('span', Yii::$app->formatter->asPercent($ratio), ['class' => $color, 'fw-bold' => true]);
+            return Html::tag('span', Yii::$app->formatter->asRatioPercent($ratio), ['class' => $color, 'fw-bold' => true]);
         },
         'format' => 'raw',
     ],

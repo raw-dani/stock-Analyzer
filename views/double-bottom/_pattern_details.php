@@ -86,14 +86,15 @@ use yii\bootstrap5\Html;
                     </li>
                     <li class="list-group-item d-flex justify-content-between">
                         <span>Stop Loss</span>
-                        <strong class="text-danger"><?= number_format(($pattern['low1_price'] + $pattern['low2_price']) / 2 * 0.98, 2) ?></strong>
+                        <strong class="text-danger"><?= number_format($pattern['stop_loss'] ?? (($pattern['low1_price'] + $pattern['low2_price']) / 2 * 0.98), 2) ?></strong>
                     </li>
                 </ul>
                 
                 <h6>Potential Profit</h6>
                 <?php
+                $stopLoss = $pattern['stop_loss'] ?? (($pattern['low1_price'] + $pattern['low2_price']) / 2 * 0.98);
                 $potentialProfit = (($pattern['target_price'] - $pattern['current_price']) / $pattern['current_price']) * 100;
-                $potentialLoss = (($pattern['current_price'] - ($pattern['low1_price'] + $pattern['low2_price']) / 2 * 0.98) / $pattern['current_price']) * 100;
+                $potentialLoss = (($pattern['current_price'] - $stopLoss) / $pattern['current_price']) * 100;
                 ?>
                 <div class="progress" style="height: 25px;">
                     <div class="progress-bar bg-success" style="width: <?= max(0, min(100, $potentialProfit)) ?>%">

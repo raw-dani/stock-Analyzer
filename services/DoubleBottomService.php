@@ -15,6 +15,8 @@ use app\models\Stock;
  * - TIMEFRAME_1H/2H/4H memakai intraday_price (base 1h); 2H/4H
  *   diagregasi dari bar 1H. Bila intraday < 20 bar -> fallback
  *   harian (approximated=true, data_source='daily_fallback').
+ * - Default scanner terpusat di konstanta DEFAULT_* agar konsisten
+ *   dengan controller / API / backtest / alert.
  */
 final class DoubleBottomService
 {
@@ -24,35 +26,66 @@ final class DoubleBottomService
     public const TIMEFRAME_4H = 4;
     public const TIMEFRAME_1D = 24;
 
+    // Default scanner — satu-satunya sumber default untuk web/API/backtest/alert.
+    public const DEFAULT_TIMEFRAME = self::TIMEFRAME_4H;
+    public const DEFAULT_LOOKBACK = 60;         // jumlah candle yang dipindai
+    public const DEFAULT_TOLERANCE = 0.02;      // 2% (desimal)
+    public const DEFAULT_MIN_SEPARATION = 3;
+    public const NECKLINE_MIN_DEPTH = 0.015;    // 1.5% di atas rata-rata low
+
     private const MIN_LOOKBACK = 5;
     private const MAX_LOOKBACK = 500;
     private const MIN_TOLERANCE = 0.001;
     private const MAX_TOLERANCE = 0.20;
     private const MIN_SEPARATION = 2;
     private const MIN_INTRADAY_BARS = 20;
+    private const STOP_LOSS_BUFFER = 0.02;      // stop loss 2% di bawah rata-rata low
 
     /**
      * Scan semua saham aktif untuk double bottom pattern.
-     * @param int $lookbackDays jumlah candle (bukan hari kalender)
+     * @param int|null $lookback jumlah candle (bukan hari kalender). null = DEFAULT_LOOKBACK
+     * @param float|null $tolerance desimal (0.02 = 2%). null = DEFAULT_TOLERANCE
+     * @param int|null $maxSeparation null = otomatis (lookback/2)
+     * @param bool $breakoutOnly true = hanya kembalikan pola yang sudah breakout
+     * @param int $minConfidence filter confidence minimum (0-100)
+     * @param float|null $necklineMinDepth kedalaman neckline minimum (desimal). null = NECKLINE_MIN_DEPTH
      */
-    public function scanAll(int $timeframe = self::TIMEFRAME_4H, int $lookbackDays = 60, float $tolerance = 0.02, int $minSeparation = 3, ?int $maxSeparation = null): array
-    {
-        $this->validateOptions($timeframe, $lookbackDays, $tolerance, $minSeparation, $maxSeparation);
-        $maxSeparation ??= (int) floor($lookbackDays / 2);
+    public function scanAll(
+        int $timeframe = self::DEFAULT_TIMEFRAME,
+        ?int $lookback = null,
+        ?float $tolerance = null,
+        int $minSeparation = self::DEFAULT_MIN_SEPARATION,
+        ?int $maxSeparation = null,
+        bool $breakoutOnly = false,
+        int $minConfidence = 0,
+        ?float $necklineMinDepth = null
+    ): array {
+        $lookback ??= self::DEFAULT_LOOKBACK;
+        $tolerance ??= self::DEFAULT_TOLERANCE;
+        $necklineMinDepth ??= self::NECKLINE_MIN_DEPTH;
+        $this->validateOptions($timeframe, $lookback, $tolerance, $minSeparation, $maxSeparation, $necklineMinDepth);
+        $maxSeparation ??= (int) floor($lookback / 2);
         $results = [];
         $stocks = Stock::find()->where(['active' => true])->all();
         
-        \Yii::info("Scan started: " . count($stocks) . " stocks, timeframe={$timeframe}, lookback={$lookbackDays}, tolerance={$tolerance}", 'app\services\doublebottom');
+        \Yii::info("Scan started: " . count($stocks) . " stocks, timeframe={$timeframe}, lookback={$lookback}, tolerance={$tolerance}", 'app\services\doublebottom');
 
         foreach ($stocks as $stock) {
-            $pattern = $this->detectPattern($stock->id, $timeframe, $lookbackDays, $tolerance, $minSeparation, $maxSeparation);
-            if ($pattern !== null) {
-                $pattern['symbol'] = $stock->symbol;
-                $pattern['stock_name'] = $stock->name;
-                $pattern['sector'] = $stock->sector;
-                $results[] = $pattern;
-                \Yii::info("Pattern found: {$stock->symbol}, confidence={$pattern['confidence']}", 'app\services\doublebottom');
+            $pattern = $this->detectPattern($stock->id, $timeframe, $lookback, $tolerance, $minSeparation, $maxSeparation, $necklineMinDepth);
+            if ($pattern === null) {
+                continue;
             }
+            if ($breakoutOnly && !$pattern['breakout']) {
+                continue;
+            }
+            if ($pattern['confidence'] < $minConfidence) {
+                continue;
+            }
+            $pattern['symbol'] = $stock->symbol;
+            $pattern['stock_name'] = $stock->name;
+            $pattern['sector'] = $stock->sector;
+            $results[] = $pattern;
+            \Yii::info("Pattern found: {$stock->symbol}, confidence={$pattern['confidence']}", 'app\services\doublebottom');
         }
 
         usort($results, fn ($a, $b) => $b['confidence'] <=> $a['confidence']);
@@ -60,21 +93,32 @@ final class DoubleBottomService
     }
 
     /**
-     * Deteksi double bottom pattern untuk satu saham.
+     * Deteksi pola double bottom untuk satu saham.
+     * $necklineMinDepth = kedalaman W minimum (rasio desimal); null -> default.
      */
-    public function detectPattern(int $stockId, int $timeframe = self::TIMEFRAME_4H, int $lookbackDays = 60, float $tolerance = 0.02, int $minSeparation = 3, ?int $maxSeparation = null): ?array
-    {
-        $this->validateOptions($timeframe, $lookbackDays, $tolerance, $minSeparation, $maxSeparation);
-        $maxSeparation ??= (int) floor($lookbackDays / 2);
+    public function detectPattern(
+        int $stockId,
+        int $timeframe = self::DEFAULT_TIMEFRAME,
+        ?int $lookback = null,
+        ?float $tolerance = null,
+        int $minSeparation = self::DEFAULT_MIN_SEPARATION,
+        ?int $maxSeparation = null,
+        ?float $necklineMinDepth = null
+    ): ?array {
+        $lookback ??= self::DEFAULT_LOOKBACK;
+        $tolerance ??= self::DEFAULT_TOLERANCE;
+        $necklineMinDepth ??= self::NECKLINE_MIN_DEPTH;
+        $this->validateOptions($timeframe, $lookback, $tolerance, $minSeparation, $maxSeparation, $necklineMinDepth);
+        $maxSeparation ??= (int) floor($lookback / 2);
 
-        [$candles, $approx] = $this->loadCandles($stockId, $timeframe, $lookbackDays);
+        [$candles, $approx] = $this->loadCandles($stockId, $timeframe, $lookback);
 
         if (count($candles) < 5) {
             \Yii::debug("Stock ID {$stockId}: Not enough candles (" . count($candles) . ' < 5)', 'app\services\doublebottom');
             return null;
         }
 
-        $result = $this->findDoubleBottom($candles, $tolerance, $minSeparation, $maxSeparation);
+        $result = $this->findDoubleBottom($candles, $tolerance, $minSeparation, $maxSeparation, $necklineMinDepth);
 
         if ($result === null) {
             \Yii::debug("Stock ID {$stockId}: No double bottom pattern found", 'app\services\doublebottom');
@@ -87,7 +131,7 @@ final class DoubleBottomService
         return $result;
     }
 
-    private function validateOptions(int $timeframe, int $lookback, float $tolerance, int $minSeparation, ?int $maxSeparation): void
+    private function validateOptions(int $timeframe, int $lookback, float $tolerance, int $minSeparation, ?int $maxSeparation, ?float $necklineMinDepth = null): void
     {
         if (!in_array($timeframe, [self::TIMEFRAME_1H, self::TIMEFRAME_2H, self::TIMEFRAME_4H, self::TIMEFRAME_1D], true)) {
             throw new \InvalidArgumentException('Timeframe harus salah satu dari 1H, 2H, 4H, atau 1D.');
@@ -104,13 +148,16 @@ final class DoubleBottomService
         if ($maxSeparation !== null && $maxSeparation < $minSeparation) {
             throw new \InvalidArgumentException('Separasi maksimum harus >= separasi minimum.');
         }
+        if ($necklineMinDepth !== null && (!is_finite($necklineMinDepth) || $necklineMinDepth < 0 || $necklineMinDepth > 0.5)) {
+            throw new \InvalidArgumentException('Neckline minimum depth harus antara 0% dan 50% (0 - 0.5).');
+        }
     }
 
     /**
-     * Muat candle analisa: 1D dari daily_price; 1H/2H/4H dari
-     * intraday_price (base 1h, agregasi 2h/4h). Fallback harian
-     * bila intraday < 20 bar. Return [candles, approximated].
-     *
+     * Muat candle untuk deteksi pola double bottom.
+     * - TIMEFRAME_1D memakai daily_price.
+     * - TIMEFRAME_1H/2H/4H memakai intraday_price 1h (2H/4H diagregasi).
+     * - Jika intraday < MIN_INTRADAY_BARS bar -> fallback harian (approx=true).
      * @return array{0: array<int, array{open:float,high:float,low:float,close:float,volume:int,date:string}>, 1: bool}
      */
     private function loadCandles(int $stockId, int $timeframe, int $lookback): array
@@ -144,6 +191,16 @@ final class DoubleBottomService
             return [array_slice($this->aggregate($base, $per), -$lookback), false];
         }
         return [$this->dailyCandles($stockId, $lookback), true];
+    }
+
+    /**
+     * Ambil candle analisa untuk chart / ekspor (publik, dipakai halaman detail).
+     * @return array{0: array<int, array{open:float,high:float,low:float,close:float,volume:int,date:string}>, 1: bool}
+     */
+    public function getAnalysisCandles(int $stockId, int $timeframe = self::DEFAULT_TIMEFRAME, ?int $lookback = null): array
+    {
+        $lookback ??= self::DEFAULT_LOOKBACK;
+        return $this->loadCandles($stockId, $timeframe, $lookback);
     }
 
     /** @return array<int, array{open:float,high:float,low:float,close:float,volume:int,date:string}> */
@@ -216,7 +273,7 @@ final class DoubleBottomService
         float $tolerance,
         int $minSeparation,
         int $maxSeparation,
-        float $necklineMinDepth = 0.015
+        float $necklineMinDepth = self::NECKLINE_MIN_DEPTH
     ): ?array {
         $count = count($candles);
         if ($count < 5) {
@@ -276,11 +333,15 @@ final class DoubleBottomService
                             $neckline,
                             $currentClose,
                             $breakout,
-                            $diff
+                            $diff,
+                            $candles,
+                            $low1['index'],
+                            $low2['index']
                         );
 
                         $targetPrice = $neckline + ($neckline - $avgLow);
                         $riskBase = $currentClose - $avgLow;
+                        $stopLoss = $avgLow * (1 - self::STOP_LOSS_BUFFER);
                         $cand = [
                             'low1_price' => $low1['price'],
                             'low1_date' => $low1['date'],
@@ -292,6 +353,7 @@ final class DoubleBottomService
                             'breakout' => $breakout,
                             'confidence' => $confidence,
                             'target_price' => $targetPrice,
+                            'stop_loss' => $stopLoss,
                             // risk_reward hanya bermakna bila harga di atas support
                             'risk_reward' => ($breakout && $riskBase > 0) ? ($targetPrice - $currentClose) / $riskBase : null,
                         ];
@@ -310,9 +372,23 @@ final class DoubleBottomService
      * Hitung confidence score untuk pattern (0-100).
      * Catatan: $currentClose > neckline*1.02 adalah konfirmasi
      * kekuatan breakout harga (bukan data volume intraday).
+     *
+     * Bonus volume (maks +10 agar harga tetap dominan):
+     *  +5 low2 sepi (distribusi klasik: minat jual melemah di retest),
+     *  +5 breakout bervolume (konfirmasi kekuatan penembusan neckline).
+     * Basis penilaian memakai rata-rata volume window yang dipindai.
      */
-    private function calculateConfidence(float $low1, float $low2, float $neckline, float $currentClose, bool $breakout, float $lowDiff): int
-    {
+    private function calculateConfidence(
+        float $low1,
+        float $low2,
+        float $neckline,
+        float $currentClose,
+        bool $breakout,
+        float $lowDiff,
+        array $candles = [],
+        int $low1Index = -1,
+        int $low2Index = -1
+    ): int {
         $score = 50;
 
         // Bonus untuk lows yang sangat mirip
@@ -340,6 +416,26 @@ final class DoubleBottomService
         // Bonus untuk konfirmasi kekuatan breakout harga (>2% di atas neckline)
         if ($currentClose > $neckline * 1.02) {
             $score += 5;
+        }
+
+        // --- Bonus volume (optional; dilewati bila data volume tidak tersedia) ---
+        $volumes = array_column($candles, 'volume');
+        $volumes = array_values(array_filter($volumes, fn ($v) => (int) $v > 0));
+        if (count($volumes) >= 5) {
+            $avgVol = array_sum($volumes) / count($volumes);
+            if ($avgVol > 0 && $low2Index >= 0 && isset($candles[$low2Index]['volume'])) {
+                // Low kedua sepi = tekanan jual melemah (sehat untuk reversal)
+                if ((int) $candles[$low2Index]['volume'] < $avgVol * 0.9) {
+                    $score += 5;
+                }
+            }
+            if ($breakout) {
+                // Breakout bervolume = konfirmasi kekuatan buyer
+                $lastVol = (int) end($candles)['volume'];
+                if ($lastVol > $avgVol * 1.5) {
+                    $score += 5;
+                }
+            }
         }
 
         return min(100, max(0, $score));

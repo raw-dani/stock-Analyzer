@@ -21,7 +21,7 @@ use yii\helpers\Url;
                 </div>
                 <div class="col-md-2">
                     <?= $form->field($model, 'exchange')->dropDownList(
-                        ['' => 'All', 'NASDAQ' => 'NASDAQ', 'NYSE' => 'NYSE', 'NYSEARCA' => 'NYSEARCA', 'AMEX' => 'AMEX'],
+                        ['NASDAQ' => 'NASDAQ', 'NYSE' => 'NYSE', 'NYSEARCA' => 'NYSEARCA', 'AMEX' => 'AMEX'],
                         ['prompt' => 'All Exchange', 'class' => 'form-select', 'id' => 'exchange']
                     ) ?>
                 </div>
@@ -38,16 +38,22 @@ use yii\helpers\Url;
                     <?= $form->field($model, 'minBuyRatio')->textInput(['placeholder' => '0.5']) ?>
                 </div>
                 <div class="col-md-2">
-                    <?= $form->field($model, 'mode')->dropDownList(
-                        ['weekly' => 'Weekly', 'daily' => 'Daily'],
-                        ['class' => 'form-select', 'id' => 'mode']
-                    ) ?>
-                </div>
-                <div class="col-md-2 d-flex align-items-end">
-                    <?= Html::submitButton('Filter', ['class' => 'btn btn-primary w-100']) ?>
+                    <?= $form->field($model, 'minVolumeGrowth')->textInput(['placeholder' => '0.5']) ?>
                 </div>
             </div>
             <div class="row g-2 mt-1">
+                <div class="col-md-2">
+                    <?= $form->field($model, 'signal')->dropDownList(
+                        ['' => 'All Signal'] + \app\models\WeeklyAnalysis::SIGNALS,
+                        ['prompt' => 'All Signal', 'class' => 'form-select']
+                    ) ?>
+                </div>
+                <div class="col-md-2">
+                    <?= $form->field($model, 'mode')->dropDownList(
+                        ['weekly' => 'Weekly', 'daily' => 'Daily'],
+                        ['prompt' => 'Weekly', 'class' => 'form-select', 'id' => 'mode']
+                    ) ?>
+                </div>
                 <div class="col-md-2">
                     <?= $form->field($model, 'minMarketCap')->textInput(['placeholder' => 'Min $ (cth 1M=1000000)']) ?>
                 </div>
@@ -57,6 +63,11 @@ use yii\helpers\Url;
                 <div class="col-md-2">
                     <?= $form->field($model, 'minPrice')->textInput(['placeholder' => 'Min price']) ?>
                 </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <?= Html::submitButton('Filter', ['class' => 'btn btn-primary w-100']) ?>
+                </div>
+            </div>
+            <div class="row g-2 mt-1">
                 <div class="col-md-2">
                     <?= $form->field($model, 'maxPrice')->textInput(['placeholder' => 'Max price']) ?>
                 </div>

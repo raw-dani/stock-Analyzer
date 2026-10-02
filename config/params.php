@@ -58,6 +58,13 @@ return [
     // REST API v1 (Modul 13): rate limit per klien (token/IP) per menit
     'apiRateLimitPerMinute' => 120,
 
+    // Price Double Bottom scanner (Modul tambahan).
+    // Nilai default teknis ada di DoubleBottomService::DEFAULT_*; di sini
+    // hanya override opsional + kategori log.
+    'doubleBottomDefaults' => [
+        'logCategory' => 'app\\services\\doublebottom',
+    ],
+
     // RSI Double Bottom scanner (Modul tambahan)
     'rsiDefaults' => [
         'rsiPeriod'      => 14,
