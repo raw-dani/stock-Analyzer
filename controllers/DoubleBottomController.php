@@ -17,7 +17,7 @@ use yii\web\Controller;
 final class DoubleBottomController extends Controller
 {
     private const SCAN_CACHE_TTL = 900;
-    private const SORTS = ['confidence', 'target', 'symbol', 'low1_date'];
+    private const SORTS = ['confidence', 'target', 'rr', 'distance', 'rvol', 'symbol', 'low1_date'];
 
     public function actionIndex(): string
     {
@@ -108,9 +108,18 @@ final class DoubleBottomController extends Controller
             $minConfidence = 0;
         }
         $breakoutOnly = (bool) $req->get('breakoutOnly', false);
+        
+        $statusFilter = (string) $req->get('statusFilter', 'all');
+        if (!in_array($statusFilter, ['all', 'buy_zone', 'retest', 'breakout', 'approaching'], true)) {
+            $statusFilter = 'all';
+        }
+        $minRr = (float) $req->get('minRr', 0);
+        if ($minRr < 0 || $minRr > 10) { $minRr = 0.0; }
+        $volOnly = (bool) $req->get('volOnly', false);
+
         $sort = (string) $req->get('sort', 'confidence');
         if (!in_array($sort, self::SORTS, true)) { $sort = 'confidence'; }
-        return compact('timeframe', 'lookback', 'tolerance', 'tolerancePercent', 'minSeparation', 'maxSeparation', 'necklineMinDepth', 'breakoutOnly', 'minConfidence', 'sort');
+        return compact('timeframe', 'lookback', 'tolerance', 'tolerancePercent', 'minSeparation', 'maxSeparation', 'necklineMinDepth', 'breakoutOnly', 'minConfidence', 'statusFilter', 'minRr', 'volOnly', 'sort');
     }
 
     private function filterParams(array $p): array
@@ -121,19 +130,35 @@ final class DoubleBottomController extends Controller
             'minSeparation' => $p['minSeparation'], 'maxSeparation' => $p['maxSeparation'],
             'necklineMinDepth' => round($p['necklineMinDepth'] * 100, 1),
             'breakoutOnly' => $p['breakoutOnly'] ? 1 : 0,
-            'minConfidence' => $p['minConfidence'], 'sort' => $p['sort'],
+            'minConfidence' => $p['minConfidence'],
+            'statusFilter' => $p['statusFilter'],
+            'minRr' => $p['minRr'],
+            'volOnly' => $p['volOnly'] ? 1 : 0,
+            'sort' => $p['sort'],
         ];
     }
 
     private function cachedScan(array $p): array
     {
-        $args = [$p['timeframe'], $p['lookback'], $p['tolerance'], $p['minSeparation'], $p['maxSeparation'], $p['breakoutOnly'], $p['minConfidence'], $p['necklineMinDepth']];
-        $key = 'double-bottom:' . md5(json_encode($args));
+        $args = [$p['timeframe'], $p['lookback'], $p['tolerance'], $p['minSeparation'], $p['maxSeparation'], $p['breakoutOnly'], $p['minConfidence'], $p['necklineMinDepth'], $p['statusFilter'], $p['minRr'], $p['volOnly']];
+        $key = 'double-bottom:v2:' . md5(json_encode($args));
         $cached = Yii::$app->cache->get($key);
         if (is_array($cached)) { return [$cached, true]; }
         $service = new DoubleBottomService();
         try {
-            $results = $service->scanAll($p['timeframe'], $p['lookback'], $p['tolerance'], $p['minSeparation'], $p['maxSeparation'], $p['breakoutOnly'], $p['minConfidence'], $p['necklineMinDepth']);
+            $results = $service->scanAll(
+                $p['timeframe'],
+                $p['lookback'],
+                $p['tolerance'],
+                $p['minSeparation'],
+                $p['maxSeparation'],
+                $p['breakoutOnly'],
+                $p['minConfidence'],
+                $p['necklineMinDepth'],
+                $p['statusFilter'],
+                $p['minRr'],
+                $p['volOnly']
+            );
         } catch (\InvalidArgumentException $e) {
             Yii::$app->session->setFlash('warning', $e->getMessage());
             $results = [];
@@ -145,6 +170,15 @@ final class DoubleBottomController extends Controller
     private function sortResults(array $results, string $sort): array
     {
         switch ($sort) {
+            case 'rr':
+                usort($results, fn ($a, $b) => ((float) ($b['best_rr'] ?? 0)) <=> ((float) ($a['best_rr'] ?? 0)));
+                break;
+            case 'distance':
+                usort($results, fn ($a, $b) => abs((float) ($a['distance_neckline_pct'] ?? 999)) <=> abs((float) ($b['distance_neckline_pct'] ?? 999)));
+                break;
+            case 'rvol':
+                usort($results, fn ($a, $b) => ((float) ($b['rvol'] ?? 0)) <=> ((float) ($a['rvol'] ?? 0)));
+                break;
             case 'target':
                 usort($results, fn ($a, $b) => (($b['target_price'] - $b['current_price']) / max($b['current_price'], 0.0001)) <=> (($a['target_price'] - $a['current_price']) / max($a['current_price'], 0.0001)));
                 break;
@@ -155,7 +189,6 @@ final class DoubleBottomController extends Controller
                 usort($results, fn ($a, $b) => strcmp($b['low1_date'] ?? '', $a['low1_date'] ?? ''));
                 break;
             default:
-               
                 usort($results, fn ($a, $b) => $b['confidence'] <=> $a['confidence']);
         }
         return $results;

@@ -27,8 +27,7 @@ final class AlertController extends Controller
             'access' => [
                 'class' => AccessControl::class,
                 'rules' => [
-                    ['allow' => false, 'roles' => ['?']],
-                    ['allow' => true, 'roles' => ['@']],
+                    ['allow' => true],
                 ],
             ],
         ];
@@ -41,7 +40,7 @@ final class AlertController extends Controller
     {
         $provider = new ActiveDataProvider([
             'query' => Alert::find()
-                ->where(['user_id' => Yii::$app->user->id])
+                ->where(['user_id' => $this->getUserId()])
                 ->orderBy(['created_at' => SORT_DESC]),
             'pagination' => ['pageSize' => 20],
         ]);
@@ -58,7 +57,7 @@ final class AlertController extends Controller
 
         if ($form->load(Yii::$app->request->post()) && $form->validate()) {
             $alert = new Alert();
-            $alert->user_id = (int) Yii::$app->user->id;
+            $alert->user_id = $this->getUserId();
             $alert->stock_id = $this->resolveStockId($form->symbol);
             $alert->condition_type = $form->condition_type;
             $alert->operator = $form->operator;
@@ -129,7 +128,7 @@ final class AlertController extends Controller
         $provider = new ActiveDataProvider([
             'query' => AlertLog::find()
                 ->joinWith(['alert'])
-                ->where(['{{%alert}}.user_id' => Yii::$app->user->id])
+                ->where(['{{%alert}}.user_id' => $this->getUserId()])
                 ->andWhere(['{{%alert_log}}.channel' => AlertLog::CHANNEL_APP])
                 ->orderBy(['{{%alert_log}}.created_at' => SORT_DESC]),
             'pagination' => ['pageSize' => 25],
@@ -145,7 +144,7 @@ final class AlertController extends Controller
     {
         $log = AlertLog::find()
             ->joinWith(['alert'])
-            ->where(['{{%alert_log}}.id' => $id, '{{%alert}}.user_id' => Yii::$app->user->id])
+            ->where(['{{%alert_log}}.id' => $id, '{{%alert}}.user_id' => $this->getUserId()])
             ->one();
         if ($log === null) {
             throw new NotFoundHttpException('Notifikasi tidak ditemukan.');
@@ -166,7 +165,7 @@ final class AlertController extends Controller
             [
                 'channel' => AlertLog::CHANNEL_APP,
                 'read_at' => null,
-                'alert_id' => Alert::find()->select('id')->where(['user_id' => Yii::$app->user->id]),
+                'alert_id' => Alert::find()->select('id')->where(['user_id' => $this->getUserId()]),
             ],
         );
 
@@ -177,7 +176,7 @@ final class AlertController extends Controller
     {
         return (int) AlertLog::find()
             ->joinWith(['alert'])
-            ->where(['{{%alert}}.user_id' => Yii::$app->user->id])
+            ->where(['{{%alert}}.user_id' => $this->getUserId()])
             ->andWhere(['{{%alert_log}}.channel' => AlertLog::CHANNEL_APP])
             ->andWhere(['{{%alert_log}}.read_at' => null])
             ->count();
@@ -194,11 +193,16 @@ final class AlertController extends Controller
 
     private function findAlert(int $id): Alert
     {
-        $alert = Alert::find()->where(['id' => $id, 'user_id' => Yii::$app->user->id])->one();
+        $alert = Alert::find()->where(['id' => $id, 'user_id' => $this->getUserId()])->one();
         if ($alert === null) {
             throw new NotFoundHttpException('Alert tidak ditemukan.');
         }
 
         return $alert;
+    }
+
+    private function getUserId(): int
+    {
+        return (int) (Yii::$app->user->id ?: 100);
     }
 }

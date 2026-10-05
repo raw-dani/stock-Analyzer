@@ -74,7 +74,8 @@ final class RsiDoubleBottomService
         float $maxRsi = 40.0,
         int $minSeparation = 5,
         int $maxSeparation = 30,
-        float $necklineMin = 2.0
+        float $necklineMin = 2.0,
+        bool $includeSeries = false
     ): ?array {
         $this->validateOptions($tf, $lookback, $tol, $period, $maxRsi, $minSeparation, $maxSeparation, $necklineMin);
         [$candles, $approx] = $this->loadCandles($stockId, $tf, $lookback);
@@ -91,6 +92,12 @@ final class RsiDoubleBottomService
         $found['approximated'] = $approx;
         $found['data_source'] = $approx ? 'daily_fallback' : ($tf === self::TIMEFRAME_1D ? 'daily' : 'intraday');
         $found['rsi_period'] = $period;
+
+        if ($includeSeries) {
+            $found['candles'] = $candles;
+            $found['rsi_series'] = $rsi;
+        }
+
         return $found;
     }
 
@@ -262,17 +269,68 @@ final class RsiDoubleBottomService
                 }
                 $curPrice = (float) $candles[$n - 1]['close'];
                 $avgLow = ($p1 + $p2) / 2;
-                $target = $neckPrice + ($neckPrice - $avgLow);
+                $patternHeight = max(0.01, $neckPrice - $avgLow);
+                $sl_price = round(min($p1, $p2) * 0.98, 2);
+                $sl_tight = round($neckPrice * 0.98, 2);
+                $tp1 = round($neckPrice + $patternHeight, 2);
+                $tp2 = round($neckPrice + ($patternHeight * 1.618), 2);
+                $tp3 = round($neckPrice + ($patternHeight * 2.0), 2);
+
+                $potentialUpside = $curPrice > 0 ? round((($tp1 - $curPrice) / $curPrice) * 100, 1) : 0.0;
+                $potentialRisk = $curPrice > 0 ? round((($curPrice - $sl_price) / $curPrice) * 100, 1) : 0.0;
+                $riskAmount = max(0.01, $curPrice - $sl_price);
+                $rrRatio = $curPrice > $sl_price ? round(($tp1 - $curPrice) / $riskAmount, 2) : null;
+                $rsiDistance = round($cur - $neck, 2);
+
+                if ($breakout) {
+                    if ($cur >= 70.0) {
+                        $action = 'EXTENDED';
+                        $actionLabel = 'OVERBOUGHT';
+                        $actionBadge = 'bg-danger';
+                    } elseif ($curPrice >= $neckPrice) {
+                        $action = 'BUY_NOW';
+                        $actionLabel = 'BUY NOW (BREAKOUT)';
+                        $actionBadge = 'bg-success';
+                    } else {
+                        $action = 'BUY_NOW';
+                        $actionLabel = 'RSI BREAKOUT';
+                        $actionBadge = 'bg-success';
+                    }
+                } else {
+                    if ($div && abs($neck - $cur) <= 3.0) {
+                        $action = 'READY_BREAKOUT';
+                        $actionLabel = 'DIVERGENCE SETUP';
+                        $actionBadge = 'bg-primary';
+                    } elseif (abs($neck - $cur) <= 2.5) {
+                        $action = 'NEAR_BREAKOUT';
+                        $actionLabel = 'NEAR BREAKOUT';
+                        $actionBadge = 'bg-warning text-dark';
+                    } elseif ($div) {
+                        $action = 'DIVERGENCE';
+                        $actionLabel = 'BULLISH DIVERGENCE';
+                        $actionBadge = 'bg-info text-dark';
+                    } else {
+                        $action = 'FORMING';
+                        $actionLabel = 'WAITING BREAKOUT';
+                        $actionBadge = 'bg-secondary';
+                    }
+                }
+
                 $cand = [
                     'rsi1_value' => round($r1, 2), 'rsi1_date' => $candles[$i1]['date'],
                     'rsi2_value' => round($r2, 2), 'rsi2_date' => $candles[$i2]['date'],
                     'neckline_rsi' => round($neck, 2), 'neckline_date' => $candles[$neckIdx]['date'],
                     'current_rsi' => round($cur, 2),
+                    'rsi_distance' => $rsiDistance,
                     'low1_price' => $p1, 'low2_price' => $p2,
                     'neckline_price' => $neckPrice, 'current_price' => $curPrice,
+                    'sl_price' => $sl_price, 'sl_tight' => $sl_tight,
+                    'tp1_price' => $tp1, 'tp2_price' => $tp2, 'tp3_price' => $tp3,
+                    'potential_upside' => $potentialUpside, 'potential_risk' => $potentialRisk,
                     'breakout' => $breakout, 'divergence' => $div,
-                    'confidence' => $conf, 'target_price' => round($target, 2),
-                    'risk_reward' => ($curPrice > $avgLow) ? round(($target - $curPrice) / ($curPrice - $avgLow), 2) : null,
+                    'confidence' => $conf, 'target_price' => $tp1,
+                    'risk_reward' => $rrRatio,
+                    'action' => $action, 'action_label' => $actionLabel, 'action_badge' => $actionBadge,
                 ];
                 if ($best === null || $cand['confidence'] > $best['confidence']) {
                     $best = $cand;

@@ -28,9 +28,32 @@ final class ScannerController extends Controller
 
         $dataProvider = Yii::$container->get(ScannerService::class)->search($form);
 
+        $stats = [
+            'total' => $dataProvider->getTotalCount(),
+            'strongBuy' => 0,
+            'heavyAccumulation' => 0,
+            'avgRvol' => 0.0,
+        ];
+
+        try {
+            $baseQuery = clone $dataProvider->query;
+            if ($form->mode === 'daily') {
+                $stats['strongBuy'] = (int) (clone $baseQuery)->andWhere(['>=', new \yii\db\Expression('{{%daily_price}}.buy_volume / NULLIF({{%daily_price}}.buy_volume + {{%daily_price}}.sell_volume, 0)'), 0.70])->count();
+                $stats['heavyAccumulation'] = $stats['strongBuy'];
+                $stats['avgRvol'] = 0.0;
+            } else {
+                $stats['strongBuy'] = (int) (clone $baseQuery)->andWhere(['{{%weekly_analysis}}.signal' => 'STRONG_BUY'])->count();
+                $stats['heavyAccumulation'] = (int) (clone $baseQuery)->andWhere(['>=', '{{%weekly_analysis}}.buy_ratio', 0.70])->count();
+                $stats['avgRvol'] = round((float) ((clone $baseQuery)->average('{{%weekly_analysis}}.rvol') ?? 0), 2);
+            }
+        } catch (\Throwable $e) {
+            Yii::warning('Scanner stats error: ' . $e->getMessage(), 'app\services\scanner');
+        }
+
         return $this->render('index', [
             'searchModel' => $form,
             'dataProvider' => $dataProvider,
+            'stats' => $stats,
         ]);
     }
 
@@ -134,4 +157,3 @@ final class ScannerController extends Controller
         return $this->redirect(array_merge(['index'], $redirectParams));
     }
 }
-

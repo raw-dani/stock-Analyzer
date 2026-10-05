@@ -28,76 +28,99 @@ $tolerancePercent = $tolerancePercent ?? round($tolerance * 100, 1);
 $chartId = 'db-chart';
 ?>
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h1 class="h3 mb-0">
-        <?= Html::encode($stock->symbol) ?> - Double Bottom Analysis
-    </h1>
-    <?= Html::a('Kembali ke Scanner', array_merge(['double-bottom/index'], $filterParams), ['class' => 'btn btn-outline-secondary']) ?>
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+    <div>
+        <h1 class="h3 mb-1">
+            <?= Html::encode($stock->symbol) ?> <small class="text-muted fs-6"><?= Html::encode($stock->name) ?></small>
+        </h1>
+        <span class="badge bg-secondary"><?= Html::encode($stock->sector ?? 'Stock') ?></span>
+        <span class="badge bg-light text-dark border"><?= Html::encode($stock->exchange ?? '-') ?></span>
+    </div>
+    <div class="d-flex gap-2">
+        <?= Html::a('<i class="bi bi-arrow-left"></i> Kembali ke Scanner', array_merge(['double-bottom/index'], $filterParams), ['class' => 'btn btn-outline-secondary']) ?>
+    </div>
 </div>
 
 <!-- Filter (mempertahankan state filter scanner) -->
-<div class="card mb-4">
+<div class="card mb-4 shadow-sm border-0">
+    <div class="card-header bg-light py-2">
+        <strong class="small text-secondary"><i class="bi bi-sliders"></i> Parameter Deteksi Pola</strong>
+    </div>
     <div class="card-body">
         <?= Html::beginForm(['double-bottom/detail'], 'get', ['class' => 'row g-3 align-items-end']) ?>
             <?= Html::hiddenInput('symbol', $stock->symbol) ?>
-            <div class="col-md-2">
-                <label class="form-label fw-bold">Timeframe</label>
-                <?= Html::dropDownList('timeframe', $timeframe, $timeframes, ['class' => 'form-select']) ?>
+            <div class="col-md-2 col-6">
+                <label class="form-label small fw-bold">Timeframe</label>
+                <?= Html::dropDownList('timeframe', $timeframe, $timeframes, ['class' => 'form-select form-select-sm']) ?>
             </div>
-            <div class="col-md-2">
-                <label class="form-label fw-bold">Lookback (candle)</label>
-                <?= Html::input('number', 'lookback', $lookbackDays, ['class' => 'form-control', 'min' => 5, 'max' => 500]) ?>
+            <div class="col-md-2 col-6">
+                <label class="form-label small fw-bold">Lookback (candle)</label>
+                <?= Html::input('number', 'lookback', $lookbackDays, ['class' => 'form-control form-control-sm', 'min' => 5, 'max' => 500]) ?>
             </div>
-            <div class="col-md-2">
-                <label class="form-label fw-bold">Toleransi (%)</label>
-                <?= Html::input('number', 'tolerance', round($tolerancePercent, 1), ['class' => 'form-control', 'min' => 0.1, 'max' => 20, 'step' => 0.1]) ?>
+            <div class="col-md-2 col-6">
+                <label class="form-label small fw-bold">Toleransi (%)</label>
+                <?= Html::input('number', 'tolerance', round($tolerancePercent, 1), ['class' => 'form-control form-control-sm', 'min' => 0.1, 'max' => 20, 'step' => 0.1]) ?>
             </div>
-            <div class="col-md-2">
-                <label class="form-label fw-bold">Separasi min</label>
-                <?= Html::input('number', 'minSeparation', $minSeparation, ['class' => 'form-control', 'min' => 2]) ?>
+            <div class="col-md-2 col-6">
+                <label class="form-label small fw-bold">Separasi min</label>
+                <?= Html::input('number', 'minSeparation', $minSeparation, ['class' => 'form-control form-control-sm', 'min' => 2]) ?>
             </div>
-            <div class="col-md-2">
-                <label class="form-label fw-bold">Separasi maks</label>
-                <?= Html::input('number', 'maxSeparation', $maxSeparation, ['class' => 'form-control', 'min' => 2]) ?>
+            <div class="col-md-2 col-6">
+                <label class="form-label small fw-bold">Separasi maks</label>
+                <?= Html::input('number', 'maxSeparation', $maxSeparation, ['class' => 'form-control form-control-sm', 'min' => 2]) ?>
             </div>
-            <div class="col-md-2">
-                <label class="form-label fw-bold">Neckline min (%)</label>
-                <?= Html::input('number', 'necklineMinDepth', round($necklineMinDepth * 100, 1), ['class' => 'form-control', 'min' => 0, 'max' => 50, 'step' => 0.1]) ?>
+            <div class="col-md-2 col-6">
+                <label class="form-label small fw-bold">Neckline min (%)</label>
+                <?= Html::input('number', 'necklineMinDepth', round($necklineMinDepth * 100, 1), ['class' => 'form-control form-control-sm', 'min' => 0, 'max' => 50, 'step' => 0.1]) ?>
             </div>
-            <div class="col-md-12">
-                <?= Html::submitButton('Analisis', ['class' => 'btn btn-primary']) ?>
+            <div class="col-12 text-end">
+                <?= Html::submitButton('<i class="bi bi-arrow-repeat"></i> Update Analisis', ['class' => 'btn btn-sm btn-primary px-3']) ?>
             </div>
         <?= Html::endForm() ?>
     </div>
 </div>
 
 <?php if ($pattern === null): ?>
-    <div class="alert alert-info">
-        <h5>Pola Double Bottom Tidak Terdeteksi</h5>
-        <p>Tidak ada pola double bottom untuk <?= Html::encode($stock->symbol) ?> dengan pengaturan saat ini.</p>
+    <div class="alert alert-info shadow-sm">
+        <h5><i class="bi bi-info-circle-fill"></i> Pola Double Bottom Tidak Terdeteksi</h5>
+        <p class="mb-0">Tidak ada pola double bottom yang memenuhi toleransi untuk <?= Html::encode($stock->symbol) ?> dengan pengaturan di atas.</p>
     </div>
 <?php else: ?>
     <?= $this->render('_pattern_details', ['pattern' => $pattern]) ?>
 <?php endif; ?>
 
-<!-- Chart Candlestick -->
-<div class="card mt-4">
-    <div class="card-header">
-        <h5 class="mb-0">Chart Pola <?= Html::encode($stock->symbol) ?></h5>
+<!-- Chart Candlestick & Volume Profesional Dual-Grid -->
+<div class="card mt-4 shadow-sm border-0">
+    <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 fw-bold"><i class="bi bi-graph-up text-primary"></i> Grafik Pola &amp; Konfirmasi Volume (<?= Html::encode($stock->symbol) ?>)</h5>
+        <small class="text-muted">Candlestick + Volume Akumulasi Dual-Grid</small>
     </div>
     <div class="card-body">
         <?php if (empty($candles)): ?>
             <p class="text-muted mb-0">Data candle tidak tersedia.</p>
         <?php else: ?>
-            <div id="<?= $chartId ?>" style="height: 420px;"></div>
-            <small class="text-muted">Penanda: L1/L2 = Low 1 &amp; Low 2, N = neckline, T = target, SL = stop loss.</small>
+            <div id="<?= $chartId ?>" style="height: 520px; width: 100%;"></div>
+            <div class="d-flex flex-wrap gap-3 mt-2 small text-muted border-top pt-2">
+                <span><span class="badge bg-info text-dark">L1 / L2</span> Support Lembah W</span>
+                <span><span class="badge bg-primary">N</span> Neckline Resistance</span>
+                <span><span class="badge bg-success">TP1 / TP2</span> Target Keuntungan</span>
+                <span><span class="badge bg-danger">SL</span> Level Stop Loss</span>
+                <span><span class="badge bg-secondary">Vol Hijau/Merah</span> Akumulasi / Distribusi</span>
+            </div>
             <?php
             $dates = array_column($candles, 'date');
             $ohlc = array_map(
                 fn ($c) => [(float) $c['open'], (float) $c['close'], (float) $c['low'], (float) $c['high']],
                 $candles
             );
-            $vols = array_map(fn ($c) => (int) $c['volume'], $candles);
+            $volSeriesData = array_map(function ($c) {
+                $isBull = (float) $c['close'] >= (float) $c['open'];
+                return [
+                    'value' => (int) $c['volume'],
+                    'itemStyle' => ['color' => $isBull ? '#26a69a' : '#ef5350'],
+                ];
+            }, $candles);
+
             $markPoints = [];
             if ($pattern !== null) {
                 foreach ([
@@ -107,31 +130,98 @@ $chartId = 'db-chart';
                 ] as [$dk, $pk, $label]) {
                     $idx = array_search($pattern[$dk] ?? null, $dates, true);
                     if ($idx !== false && $idx !== null) {
-                        $markPoints[] = ['name' => $label, 'coord' => [$dates[$idx], $pattern[$pk]], 'value' => $label];
+                        $markPoints[] = [
+                            'name' => $label,
+                            'coord' => [$dates[$idx], (float) $pattern[$pk]],
+                            'value' => $label,
+                            'itemStyle' => ['color' => $label === 'N' ? '#0d6efd' : '#0dcaf0'],
+                        ];
                     }
                 }
             }
+
             $markLines = [];
             if ($pattern !== null) {
-                foreach (['neckline' => 'N', 'target_price' => 'T', 'stop_loss' => 'SL'] as $k => $label) {
-                    if (isset($pattern[$k])) {
-                        $markLines[] = ['name' => $label, 'yAxis' => $pattern[$k], 'label' => ['formatter' => $label . ': {c}']];
+                $levels = [
+                    ['neckline', 'Neckline', '#0d6efd', 'solid'],
+                    ['tp1_price', 'TP1 (50%)', '#20c997', 'dashed'],
+                    ['target_price', 'TP2 (100%)', '#198754', 'solid'],
+                    ['tp3_price', 'TP3 (1.618)', '#0f5132', 'dotted'],
+                    ['stop_loss_tight', 'Tight SL', '#fd7e14', 'dashed'],
+                    ['stop_loss', 'Swing SL', '#dc3545', 'solid'],
+                ];
+                foreach ($levels as [$key, $label, $color, $type]) {
+                    if (isset($pattern[$key])) {
+                        $markLines[] = [
+                            'name' => $label,
+                            'yAxis' => (float) $pattern[$key],
+                            'lineStyle' => ['color' => $color, 'type' => $type, 'width' => 1.5],
+                            'label' => ['formatter' => $label . ': {c}', 'position' => 'end'],
+                        ];
                     }
                 }
             }
+
             $chartOption = [
-                'tooltip' => ['trigger' => 'axis', 'axisPointer' => ['type' => 'cross']],
-                'xAxis' => ['type' => 'category', 'data' => $dates, 'scale' => true],
-                'yAxis' => ['scale' => true],
-                'dataZoom' => [['type' => 'inside'], ['type' => 'slider']],
+                'tooltip' => [
+                    'trigger' => 'axis',
+                    'axisPointer' => ['type' => 'cross'],
+                ],
+                'axisPointer' => ['link' => [['xAxisIndex' => 'all']]],
+                'grid' => [
+                    ['left' => '50', 'right' => '50', 'top' => '30', 'height' => '56%'],
+                    ['left' => '50', 'right' => '50', 'top' => '70%', 'height' => '18%'],
+                ],
+                'xAxis' => [
+                    [
+                        'type' => 'category',
+                        'data' => $dates,
+                        'scale' => true,
+                        'boundaryGap' => false,
+                        'axisLine' => ['onZero' => false],
+                        'splitLine' => ['show' => false],
+                    ],
+                    [
+                        'type' => 'category',
+                        'gridIndex' => 1,
+                        'data' => $dates,
+                        'scale' => true,
+                        'boundaryGap' => false,
+                        'axisLine' => ['onZero' => false],
+                        'axisTick' => ['show' => false],
+                        'splitLine' => ['show' => false],
+                        'axisLabel' => ['show' => false],
+                    ],
+                ],
+                'yAxis' => [
+                    ['scale' => true, 'splitArea' => ['show' => true]],
+                    ['scale' => true, 'gridIndex' => 1, 'splitNumber' => 2, 'axisLabel' => ['show' => false], 'axisLine' => ['show' => false], 'axisTick' => ['show' => false], 'splitLine' => ['show' => false]],
+                ],
+                'dataZoom' => [
+                    ['type' => 'inside', 'xAxisIndex' => [0, 1], 'start' => 20, 'end' => 100],
+                    ['show' => true, 'xAxisIndex' => [0, 1], 'type' => 'slider', 'bottom' => '5', 'start' => 20, 'end' => 100],
+                ],
                 'series' => [
                     [
+                        'name' => 'Price',
                         'type' => 'candlestick',
                         'data' => $ohlc,
+                        'itemStyle' => [
+                            'color' => '#26a69a',
+                            'color0' => '#ef5350',
+                            'borderColor' => '#26a69a',
+                            'borderColor0' => '#ef5350',
+                        ],
                         'markPoint' => ['data' => $markPoints],
                         'markLine' => ['data' => $markLines, 'symbol' => 'none'],
                     ],
-                    ['type' => 'bar', 'name' => 'Volume', 'data' => $vols, 'yAxisIndex' => 0],
+                    [
+                        'name' => 'Volume',
+                        'type' => 'bar',
+                        'xAxisIndex' => 1,
+                        'yAxisIndex' => 1,
+                        'data' => $volSeriesData,
+                    ],
                 ],
             ];
             $this->registerJs(
@@ -142,19 +232,4 @@ $chartId = 'db-chart';
             ?>
         <?php endif; ?>
     </div>
-</div>
-
-<!-- Stock Info -->
-<div class="card mt-4">
-    <div class="card-header">
-        <h5 class="mb-0">Stock Information</h5>
-    </div>
-    <div class="card-body">
-        <div class="row">
-            <div class="col-md-3"><strong>Symbol:</strong> <?= Html::encode($stock->symbol) ?></div>
-            <div class="col-md-3"><strong>Name:</strong> <?= Html::encode($stock->name) ?></div>
-            <div class="col-md-3"><strong>Sector:</strong> <?= Html::encode($stock->sector ?? '-') ?></div>
-            <div class="col-md-3"><strong>Exchange:</strong> <?= Html::encode($stock->exchange ?? '-') ?></div>
-        </div>
-    </div>
-</div>
+</div>

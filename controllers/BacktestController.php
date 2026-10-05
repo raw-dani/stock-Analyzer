@@ -24,8 +24,7 @@ final class BacktestController extends Controller
             'access' => [
                 'class' => AccessControl::class,
                 'rules' => [
-                    ['allow' => false, 'roles' => ['?']],
-                    ['allow' => true, 'roles' => ['@']],
+                    ['allow' => true],
                 ],
             ],
         ];

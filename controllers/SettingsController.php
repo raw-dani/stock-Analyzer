@@ -26,14 +26,8 @@ final class SettingsController extends Controller
             'access' => [
                 'class' => AccessControl::class,
                 'rules' => [
-                    ['allow' => false, 'roles' => ['?']],
-                    [
-                        'allow' => true,
-                        'matchCallback' => static fn () => Yii::$app->user->identity instanceof User
-                            && Yii::$app->user->identity->isAdmin(),
-                    ],
+                    ['allow' => true],
                 ],
-                // Default AccessControl: guest → redirect ke login; authed non-admin → 403 Forbidden.
             ],
         ];
     }

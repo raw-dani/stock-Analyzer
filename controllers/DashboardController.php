@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace app\controllers;
 
 use app\models\Signal;
+use app\models\Stock;
 use app\models\WeeklyAnalysis;
 use Yii;
 use yii\db\Expression;
@@ -80,9 +81,9 @@ final class DashboardController extends Controller
         $total = (int) ($agg['volume'] ?? 0);
         $buy   = (int) ($agg['buy'] ?? 0);
 
-                        // top buying / selling pressure minggu tsb (eager-load stock; guard null di view)
+        // top buying / selling pressure minggu tsb (eager-load stock; guard null di view)
         $topBuy = WeeklyAnalysis::find()
-            ->where(['stock_id' => array_column(Stock::find()->select('id')->asArray()->all(), 'id')])
+            ->where(['in', 'stock_id', $validStock])
             ->andWhere(['week_start' => $lastWeek])
             ->with('stock')
             ->orderBy(['buy_ratio' => SORT_DESC])
@@ -90,7 +91,7 @@ final class DashboardController extends Controller
             ->all();
 
         $topSell = WeeklyAnalysis::find()
-            ->where(['stock_id' => array_column(Stock::find()->select('id')->asArray()->all(), 'id')])
+            ->where(['in', 'stock_id', $validStock])
             ->andWhere(['week_start' => $lastWeek])
             ->with('stock')
             ->orderBy(['buy_ratio' => SORT_ASC])

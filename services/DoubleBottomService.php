@@ -58,7 +58,10 @@ final class DoubleBottomService
         ?int $maxSeparation = null,
         bool $breakoutOnly = false,
         int $minConfidence = 0,
-        ?float $necklineMinDepth = null
+        ?float $necklineMinDepth = null,
+        ?string $statusFilter = null,
+        ?float $minRr = null,
+        bool $volOnly = false
     ): array {
         $lookback ??= self::DEFAULT_LOOKBACK;
         $tolerance ??= self::DEFAULT_TOLERANCE;
@@ -81,6 +84,30 @@ final class DoubleBottomService
             if ($pattern['confidence'] < $minConfidence) {
                 continue;
             }
+            if ($statusFilter !== null && $statusFilter !== '' && $statusFilter !== 'all') {
+                if ($statusFilter === 'buy_zone' && ($pattern['trade_status'] ?? '') !== 'buy_zone') {
+                    continue;
+                }
+                if ($statusFilter === 'retest' && ($pattern['trade_status'] ?? '') !== 'retest') {
+                    continue;
+                }
+                if ($statusFilter === 'approaching' && ($pattern['trade_status'] ?? '') !== 'approaching') {
+                    continue;
+                }
+                if ($statusFilter === 'breakout' && !$pattern['breakout']) {
+                    continue;
+                }
+            }
+            if ($minRr !== null && $minRr > 0) {
+                $candRr = (float) ($pattern['best_rr'] ?? ($pattern['risk_reward'] ?? 0));
+                if ($candRr < $minRr) {
+                    continue;
+                }
+            }
+            if ($volOnly && empty($pattern['volume_confirmed']) && empty($pattern['volume_dry_up'])) {
+                continue;
+            }
+
             $pattern['symbol'] = $stock->symbol;
             $pattern['stock_name'] = $stock->name;
             $pattern['sector'] = $stock->sector;
@@ -324,6 +351,20 @@ final class DoubleBottomService
                     // Neckline harus cukup dalam di atas avg low (pola W valid)
                     $depth = ($neckline - $avgLow) / $avgLow;
                     if ($neckline > $avgLow && $depth >= $necklineMinDepth) {
+                        // Pastikan harga setelah Low 2 tidak menembus jatuh di bawah support (Low 1 & Low 2)
+                        $minSupport = min($low1['price'], $low2['price']);
+                        $broken = false;
+                        for ($postIdx = $low2['index'] + 1; $postIdx < $count; $postIdx++) {
+                            // Toleransi breakdown 1.5% di bawah support
+                            if ($candles[$postIdx]['close'] < $minSupport * 0.985) {
+                                $broken = true;
+                                break;
+                            }
+                        }
+                        if ($broken) {
+                            continue;
+                        }
+
                         $currentClose = end($candles)['close'];
                         $breakout = $currentClose > $neckline;
 
@@ -342,6 +383,75 @@ final class DoubleBottomService
                         $targetPrice = $neckline + ($neckline - $avgLow);
                         $riskBase = $currentClose - $avgLow;
                         $stopLoss = $avgLow * (1 - self::STOP_LOSS_BUFFER);
+
+                        // Multi-Target Take Profit
+                        $patternHeight = $neckline - $avgLow;
+                        $tp1 = round($neckline + ($patternHeight * 0.5), 2);
+                        $tp2 = round($targetPrice, 2);
+                        $tp3 = round($neckline + ($patternHeight * 1.618), 2);
+
+                        // Multi-Level Stop Loss
+                        $stopLossTight = round($neckline * 0.98, 2); // 2% di bawah neckline
+
+                        // Distance to Neckline
+                        $distanceToNeckline = round(($currentClose - $neckline) / max($neckline, 0.0001) * 100, 2);
+
+                        // Volume Metrics
+                        $low1Vol = (int) ($candles[$low1['index']]['volume'] ?? 0);
+                        $low2Vol = (int) ($candles[$low2['index']]['volume'] ?? 0);
+                        $volDryUp = ($low1Vol > 0 && $low2Vol > 0 && $low2Vol < $low1Vol * 0.9);
+                        $volDryUpPct = ($low1Vol > 0) ? round(($low1Vol - $low2Vol) / $low1Vol * 100, 1) : 0.0;
+
+                        $vols = array_column($candles, 'volume');
+                        $avgVol = count($vols) > 0 ? (array_sum($vols) / count($vols)) : 1;
+                        $currentVol = (int) (end($candles)['volume'] ?? 0);
+                        $rvol = $avgVol > 0 ? round($currentVol / $avgVol, 2) : 1.0;
+                        $volConfirmed = ($breakout && $rvol >= 1.3) || $volDryUp;
+
+                        // Pattern Geometry
+                        $patternType = 'Twin Low';
+                        if ($low2['price'] > $low1['price'] * 1.002) {
+                            $patternType = 'Higher Low';
+                        } elseif ($low2['price'] < $low1['price'] * 0.998) {
+                            $patternType = 'Lower Low';
+                        }
+                        $patternSpan = $low2['index'] - $low1['index'];
+
+                        // Trade Status & Action Directive
+                        if ($breakout) {
+                            if ($distanceToNeckline >= 0 && $distanceToNeckline <= 3.0) {
+                                $tradeStatus = 'buy_zone';
+                                $tradeAction = 'BUY (Golden Zone)';
+                            } elseif ($distanceToNeckline > 3.0 && $distanceToNeckline <= 6.0) {
+                                $tradeStatus = 'extended';
+                                $tradeAction = 'MODERATE (Hati-hati)';
+                            } elseif ($distanceToNeckline > 6.0) {
+                                $tradeStatus = 'overextended';
+                                $tradeAction = 'WAIT PULLBACK (Extended)';
+                            } else {
+                                $tradeStatus = 'retest';
+                                $tradeAction = 'BUY (Retest Neckline)';
+                            }
+                        } else {
+                            if ($distanceToNeckline >= -3.0) {
+                                $tradeStatus = 'approaching';
+                                $tradeAction = 'PRE-BREAKOUT WATCH';
+                            } else {
+                                $tradeStatus = 'forming';
+                                $tradeAction = 'FORMING (Bottom Bounce)';
+                            }
+                        }
+
+                        // Risk / Reward Ratio Calculations
+                        $tightRisk = max($currentClose - $stopLossTight, 0.01);
+                        $tightReward = max($targetPrice - $currentClose, 0.0);
+                        $rrTight = round($tightReward / $tightRisk, 2);
+
+                        $swingRisk = max($currentClose - $stopLoss, 0.01);
+                        $swingReward = max($targetPrice - $currentClose, 0.0);
+                        $rrSwing = round($swingReward / $swingRisk, 2);
+                        $bestRr = $breakout ? max($rrTight, $rrSwing) : 0.0;
+
                         $cand = [
                             'low1_price' => $low1['price'],
                             'low1_date' => $low1['date'],
@@ -354,6 +464,26 @@ final class DoubleBottomService
                             'confidence' => $confidence,
                             'target_price' => $targetPrice,
                             'stop_loss' => $stopLoss,
+                            'stop_loss_tight' => $stopLossTight,
+                            'tp1_price' => $tp1,
+                            'tp2_price' => $tp2,
+                            'tp3_price' => $tp3,
+                            'entry_zone_min' => round($neckline, 2),
+                            'entry_zone_max' => round($neckline * 1.025, 2),
+                            'distance_neckline_pct' => $distanceToNeckline,
+                            'trade_status' => $tradeStatus,
+                            'trade_action' => $tradeAction,
+                            'low1_volume' => $low1Vol,
+                            'low2_volume' => $low2Vol,
+                            'volume_dry_up' => $volDryUp,
+                            'volume_dry_up_pct' => $volDryUpPct,
+                            'rvol' => $rvol,
+                            'volume_confirmed' => $volConfirmed,
+                            'pattern_type' => $patternType,
+                            'pattern_span' => $patternSpan,
+                            'rr_tight' => $rrTight,
+                            'rr_swing' => $rrSwing,
+                            'best_rr' => $bestRr,
                             // risk_reward hanya bermakna bila harga di atas support
                             'risk_reward' => ($breakout && $riskBase > 0) ? ($targetPrice - $currentClose) / $riskBase : null,
                         ];

@@ -29,7 +29,10 @@ final class RsiDoubleBottomController extends Controller
         ?int $lookback = null,
         ?float $tolerance = null,
         ?int $rsiPeriod = null,
-        ?float $maxRsi = null
+        ?float $maxRsi = null,
+        ?string $statusFilter = 'all',
+        ?int $minConf = 0,
+        ?string $sortBy = 'confidence'
     ): string {
         $defaults = Yii::$app->params['rsiDefaults'] ?? [];
         $timeframe       = $timeframe       ?? self::TIMEFRAME_4H;
@@ -64,19 +67,51 @@ final class RsiDoubleBottomController extends Controller
             $results = $service->scanAll($timeframe, $lookback, $tolerance, $rsiPeriod, $maxRsi, $minSeparation, $maxSeparation, $necklineMin);
         }
 
+        $allResults = $results;
+
+        // Status Filter
+        if ($statusFilter === 'breakout') {
+            $results = array_filter($results, fn ($r) => !empty($r['breakout']));
+        } elseif ($statusFilter === 'divergence') {
+            $results = array_filter($results, fn ($r) => !empty($r['divergence']));
+        } elseif ($statusFilter === 'ready') {
+            $results = array_filter($results, fn ($r) => in_array($r['action'] ?? '', ['BUY_NOW', 'READY_BREAKOUT', 'NEAR_BREAKOUT'], true));
+        } elseif ($statusFilter === 'high_conf') {
+            $results = array_filter($results, fn ($r) => ($r['confidence'] ?? 0) >= 70);
+        }
+
+        if ($minConf > 0) {
+            $results = array_filter($results, fn ($r) => ($r['confidence'] ?? 0) >= $minConf);
+        }
+
+        // Sorting
+        if ($sortBy === 'rr') {
+            usort($results, fn ($a, $b) => ($b['risk_reward'] ?? 0) <=> ($a['risk_reward'] ?? 0));
+        } elseif ($sortBy === 'upside') {
+            usort($results, fn ($a, $b) => ($b['potential_upside'] ?? 0) <=> ($a['potential_upside'] ?? 0));
+        } elseif ($sortBy === 'current_rsi') {
+            usort($results, fn ($a, $b) => ($a['current_rsi'] ?? 0) <=> ($b['current_rsi'] ?? 0));
+        } else {
+            usort($results, fn ($a, $b) => ($b['confidence'] ?? 0) <=> ($a['confidence'] ?? 0));
+        }
+
         Yii::info("RSI Double Bottom Scan: found " . count($results) . " patterns", $logCat);
 
         return $this->render('index', [
-            'results'     => $results,
-            'timeframe'   => $timeframe,
-            'lookback'    => $lookback,
-            'tolerance'   => $tolerance,
-            'rsiPeriod'   => $rsiPeriod,
-            'maxRsi'      => $maxRsi,
-            'minSeparation' => $minSeparation,
-            'maxSeparation' => $maxSeparation,
-            'necklineMin'   => $necklineMin,
-            'timeframes'  => $timeframes,
+            'results'        => $results,
+            'allResults'     => $allResults,
+            'timeframe'      => $timeframe,
+            'lookback'       => $lookback,
+            'tolerance'      => $tolerance,
+            'rsiPeriod'      => $rsiPeriod,
+            'maxRsi'         => $maxRsi,
+            'statusFilter'   => $statusFilter,
+            'minConf'        => $minConf,
+            'sortBy'         => $sortBy,
+            'minSeparation'  => $minSeparation,
+            'maxSeparation'  => $maxSeparation,
+            'necklineMin'    => $necklineMin,
+            'timeframes'     => $timeframes,
         ]);
     }
 
@@ -107,7 +142,7 @@ final class RsiDoubleBottomController extends Controller
 
         $service = new RsiDoubleBottomService();
         try {
-            $pattern = $service->detectPattern($stock->id, $timeframe, $lookback, $tolerance, $rsiPeriod, $maxRsi, $minSeparation, $maxSeparation, $necklineMin);
+            $pattern = $service->detectPattern($stock->id, $timeframe, $lookback, $tolerance, $rsiPeriod, $maxRsi, $minSeparation, $maxSeparation, $necklineMin, true);
         } catch (\InvalidArgumentException $e) {
             Yii::warning("RSI Double Bottom detail {$symbol}: {$e->getMessage()}", $defaults['logCategory'] ?? 'app\services\rsidoublebottom');
             $timeframe = self::TIMEFRAME_4H;
@@ -118,7 +153,7 @@ final class RsiDoubleBottomController extends Controller
             $minSeparation = $defaults['minSeparation'] ?? 5;
             $maxSeparation = $defaults['maxSeparation'] ?? 30;
             $necklineMin = $defaults['necklineMin'] ?? 2.0;
-            $pattern = $service->detectPattern($stock->id, $timeframe, $lookback, $tolerance, $rsiPeriod, $maxRsi, $minSeparation, $maxSeparation, $necklineMin);
+            $pattern = $service->detectPattern($stock->id, $timeframe, $lookback, $tolerance, $rsiPeriod, $maxRsi, $minSeparation, $maxSeparation, $necklineMin, true);
         }
 
         return $this->render('detail', [

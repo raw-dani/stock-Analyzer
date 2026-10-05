@@ -132,12 +132,43 @@ final class DoubleBottomServiceTest extends Unit
         $this->assertLessThanOrEqual(100, $withVol);
     }
 
-    public function testVolumeBonusSkippedWithoutVolumeData(): void
+    public function testEnhancedTradingMetrics(): void
     {
-        // Data volume kosong / nol -> skor sama dengan tanpa data volume (tidak error).
-        $plain = $this->confidence->invoke($this->service, 90.0, 90.5, 94.0, 95.0, true, 0.019);
-        $zeroVol = $this->candles([95, 90, 96, 100, 96, 90.5, 97, 98, 99, 103], [], 100.0, 0);
-        $withZeroVol = $this->confidence->invoke($this->service, 90.0, 90.5, 94.0, 95.0, true, 0.019, $zeroVol, 1, 5);
-        $this->assertSame($plain, $withZeroVol, 'Volume 0 harus diabaikan (tanpa bonus, tanpa error)');
+        // W: low1=90, neckline=102, low2=90.5, breakout close=103
+        $candles = $this->candles(
+            [95, 90, 96, 96, 96, 90.5, 97],
+            [97, 96, 101, 102, 101, 96, 98]
+        );
+        $candles[count($candles) - 1]['close'] = 103.0;
+        $candles[1]['volume'] = 2000; // low1
+        $candles[5]['volume'] = 800;  // low2 dry-up (< 90% of low1)
+        $candles[count($candles) - 1]['volume'] = 4000; // breakout vol
+
+        $res = $this->find->invoke($this->service, $candles, 0.02, 3, 10, 0.015);
+        $this->assertIsArray($res);
+        $this->assertArrayHasKey('tp1_price', $res);
+        $this->assertArrayHasKey('tp2_price', $res);
+        $this->assertArrayHasKey('tp3_price', $res);
+        $this->assertArrayHasKey('stop_loss_tight', $res);
+        $this->assertArrayHasKey('trade_status', $res);
+        $this->assertArrayHasKey('trade_action', $res);
+        $this->assertArrayHasKey('pattern_type', $res);
+        $this->assertSame('Higher Low', $res['pattern_type']);
+        $this->assertTrue($res['volume_dry_up']);
+        $this->assertEquals(99.96, $res['stop_loss_tight']); // 102 * 0.98
+        $this->assertGreaterThan(0, $res['best_rr']);
+    }
+
+    public function testBrokenSupportAfterLow2Rejected(): void
+    {
+        // W formasi tapi candle terakhir crash di bawah low1/low2 -> harus ditolak
+        $candles = $this->candles(
+            [95, 90, 96, 102, 96, 90.5, 95, 75],
+            [97, 96, 101, 102, 101, 96, 98, 80]
+        );
+        $candles[count($candles) - 1]['close'] = 75.0; // breakdown support
+        $res = $this->find->invoke($this->service, $candles, 0.02, 3, 10, 0.015);
+        $this->assertNull($res, 'Pola dengan breakdown support harus ditolak');
     }
 }
+

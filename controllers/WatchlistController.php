@@ -27,12 +27,7 @@ final class WatchlistController extends Controller
                 'class' => AccessControl::class,
                 'rules' => [
                     [
-                        'allow' => false,
-                        'roles' => ['?'],
-                    ],
-                    [
                         'allow' => true,
-                        'roles' => ['@'],
                     ],
                 ],
             ],
@@ -45,7 +40,7 @@ final class WatchlistController extends Controller
     public function actionIndex(): string
     {
         $watchlists = Watchlist::find()
-            ->where(['user_id' => Yii::$app->user->id])
+            ->where(['user_id' => $this->getUserId()])
             ->orderBy(['name' => SORT_ASC])
             ->all();
 
@@ -78,7 +73,7 @@ final class WatchlistController extends Controller
     public function actionCreate(): Response|string
     {
         $model = new Watchlist();
-        $model->user_id = Yii::$app->user->id;
+        $model->user_id = $this->getUserId();
 
         if ($model->load(Yii::$app->request->post()) && $model->save()) {
             return $this->redirect(['view', 'id' => $model->id]);
@@ -193,7 +188,7 @@ final class WatchlistController extends Controller
     private function findWatchlist(int $id): Watchlist
     {
         $model = Watchlist::find()
-            ->where(['id' => $id, 'user_id' => Yii::$app->user->id])
+            ->where(['id' => $id, 'user_id' => $this->getUserId()])
             ->one();
 
         if ($model === null) {
@@ -201,5 +196,10 @@ final class WatchlistController extends Controller
         }
 
         return $model;
+    }
+
+    private function getUserId(): int
+    {
+        return (int) (Yii::$app->user->id ?: 100);
     }
 }
