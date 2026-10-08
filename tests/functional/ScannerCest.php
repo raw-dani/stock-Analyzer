@@ -58,4 +58,26 @@ class ScannerCest
         $I->see('Stock Scanner', 'h1');
         $I->seeElement('table.table');
     }
+
+    public function filterByDailyMode(\FunctionalTester $I)
+    {
+        $I->amOnRoute('scanner/index', ['mode' => 'daily']);
+        $I->see('Stock Scanner', 'h1');
+        $I->see('DAILY');
+        $I->seeElement('table.table');
+    }
+
+    public function filterByMinRvol(\FunctionalTester $I)
+    {
+        $I->amOnRoute('scanner/index', ['minRvol' => 1.0]);
+        $I->see('Stock Scanner', 'h1');
+        $I->seeElement('table.table');
+    }
+
+    public function exportCsv(\FunctionalTester $I)
+    {
+        $I->amOnRoute('scanner/export');
+        $I->seeResponseCodeIs(200);
+        $I->see('Simbol');
+    }
 }

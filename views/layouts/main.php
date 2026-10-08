@@ -28,6 +28,8 @@ $sideMenuGroups = [
         ['label' => '📉 Triple Bottom Scanner', 'url' => ['/triple-bottom/index'], 'active' => Yii::$app->controller->id === 'triple-bottom', 'badge' => 'New'],
         ['label' => '📉 RSI Double Bottom', 'url' => ['/rsi-double-bottom/index'], 'active' => str_starts_with(Yii::$app->controller->id, 'rsi-double-bottom')],
         ['label' => '🔍 Volume Scanner', 'url' => ['/scanner/index'], 'active' => Yii::$app->controller->id === 'scanner'],
+        ['label' => '📈 Moving Average Signals', 'url' => ['/moving-average/index'], 'active' => Yii::$app->controller->id === 'moving-average', 'badge' => 'New'],
+        ['label' => '🌀 Fibonacci Levels', 'url' => ['/fibonacci/index'], 'active' => Yii::$app->controller->id === 'fibonacci', 'badge' => 'New'],
     ],
     'Market Intelligence' => [
         ['label' => '🗺️ Sectors', 'url' => ['/sector/index'], 'active' => Yii::$app->controller->id === 'sector'],
@@ -49,7 +51,8 @@ $sideMenuGroups['System'] = [
     <title><?= Html::encode($this->title) ?></title>
     <?php $this->head() ?>
     <style>
-        .sidebar { min-height: calc(100vh - 56px); border-right: 1px solid #dee2e6; background-color: #f8f9fa; }
+        body { padding-top: 58px; }
+        .sidebar { height: calc(100vh - 58px); position: sticky; top: 58px; overflow-y: auto; border-right: 1px solid #dee2e6; background-color: #f8f9fa; }
         .sidebar .nav-link { color: #495057; border-radius: .375rem; font-weight: 500; padding: .5rem .75rem; }
         .sidebar .nav-link:hover { background: #e9ecef; color: #0d6efd; }
         .sidebar .nav-link.active { background: #0d6efd; color: #fff; }
@@ -74,13 +77,15 @@ $sideMenuGroups['System'] = [
         ['label' => '📊 Dashboard', 'url' => ['/dashboard/index'], 'active' => Yii::$app->controller->id === 'dashboard'],
         [
             'label' => '📉 Scanners & Patterns',
-            'active' => in_array(Yii::$app->controller->id, ['double-bottom', 'triple-bottom', 'rsi-double-bottom', 'scanner'], true),
+            'active' => in_array(Yii::$app->controller->id, ['double-bottom', 'triple-bottom', 'rsi-double-bottom', 'scanner', 'moving-average', 'fibonacci'], true),
             'items' => [
                 ['label' => '📉 Double Bottom Scanner (Core)', 'url' => ['/double-bottom/index']],
                 ['label' => '📉 Triple Bottom Scanner', 'url' => ['/triple-bottom/index']],
                 ['label' => '📉 RSI Double Bottom', 'url' => ['/rsi-double-bottom/index']],
                 '<div class="dropdown-divider"></div>',
                 ['label' => '🔍 Volume Scanner', 'url' => ['/scanner/index']],
+                ['label' => '📈 Moving Average Signals', 'url' => ['/moving-average/index']],
+                ['label' => '🌀 Fibonacci Levels', 'url' => ['/fibonacci/index']],
             ],
         ],
         [
@@ -103,6 +108,19 @@ $sideMenuGroups['System'] = [
             ],
         ],
     ];
+
+    if (Yii::$app->user->isGuest) {
+        $topNavItems[] = ['label' => '🔑 Login', 'url' => ['/site/login']];
+    } else {
+        $topNavItems[] = '<li class="nav-item">'
+            . Html::beginForm(['/site/logout'])
+            . Html::submitButton(
+                'Logout (' . Html::encode(Yii::$app->user->identity->username) . ')',
+                ['class' => 'nav-link btn btn-link text-decoration-none border-0 text-white-50']
+            )
+            . Html::endForm()
+            . '</li>';
+    }
 
     echo Nav::widget([
         'options' => ['class' => 'navbar-nav ms-auto'],

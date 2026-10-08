@@ -16,7 +16,7 @@ final class ScanFilterForm extends Model
     private const INT_ATTRS = ['minScore', 'limit', 'minMarketCap', 'maxMarketCap'];
 
     /** Atribut bertipe angka desimal. */
-    private const FLOAT_ATTRS = ['minBuyRatio', 'minVolumeGrowth', 'minVolume', 'minPrice', 'maxPrice'];
+    private const FLOAT_ATTRS = ['minBuyRatio', 'minVolumeGrowth', 'minVolume', 'minPrice', 'maxPrice', 'minRvol'];
 
     /** Atribut bertipe teks. */
     private const STRING_ATTRS = ['symbol', 'exchange', 'sector', 'signal', 'mode'];
@@ -33,6 +33,7 @@ final class ScanFilterForm extends Model
     public ?float $minBuyRatio = null;       // 0..1
     public ?float $minVolumeGrowth = null;   // 0..1
     public ?float $minVolume = null;         // total weekly volume (buy + sell)
+    public ?float $minRvol = null;           // RVOL minimum (e.g. 1.5, 2.0)
     public ?int $minScore = null;
     public ?string $sector = null;
     public ?int $minMarketCap = null;
@@ -124,6 +125,7 @@ final class ScanFilterForm extends Model
             'minBuyRatio' => 'Buy ratio minimum',
             'minVolumeGrowth' => 'Volume growth minimum',
             'minVolume' => 'Volume minimum',
+            'minRvol' => 'RVOL minimum',
             'minMarketCap' => 'Market cap minimum',
             'maxMarketCap' => 'Market cap maksimum',
             'minPrice' => 'Harga minimum',
@@ -250,7 +252,7 @@ final class ScanFilterForm extends Model
             [['mode'], 'in', 'range' => self::MODES,
                 'message' => 'Mode harus "weekly" atau "daily".'],
             [['minBuyRatio'], 'number', 'min' => 0, 'max' => 1],
-            [['minVolumeGrowth', 'minVolume', 'minPrice', 'maxPrice'], 'number', 'min' => 0],
+            [['minVolumeGrowth', 'minVolume', 'minPrice', 'maxPrice', 'minRvol'], 'number', 'min' => 0],
             // Market cap realistis (dolar penuh, bukan juta): maks ~$10T.
             [['minMarketCap', 'maxMarketCap'], 'integer', 'min' => 0, 'max' => 10000000000000],
             [['minScore'], 'integer', 'min' => 0, 'max' => 100],

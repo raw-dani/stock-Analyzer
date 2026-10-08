@@ -1,5 +1,6 @@
-main > .container {
-    padding: 70px 15px 20px;
+main > .container,
+main > .container-fluid {
+    padding: 15px 15px 20px;
 }
 
 .footer {

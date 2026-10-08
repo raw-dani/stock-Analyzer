@@ -35,10 +35,13 @@ final class ScannerController extends Controller
             'avgRvol' => 0.0,
         ];
 
+        $symbols = [];
+        $tvSymbols = [];
+
         try {
             $baseQuery = clone $dataProvider->query;
             if ($form->mode === 'daily') {
-                $stats['strongBuy'] = (int) (clone $baseQuery)->andWhere(['>=', new \yii\db\Expression('{{%daily_price}}.buy_volume / NULLIF({{%daily_price}}.buy_volume + {{%daily_price}}.sell_volume, 0)'), 0.70])->count();
+                $stats['strongBuy'] = (int) (clone $baseQuery)->andWhere(['>=', new \yii\db\Expression('CAST({{%daily_price}}.buy_volume AS REAL) / NULLIF({{%daily_price}}.buy_volume + {{%daily_price}}.sell_volume, 0)'), 0.70])->count();
                 $stats['heavyAccumulation'] = $stats['strongBuy'];
                 $stats['avgRvol'] = 0.0;
             } else {
@@ -46,6 +49,19 @@ final class ScannerController extends Controller
                 $stats['heavyAccumulation'] = (int) (clone $baseQuery)->andWhere(['>=', '{{%weekly_analysis}}.buy_ratio', 0.70])->count();
                 $stats['avgRvol'] = round((float) ((clone $baseQuery)->average('{{%weekly_analysis}}.rvol') ?? 0), 2);
             }
+
+            // Extract unique symbols for 1-click clipboard copy / TradingView watchlist
+            $rows = (clone $baseQuery)->select(['{{%stock}}.symbol', '{{%stock}}.exchange'])->asArray()->all();
+            foreach ($rows as $r) {
+                if (!empty($r['symbol'])) {
+                    $sym = (string) $r['symbol'];
+                    $symbols[] = $sym;
+                    $exch = !empty($r['exchange']) ? $r['exchange'] . ':' : '';
+                    $tvSymbols[] = $exch . $sym;
+                }
+            }
+            $symbols = array_values(array_unique($symbols));
+            $tvSymbols = array_values(array_unique($tvSymbols));
         } catch (\Throwable $e) {
             Yii::warning('Scanner stats error: ' . $e->getMessage(), 'app\services\scanner');
         }
@@ -54,6 +70,75 @@ final class ScannerController extends Controller
             'searchModel' => $form,
             'dataProvider' => $dataProvider,
             'stats' => $stats,
+            'symbols' => $symbols,
+            'tvSymbols' => $tvSymbols,
+        ]);
+    }
+
+    /**
+     * Export hasil filter scanner ke CSV.
+     */
+    public function actionExport(): \yii\web\Response
+    {
+        $form = new ScanFilterForm();
+        $query = Yii::$app->request->get();
+        $query = array_filter($query, fn ($v) => $v !== '' && $v !== null);
+        $form->load($query, '');
+        $form->limit = 5000;
+
+        $dataProvider = Yii::$container->get(ScannerService::class)->search($form);
+        $dataProvider->pagination = false;
+
+        $models = $dataProvider->getModels();
+        $isDaily = $form->mode === 'daily';
+        $filename = 'stock_scanner_' . ($isDaily ? 'daily' : 'weekly') . '_' . date('Ymd_His') . '.csv';
+
+        $handle = fopen('php://temp', 'r+');
+        if ($isDaily) {
+            fputcsv($handle, ['Tanggal', 'Simbol', 'Nama Perusahaan', 'Bursa', 'Sektor', 'Harga Close', 'Volume', 'Buy Volume', 'Sell Volume', 'Buy Ratio %']);
+            foreach ($models as $m) {
+                $total = (int) $m->buy_volume + (int) $m->sell_volume;
+                $ratioPct = $total > 0 ? round(($m->buy_volume / $total) * 100, 2) : 0;
+                fputcsv($handle, [
+                    $m->date,
+                    $m->stock->symbol ?? '',
+                    $m->stock->name ?? '',
+                    $m->stock->exchange ?? '',
+                    $m->stock->sector ?? '',
+                    $m->close,
+                    $m->volume,
+                    $m->buy_volume,
+                    $m->sell_volume,
+                    $ratioPct,
+                ]);
+            }
+        } else {
+            fputcsv($handle, ['Tanggal Minggu', 'Simbol', 'Nama Perusahaan', 'Bursa', 'Sektor', 'Harga', 'Market Cap', 'Buy Ratio %', 'RVOL', 'Vol Growth %', 'Skor', 'Sinyal']);
+            foreach ($models as $m) {
+                fputcsv($handle, [
+                    $m->week_start,
+                    $m->stock->symbol ?? '',
+                    $m->stock->name ?? '',
+                    $m->stock->exchange ?? '',
+                    $m->stock->sector ?? '',
+                    $m->close_price,
+                    $m->stock->market_cap ?? '',
+                    $m->buy_ratio !== null ? round($m->buy_ratio * 100, 2) : '',
+                    $m->rvol,
+                    $m->volume_growth !== null ? round($m->volume_growth * 100, 2) : '',
+                    $m->score,
+                    $m->signal,
+                ]);
+            }
+        }
+
+        rewind($handle);
+        $content = stream_get_contents($handle);
+        fclose($handle);
+
+        return Yii::$app->response->sendContentAsFile($content, $filename, [
+            'mimeType' => 'text/csv',
+            'inline' => false,
         ]);
     }
 

@@ -48,6 +48,7 @@ final class ScannerService
         $query->andFilterWhere(['{{%stock}}.sector' => $form->sector]);
         $query->andFilterWhere(['>=', '{{%weekly_analysis}}.buy_ratio', $form->minBuyRatio]);
         $query->andFilterWhere(['>=', '{{%weekly_analysis}}.volume_growth', $form->minVolumeGrowth]);
+        $query->andFilterWhere(['>=', '{{%weekly_analysis}}.rvol', $form->minRvol]);
         $query->andFilterWhere(['>=', '{{%weekly_analysis}}.score', $form->minScore]);
         $query->andFilterWhere(['>=', '{{%stock}}.market_cap', $form->minMarketCap]);
         $query->andFilterWhere(['<=', '{{%stock}}.market_cap', $form->maxMarketCap]);
@@ -85,6 +86,24 @@ final class ScannerService
                         'label' => 'Symbol',
                         'default' => SORT_ASC,
                     ],
+                    'sector' => [
+                        'asc' => ['{{%stock}}.sector' => SORT_ASC],
+                        'desc' => ['{{%stock}}.sector' => SORT_DESC],
+                        'label' => 'Sector',
+                        'default' => SORT_ASC,
+                    ],
+                    'price' => [
+                        'asc' => ['{{%weekly_analysis}}.close_price' => SORT_ASC],
+                        'desc' => ['{{%weekly_analysis}}.close_price' => SORT_DESC],
+                        'label' => 'Harga',
+                        'default' => SORT_DESC,
+                    ],
+                    'market_cap' => [
+                        'asc' => ['{{%stock}}.market_cap' => SORT_ASC],
+                        'desc' => ['{{%stock}}.market_cap' => SORT_DESC],
+                        'label' => 'Market Cap',
+                        'default' => SORT_DESC,
+                    ],
                     'buy_ratio' => ['label' => 'Buy Ratio', 'default' => SORT_DESC],
                     'volume_growth' => ['label' => 'Vol Growth', 'default' => SORT_DESC],
                     'rvol' => ['label' => 'RVOL', 'default' => SORT_DESC],
@@ -103,11 +122,7 @@ final class ScannerService
         $query = DailyPrice::find()
             ->joinWith(['stock'])
             ->andWhere(['{{%stock}}.active' => true])
-            ->andWhere(['>=', '{{%daily_price}}.date', date('Y-m-d', strtotime('-7 days'))])
-            ->orderBy([
-                '{{%daily_price}}.date' => SORT_DESC,
-                '{{%stock}}.symbol' => SORT_ASC,
-            ]);
+            ->andWhere(['>=', '{{%daily_price}}.date', date('Y-m-d', strtotime('-7 days'))]);
 
         if (!empty($form->symbol)) {
             $query->andFilterWhere(['like', '{{%stock}}.symbol', $form->symbol]);
@@ -116,6 +131,18 @@ final class ScannerService
         $query->andFilterWhere(['{{%stock}}.sector' => $form->sector]);
         $query->andFilterWhere(['>=', '{{%daily_price}}.close', $form->minPrice]);
         $query->andFilterWhere(['<=', '{{%daily_price}}.close', $form->maxPrice]);
+        $query->andFilterWhere(['>=', '{{%daily_price}}.volume', $form->minVolume]);
+        $query->andFilterWhere(['>=', '{{%stock}}.market_cap', $form->minMarketCap]);
+        $query->andFilterWhere(['<=', '{{%stock}}.market_cap', $form->maxMarketCap]);
+
+        if ($form->minBuyRatio !== null) {
+            $query->andWhere(['>=', new Expression('CAST({{%daily_price}}.buy_volume AS REAL) / NULLIF({{%daily_price}}.buy_volume + {{%daily_price}}.sell_volume, 0)'), $form->minBuyRatio]);
+        }
+
+        $query->orderBy([
+            '{{%daily_price}}.date' => SORT_DESC,
+            '{{%stock}}.symbol' => SORT_ASC,
+        ]);
 
         return new ActiveDataProvider([
             'query' => $query,
@@ -138,10 +165,22 @@ final class ScannerService
                         'label' => 'Symbol',
                         'default' => SORT_ASC,
                     ],
+                    'sector' => [
+                        'asc' => ['{{%stock}}.sector' => SORT_ASC],
+                        'desc' => ['{{%stock}}.sector' => SORT_DESC],
+                        'label' => 'Sector',
+                        'default' => SORT_ASC,
+                    ],
                     'close' => [
                         'asc' => ['{{%daily_price}}.close' => SORT_ASC],
                         'desc' => ['{{%daily_price}}.close' => SORT_DESC],
                         'label' => 'Price',
+                        'default' => SORT_DESC,
+                    ],
+                    'market_cap' => [
+                        'asc' => ['{{%stock}}.market_cap' => SORT_ASC],
+                        'desc' => ['{{%stock}}.market_cap' => SORT_DESC],
+                        'label' => 'Market Cap',
                         'default' => SORT_DESC,
                     ],
                     'volume' => [
