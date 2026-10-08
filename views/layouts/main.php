@@ -25,6 +25,7 @@ $sideMenuGroups = [
     ],
     'Scanners & Patterns' => [
         ['label' => '📉 Double Bottom (Core)', 'url' => ['/double-bottom/index'], 'active' => Yii::$app->controller->id === 'double-bottom', 'badge' => 'Core'],
+        ['label' => '📉 Triple Bottom Scanner', 'url' => ['/triple-bottom/index'], 'active' => Yii::$app->controller->id === 'triple-bottom', 'badge' => 'New'],
         ['label' => '📉 RSI Double Bottom', 'url' => ['/rsi-double-bottom/index'], 'active' => str_starts_with(Yii::$app->controller->id, 'rsi-double-bottom')],
         ['label' => '🔍 Volume Scanner', 'url' => ['/scanner/index'], 'active' => Yii::$app->controller->id === 'scanner'],
     ],
@@ -73,9 +74,10 @@ $sideMenuGroups['System'] = [
         ['label' => '📊 Dashboard', 'url' => ['/dashboard/index'], 'active' => Yii::$app->controller->id === 'dashboard'],
         [
             'label' => '📉 Scanners & Patterns',
-            'active' => in_array(Yii::$app->controller->id, ['double-bottom', 'rsi-double-bottom', 'scanner'], true),
+            'active' => in_array(Yii::$app->controller->id, ['double-bottom', 'triple-bottom', 'rsi-double-bottom', 'scanner'], true),
             'items' => [
                 ['label' => '📉 Double Bottom Scanner (Core)', 'url' => ['/double-bottom/index']],
+                ['label' => '📉 Triple Bottom Scanner', 'url' => ['/triple-bottom/index']],
                 ['label' => '📉 RSI Double Bottom', 'url' => ['/rsi-double-bottom/index']],
                 '<div class="dropdown-divider"></div>',
                 ['label' => '🔍 Volume Scanner', 'url' => ['/scanner/index']],

@@ -7,7 +7,7 @@ return [
 
     // ==== US Stock Volume Analyzer ====
     // Provider data pasar: alpha_vantage | polygon | yahoo_finance | csv (dev/backfill)
-    'marketDataProvider' => 'csv',
+    'marketDataProvider' => 'yahoo_finance',
     'marketDataProviderConfig' => [
         'alpha_vantage' => [
             'apiKey' => getenv('ALPHAVANTAGE_API_KEY') ?: '',

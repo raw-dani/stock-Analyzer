@@ -36,8 +36,6 @@ final class Log
                 'to' => [$email],
                 'subject' => 'Stock Analyzer Error Alert',
             ],
-            // Batasi jumlah email per flush log.
-            'maxEmailCount' => 5,
         ];
     }
 }
