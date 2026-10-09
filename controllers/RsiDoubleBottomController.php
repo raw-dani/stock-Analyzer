@@ -10,19 +10,13 @@ use yii\web\Controller;
 use yii\web\NotFoundHttpException;
 
 /**
- * Scanner Double Bottom berbasis seri RSI — TF 1H, 2H, 4H, 1D.
- * Mirror DoubleBottomController tapi pakai RsiDoubleBottomService.
+ * Scanner RSI Strategy & Momentum Signal — TF 1D, 4H, 2H, 1H.
+ * Memberikan rekomendasi Waktu Beli (Entry) dan Waktu Jual (Exit/Take Profit) yang tepat.
  */
 final class RsiDoubleBottomController extends Controller
 {
     /**
-     * Halaman index — tampilkan hasil scan RSI Double Bottom.
-     * Parameter GET (diambil dari params.rsiDefaults sebagai default):
-     *   timeframe  : 1|2|4|24  (1H/2H/4H/1D)
-     *   lookback   : jumlah candle (default 150)
-     *   tolerance  : poin RSI selisih maks (default 3.0)
-     *   rsiPeriod  : periode Wilder (default 14)
-     *   maxRsi     : ambang bawah lembah (default 40)
+     * Halaman index — tampilkan hasil scan RSI Strategy.
      */
     public function actionIndex(
         ?int $timeframe = null,
@@ -35,7 +29,7 @@ final class RsiDoubleBottomController extends Controller
         ?string $sortBy = 'confidence'
     ): string {
         $defaults = Yii::$app->params['rsiDefaults'] ?? [];
-        $timeframe       = $timeframe       ?? self::TIMEFRAME_4H;
+        $timeframe       = $timeframe       ?? self::TIMEFRAME_1D;
         $lookback        = $lookback        ?? ($defaults['lookback']        ?? 150);
         $tolerance       = $tolerance       ?? ($defaults['tolerance']       ?? 3.0);
         $rsiPeriod       = $rsiPeriod       ?? ($defaults['rsiPeriod']       ?? 14);
@@ -46,17 +40,17 @@ final class RsiDoubleBottomController extends Controller
 
         $timeframes = self::getTimeframes();
         if (!isset($timeframes[$timeframe])) {
-            $timeframe = self::TIMEFRAME_4H;
+            $timeframe = self::TIMEFRAME_1D;
         }
 
         $logCat = $defaults['logCategory'] ?? 'app\services\rsidoublebottom';
-        Yii::info("RSI Double Bottom Scan: timeframe={$timeframe} lookback={$lookback} tolerance={$tolerance} period={$rsiPeriod} maxRsi={$maxRsi}", $logCat);
+        Yii::info("RSI Strategy Scan: timeframe={$timeframe} lookback={$lookback} tolerance={$tolerance} period={$rsiPeriod} maxRsi={$maxRsi}", $logCat);
 
         $service = new RsiDoubleBottomService();
         try {
             $results = $service->scanAll($timeframe, $lookback, $tolerance, $rsiPeriod, $maxRsi, $minSeparation, $maxSeparation, $necklineMin);
         } catch (\InvalidArgumentException $e) {
-            Yii::warning("RSI Double Bottom Scan: {$e->getMessage()}", $logCat);
+            Yii::warning("RSI Strategy Scan: {$e->getMessage()}", $logCat);
             $lookback = $defaults['lookback'] ?? 150;
             $tolerance = $defaults['tolerance'] ?? 3.0;
             $rsiPeriod = $defaults['rsiPeriod'] ?? 14;
@@ -69,15 +63,23 @@ final class RsiDoubleBottomController extends Controller
 
         $allResults = $results;
 
-        // Status Filter
-        if ($statusFilter === 'breakout') {
-            $results = array_filter($results, fn ($r) => !empty($r['breakout']));
-        } elseif ($statusFilter === 'divergence') {
+        // Enhanced Status / Signal Filter
+        if ($statusFilter === 'buy') {
+            $results = array_filter($results, fn ($r) => in_array($r['action'] ?? '', ['BUY_NOW', 'BUY_PULLBACK', 'MOMENTUM_BUY'], true));
+        } elseif ($statusFilter === 'sell') {
+            $results = array_filter($results, fn ($r) => in_array($r['action'] ?? '', ['SELL_NOW', 'TAKE_PROFIT'], true));
+        } elseif ($statusFilter === 'bull_div') {
             $results = array_filter($results, fn ($r) => !empty($r['divergence']));
-        } elseif ($statusFilter === 'ready') {
-            $results = array_filter($results, fn ($r) => in_array($r['action'] ?? '', ['BUY_NOW', 'READY_BREAKOUT', 'NEAR_BREAKOUT'], true));
+        } elseif ($statusFilter === 'bear_div') {
+            $results = array_filter($results, fn ($r) => !empty($r['bearish_divergence']));
+        } elseif ($statusFilter === 'oversold') {
+            $results = array_filter($results, fn ($r) => ($r['current_rsi'] ?? 50) <= 35);
+        } elseif ($statusFilter === 'overbought') {
+            $results = array_filter($results, fn ($r) => ($r['current_rsi'] ?? 50) >= 65);
+        } elseif ($statusFilter === 'breakout') {
+            $results = array_filter($results, fn ($r) => !empty($r['breakout']));
         } elseif ($statusFilter === 'high_conf') {
-            $results = array_filter($results, fn ($r) => ($r['confidence'] ?? 0) >= 70);
+            $results = array_filter($results, fn ($r) => ($r['confidence'] ?? 0) >= 75);
         }
 
         if ($minConf > 0) {
@@ -91,11 +93,13 @@ final class RsiDoubleBottomController extends Controller
             usort($results, fn ($a, $b) => ($b['potential_upside'] ?? 0) <=> ($a['potential_upside'] ?? 0));
         } elseif ($sortBy === 'current_rsi') {
             usort($results, fn ($a, $b) => ($a['current_rsi'] ?? 0) <=> ($b['current_rsi'] ?? 0));
+        } elseif ($sortBy === 'rsi_high') {
+            usort($results, fn ($a, $b) => ($b['current_rsi'] ?? 0) <=> ($a['current_rsi'] ?? 0));
         } else {
             usort($results, fn ($a, $b) => ($b['confidence'] ?? 0) <=> ($a['confidence'] ?? 0));
         }
 
-        Yii::info("RSI Double Bottom Scan: found " . count($results) . " patterns", $logCat);
+        Yii::info("RSI Strategy Scan: found " . count($results) . " items", $logCat);
 
         return $this->render('index', [
             'results'        => $results,
@@ -116,23 +120,25 @@ final class RsiDoubleBottomController extends Controller
     }
 
     /**
-     * Halaman detail satu simbol — tampilkan pola RSI Double Bottom terbesar.
+     * Halaman detail satu simbol — analisis teknikal RSI, divergensi, dan level trading.
      */
     public function actionDetail(string $symbol): string
     {
         $defaults = Yii::$app->params['rsiDefaults'] ?? [];
-        $timeframe = (int) Yii::$app->request->get('timeframe', self::TIMEFRAME_4H);
+        $timeframe = (int) Yii::$app->request->get('timeframe', self::TIMEFRAME_1D);
         $lookback  = (int) Yii::$app->request->get('lookback',  $defaults['lookback']   ?? 150);
         $tolerance = (float) Yii::$app->request->get('tolerance', $defaults['tolerance'] ?? 3.0);
         $rsiPeriod = (int) Yii::$app->request->get('rsiPeriod', $defaults['rsiPeriod']  ?? 14);
         $maxRsi    = (float) Yii::$app->request->get('maxRsi',    $defaults['maxRsiForBottom'] ?? 40.0);
+        $statusFilter = (string) Yii::$app->request->get('statusFilter', 'all');
+        $sortBy       = (string) Yii::$app->request->get('sortBy', 'confidence');
         $minSeparation = $defaults['minSeparation'] ?? 5;
         $maxSeparation = $defaults['maxSeparation'] ?? 30;
         $necklineMin = $defaults['necklineMin'] ?? 2.0;
 
         $timeframes = self::getTimeframes();
         if (!isset($timeframes[$timeframe])) {
-            $timeframe = self::TIMEFRAME_4H;
+            $timeframe = self::TIMEFRAME_1D;
         }
 
         $stock = \app\models\Stock::find()->where(['symbol' => $symbol])->one();
@@ -144,8 +150,8 @@ final class RsiDoubleBottomController extends Controller
         try {
             $pattern = $service->detectPattern($stock->id, $timeframe, $lookback, $tolerance, $rsiPeriod, $maxRsi, $minSeparation, $maxSeparation, $necklineMin, true);
         } catch (\InvalidArgumentException $e) {
-            Yii::warning("RSI Double Bottom detail {$symbol}: {$e->getMessage()}", $defaults['logCategory'] ?? 'app\services\rsidoublebottom');
-            $timeframe = self::TIMEFRAME_4H;
+            Yii::warning("RSI detail {$symbol}: {$e->getMessage()}", $defaults['logCategory'] ?? 'app\services\rsidoublebottom');
+            $timeframe = self::TIMEFRAME_1D;
             $lookback = $defaults['lookback'] ?? 150;
             $tolerance = $defaults['tolerance'] ?? 3.0;
             $rsiPeriod = $defaults['rsiPeriod'] ?? 14;
@@ -157,17 +163,19 @@ final class RsiDoubleBottomController extends Controller
         }
 
         return $this->render('detail', [
-            'stock'     => $stock,
-            'pattern'   => $pattern,
-            'timeframe' => $timeframe,
-            'lookback'  => $lookback,
-            'tolerance' => $tolerance,
-            'rsiPeriod' => $rsiPeriod,
-            'maxRsi'    => $maxRsi,
-            'minSeparation' => $minSeparation,
-            'maxSeparation' => $maxSeparation,
-            'necklineMin'   => $necklineMin,
-            'timeframes'=> $timeframes,
+            'stock'        => $stock,
+            'pattern'      => $pattern,
+            'timeframe'    => $timeframe,
+            'lookback'     => $lookback,
+            'tolerance'    => $tolerance,
+            'rsiPeriod'    => $rsiPeriod,
+            'maxRsi'       => $maxRsi,
+            'statusFilter' => $statusFilter,
+            'sortBy'       => $sortBy,
+            'minSeparation'=> $minSeparation,
+            'maxSeparation'=> $maxSeparation,
+            'necklineMin'  => $necklineMin,
+            'timeframes'   => $timeframes,
         ]);
     }
 

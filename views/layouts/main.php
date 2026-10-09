@@ -26,7 +26,7 @@ $sideMenuGroups = [
     'Scanners & Patterns' => [
         ['label' => '📉 Double Bottom (Core)', 'url' => ['/double-bottom/index'], 'active' => Yii::$app->controller->id === 'double-bottom', 'badge' => 'Core'],
         ['label' => '📉 Triple Bottom Scanner', 'url' => ['/triple-bottom/index'], 'active' => Yii::$app->controller->id === 'triple-bottom', 'badge' => 'New'],
-        ['label' => '📉 RSI Double Bottom', 'url' => ['/rsi-double-bottom/index'], 'active' => str_starts_with(Yii::$app->controller->id, 'rsi-double-bottom')],
+        ['label' => '📉 RSI Strategy & Signals', 'url' => ['/rsi-double-bottom/index'], 'active' => str_starts_with(Yii::$app->controller->id, 'rsi-double-bottom')],
         ['label' => '🔍 Volume Scanner', 'url' => ['/scanner/index'], 'active' => Yii::$app->controller->id === 'scanner'],
         ['label' => '📈 Moving Average Signals', 'url' => ['/moving-average/index'], 'active' => Yii::$app->controller->id === 'moving-average', 'badge' => 'New'],
         ['label' => '🌀 Fibonacci Levels', 'url' => ['/fibonacci/index'], 'active' => Yii::$app->controller->id === 'fibonacci', 'badge' => 'New'],
@@ -81,7 +81,7 @@ $sideMenuGroups['System'] = [
             'items' => [
                 ['label' => '📉 Double Bottom Scanner (Core)', 'url' => ['/double-bottom/index']],
                 ['label' => '📉 Triple Bottom Scanner', 'url' => ['/triple-bottom/index']],
-                ['label' => '📉 RSI Double Bottom', 'url' => ['/rsi-double-bottom/index']],
+                ['label' => '📉 RSI Strategy & Signals', 'url' => ['/rsi-double-bottom/index']],
                 '<div class="dropdown-divider"></div>',
                 ['label' => '🔍 Volume Scanner', 'url' => ['/scanner/index']],
                 ['label' => '📈 Moving Average Signals', 'url' => ['/moving-average/index']],
