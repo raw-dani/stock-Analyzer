@@ -30,6 +30,7 @@ $sideMenuGroups = [
         ['label' => '🔍 Volume Scanner', 'url' => ['/scanner/index'], 'active' => Yii::$app->controller->id === 'scanner'],
         ['label' => '📈 Moving Average Signals', 'url' => ['/moving-average/index'], 'active' => Yii::$app->controller->id === 'moving-average', 'badge' => 'New'],
         ['label' => '🌀 Fibonacci Levels', 'url' => ['/fibonacci/index'], 'active' => Yii::$app->controller->id === 'fibonacci', 'badge' => 'New'],
+        ['label' => '🕯️ Candlestick Scanner', 'url' => ['/candlestick/index'], 'active' => Yii::$app->controller->id === 'candlestick', 'badge' => 'New'],
     ],
     'Market Intelligence' => [
         ['label' => '🗺️ Sectors', 'url' => ['/sector/index'], 'active' => Yii::$app->controller->id === 'sector'],
@@ -49,6 +50,7 @@ $sideMenuGroups['System'] = [
 <html lang="<?= Yii::$app->language ?>" class="h-100">
 <head>
     <title><?= Html::encode($this->title) ?></title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <?php $this->head() ?>
     <style>
         body { padding-top: 58px; }
@@ -77,7 +79,7 @@ $sideMenuGroups['System'] = [
         ['label' => '📊 Dashboard', 'url' => ['/dashboard/index'], 'active' => Yii::$app->controller->id === 'dashboard'],
         [
             'label' => '📉 Scanners & Patterns',
-            'active' => in_array(Yii::$app->controller->id, ['double-bottom', 'triple-bottom', 'rsi-double-bottom', 'scanner', 'moving-average', 'fibonacci'], true),
+            'active' => in_array(Yii::$app->controller->id, ['double-bottom', 'triple-bottom', 'rsi-double-bottom', 'scanner', 'moving-average', 'fibonacci', 'candlestick'], true),
             'items' => [
                 ['label' => '📉 Double Bottom Scanner (Core)', 'url' => ['/double-bottom/index']],
                 ['label' => '📉 Triple Bottom Scanner', 'url' => ['/triple-bottom/index']],
@@ -86,6 +88,7 @@ $sideMenuGroups['System'] = [
                 ['label' => '🔍 Volume Scanner', 'url' => ['/scanner/index']],
                 ['label' => '📈 Moving Average Signals', 'url' => ['/moving-average/index']],
                 ['label' => '🌀 Fibonacci Levels', 'url' => ['/fibonacci/index']],
+                ['label' => '🕯️ Candlestick Scanner', 'url' => ['/candlestick/index']],
             ],
         ],
         [
