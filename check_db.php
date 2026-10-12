@@ -1,7 +1,7 @@
 <?php
 require __DIR__ . '/vendor/autoload.php';
 require __DIR__ . '/vendor/yiisoft/yii2/Yii.php';
-$db = new PDO('sqlite:' . __DIR__ . '/app/data/stocks.db');
+$db = new PDO('sqlite:' . __DIR__ . '/data/stocks.db');
 echo 'stock: ' . $db->query('SELECT COUNT(*) FROM stock')->fetchColumn() . PHP_EOL;
 echo 'daily_price: ' . $db->query('SELECT COUNT(*) FROM daily_price')->fetchColumn() . PHP_EOL;
 echo 'weekly_analysis: ' . $db->query('SELECT COUNT(*) FROM weekly_analysis')->fetchColumn() . PHP_EOL;

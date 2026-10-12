@@ -8,8 +8,13 @@ use yii\bootstrap5\Html;
 use yii\helpers\Url;
 
 $isWeekly = ($model->mode ?? 'weekly') !== 'daily';
+$isDaily = !$isWeekly;
 
 // Cek preset yang aktif
+$isPresetDayBreakout = ($model->minChangePct == 2.0 && $model->minBuyRatio == 0.65);
+$isPresetDaySpike = ($model->minBuyRatio == 0.70 && $model->minVolume == 500000);
+$isPresetDayAbsorption = ($model->minBuyRatio == 0.65 && $model->maxPrice == 50);
+
 $isPresetInstAcc = ($model->minBuyRatio == 0.7 && $model->minScore == 60);
 $isPresetVolBreakout = ($model->minVolumeGrowth == 0.5 && $model->minScore == 65);
 $isPresetStrongBuy = ($model->signal === 'STRONG_BUY');
@@ -23,43 +28,65 @@ $isPresetMomentum = ($model->maxPrice == 20 && $model->minVolumeGrowth == 0.3);
     <div class="card-body p-3">
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
             <div class="d-flex flex-wrap align-items-center gap-2">
-                <span class="small fw-bold text-muted me-1"><i class="bi bi-lightning-fill text-warning"></i> Preset Strategi Cepat:</span>
+                <span class="small fw-bold text-muted me-1">
+                    <i class="bi bi-lightning-fill text-warning"></i> Preset Cepat (<?= $isDaily ? 'Day Trading' : 'Swing Weekly' ?>):
+                </span>
                 
-                <?= Html::a(
-                    '<i class="bi bi-buildings"></i> Akumulasi Institusi',
-                    ['/scanner/index', 'minBuyRatio' => '0.7', 'minScore' => '60', 'mode' => $model->mode],
-                    ['class' => 'btn btn-sm ' . ($isPresetInstAcc ? 'btn-primary shadow-sm' : 'btn-outline-primary'), 'title' => 'Buy Ratio ≥ 70%, Skor ≥ 60']
-                ) ?>
+                <?php if ($isDaily): ?>
+                    <?= Html::a(
+                        '<i class="bi bi-rocket-takeoff-fill"></i> Day Breakout (+2% & Acc ≥65%)',
+                        ['/scanner/index', 'mode' => 'daily', 'minChangePct' => '2.0', 'minBuyRatio' => '0.65'],
+                        ['class' => 'btn btn-sm ' . ($isPresetDayBreakout ? 'btn-success shadow-sm' : 'btn-outline-success'), 'title' => 'Momentum kenaikan hari ini dengan dominasi akumulasi buy']
+                    ) ?>
 
-                <?= Html::a(
-                    '<i class="bi bi-graph-up-arrow"></i> Volume Breakout',
-                    ['/scanner/index', 'minVolumeGrowth' => '0.5', 'minScore' => '65', 'mode' => $model->mode],
-                    ['class' => 'btn btn-sm ' . ($isPresetVolBreakout ? 'btn-success shadow-sm' : 'btn-outline-success'), 'title' => 'Vol Growth ≥ 50%, Skor ≥ 65']
-                ) ?>
+                    <?= Html::a(
+                        '<i class="bi bi-fire"></i> High Volume Surge (≥70% Buy)',
+                        ['/scanner/index', 'mode' => 'daily', 'minBuyRatio' => '0.70', 'minVolume' => '500000'],
+                        ['class' => 'btn btn-sm ' . ($isPresetDaySpike ? 'btn-primary shadow-sm' : 'btn-outline-primary'), 'title' => 'Tekanan beli kuat dengan likuiditas volume tinggi']
+                    ) ?>
 
-                <?= Html::a(
-                    '<i class="bi bi-gem"></i> Strong Buy Signal',
-                    ['/scanner/index', 'signal' => 'STRONG_BUY', 'mode' => $model->mode],
-                    ['class' => 'btn btn-sm ' . ($isPresetStrongBuy ? 'btn-info text-white shadow-sm' : 'btn-outline-info'), 'title' => 'Sinyal akumulasi terkuat']
-                ) ?>
+                    <?= Html::a(
+                        '<i class="bi bi-arrow-down-left-square"></i> Buy On Absorption (<$50)',
+                        ['/scanner/index', 'mode' => 'daily', 'minBuyRatio' => '0.65', 'maxPrice' => '50'],
+                        ['class' => 'btn btn-sm ' . ($isPresetDayAbsorption ? 'btn-info text-white shadow-sm' : 'btn-outline-info'), 'title' => 'Saham terjangkau dengan akumulasi buy dominan']
+                    ) ?>
+                <?php else: ?>
+                    <?= Html::a(
+                        '<i class="bi bi-buildings"></i> Akumulasi Institusi',
+                        ['/scanner/index', 'minBuyRatio' => '0.7', 'minScore' => '60', 'mode' => 'weekly'],
+                        ['class' => 'btn btn-sm ' . ($isPresetInstAcc ? 'btn-primary shadow-sm' : 'btn-outline-primary'), 'title' => 'Buy Ratio ≥ 70%, Skor ≥ 60']
+                    ) ?>
 
-                <?= Html::a(
-                    '<i class="bi bi-fire"></i> Lonjakan RVOL (≥ 2.0x)',
-                    ['/scanner/index', 'minRvol' => '2.0', 'minScore' => '50', 'mode' => $model->mode],
-                    ['class' => 'btn btn-sm ' . ($isPresetRvolSurge ? 'btn-danger shadow-sm' : 'btn-outline-danger'), 'title' => 'Volume 2x lipat rata-rata mingguan']
-                ) ?>
+                    <?= Html::a(
+                        '<i class="bi bi-graph-up-arrow"></i> Volume Breakout',
+                        ['/scanner/index', 'minVolumeGrowth' => '0.5', 'minScore' => '65', 'mode' => 'weekly'],
+                        ['class' => 'btn btn-sm ' . ($isPresetVolBreakout ? 'btn-success shadow-sm' : 'btn-outline-success'), 'title' => 'Vol Growth ≥ 50%, Skor ≥ 65']
+                    ) ?>
 
-                <?= Html::a(
-                    '<i class="bi bi-shield-check"></i> Large Cap Giants (>$10B)',
-                    ['/scanner/index', 'minMarketCap' => '10000000000', 'minBuyRatio' => '0.55', 'mode' => $model->mode],
-                    ['class' => 'btn btn-sm ' . ($isPresetLargeCap ? 'btn-dark shadow-sm' : 'btn-outline-dark'), 'title' => 'Saham berkapitalisasi pasar raksasa']
-                ) ?>
+                    <?= Html::a(
+                        '<i class="bi bi-gem"></i> Strong Buy Signal',
+                        ['/scanner/index', 'signal' => 'STRONG_BUY', 'mode' => 'weekly'],
+                        ['class' => 'btn btn-sm ' . ($isPresetStrongBuy ? 'btn-info text-white shadow-sm' : 'btn-outline-info'), 'title' => 'Sinyal akumulasi terkuat']
+                    ) ?>
 
-                <?= Html::a(
-                    '<i class="bi bi-rocket-takeoff"></i> Momentum Saham Murah (<$20)',
-                    ['/scanner/index', 'maxPrice' => '20', 'minVolumeGrowth' => '0.3', 'mode' => $model->mode],
-                    ['class' => 'btn btn-sm ' . ($isPresetMomentum ? 'btn-warning text-dark shadow-sm' : 'btn-outline-warning text-dark'), 'title' => 'Harga di bawah $20 dengan pertumbuhan volume']
-                ) ?>
+                    <?= Html::a(
+                        '<i class="bi bi-fire"></i> Lonjakan RVOL (≥ 2.0x)',
+                        ['/scanner/index', 'minRvol' => '2.0', 'minScore' => '50', 'mode' => 'weekly'],
+                        ['class' => 'btn btn-sm ' . ($isPresetRvolSurge ? 'btn-danger shadow-sm' : 'btn-outline-danger'), 'title' => 'Volume 2x lipat rata-rata mingguan']
+                    ) ?>
+
+                    <?= Html::a(
+                        '<i class="bi bi-shield-check"></i> Large Cap Giants (>$10B)',
+                        ['/scanner/index', 'minMarketCap' => '10000000000', 'minBuyRatio' => '0.55', 'mode' => 'weekly'],
+                        ['class' => 'btn btn-sm ' . ($isPresetLargeCap ? 'btn-dark shadow-sm' : 'btn-outline-dark'), 'title' => 'Saham berkapitalisasi pasar raksasa']
+                    ) ?>
+
+                    <?= Html::a(
+                        '<i class="bi bi-rocket-takeoff"></i> Momentum Saham Murah (<$20)',
+                        ['/scanner/index', 'maxPrice' => '20', 'minVolumeGrowth' => '0.3', 'mode' => 'weekly'],
+                        ['class' => 'btn btn-sm ' . ($isPresetMomentum ? 'btn-warning text-dark shadow-sm' : 'btn-outline-warning text-dark'), 'title' => 'Harga di bawah $20 dengan pertumbuhan volume']
+                    ) ?>
+                <?php endif; ?>
             </div>
 
             <div class="d-flex align-items-center gap-2">
@@ -123,7 +150,11 @@ $isPresetMomentum = ($model->maxPrice == 20 && $model->minVolumeGrowth == 0.3);
                     <?= $form->field($model, 'minBuyRatio')->textInput(['placeholder' => 'Cth: 0.65 atau 65%'])->label('Min Buy Ratio (0.0 - 1.0)') ?>
                 </div>
                 <div class="col-md-2 col-6">
-                    <?= $form->field($model, 'minVolumeGrowth')->textInput(['placeholder' => 'Cth: 0.5 (50%)'])->label('Min Vol Growth') ?>
+                    <?php if ($isDaily): ?>
+                        <?= $form->field($model, 'minChangePct')->textInput(['placeholder' => 'Cth: 2.0 (+2%)'])->label('Min Perubahan Hari Ini (%)') ?>
+                    <?php else: ?>
+                        <?= $form->field($model, 'minVolumeGrowth')->textInput(['placeholder' => 'Cth: 0.5 (50%)'])->label('Min Vol Growth') ?>
+                    <?php endif; ?>
                 </div>
                 <div class="col-md-2 col-6">
                     <?= $form->field($model, 'minRvol')->textInput(['placeholder' => 'Cth: 1.5 atau 2.0'])->label('Min RVOL (Relatif)') ?>
@@ -132,7 +163,7 @@ $isPresetMomentum = ($model->maxPrice == 20 && $model->minVolumeGrowth == 0.3);
                     <?= $form->field($model, 'minScore')->textInput(['placeholder' => 'Cth: 70'])->label('Min Skor Komposit (0-100)') ?>
                 </div>
                 <div class="col-md-3 col-12">
-                    <?= $form->field($model, 'minVolume')->textInput(['placeholder' => 'Cth: 1,000,000'])->label('Min Total Volume (Lembar)') ?>
+                    <?= $form->field($model, 'minVolume')->textInput(['placeholder' => 'Cth: 500,000'])->label('Min Total Volume (Lembar)') ?>
                 </div>
             </div>
 
@@ -178,7 +209,7 @@ $isPresetMomentum = ($model->maxPrice == 20 && $model->minVolumeGrowth == 0.3);
         <?php ActiveForm::end() ?>
 
         <div class="progress mt-3" id="scan-progress-bar" style="display:none; height: 1.25rem;">
-            <div class="progress-bar progress-bar-striped progress-bar-animated bg-warning text-dark fw-bold" role="progressbar" style="width: 100%">Sinkronisasi data pasar terbaru &amp; analisis ulang...</div>
+            <div class="progress-bar progress-bar-striped progress-bar-animated bg-warning text-dark fw-bold" role="progressbar" style="width: 100%">Menganalisis indikator volume, momentum &amp; scoring sinyal...</div>
         </div>
 
         <script>
@@ -191,9 +222,9 @@ $isPresetMomentum = ($model->maxPrice == 20 && $model->minVolumeGrowth == 0.3);
                     btn.querySelector('.scan-progress').style.display = 'inline';
                     btn.disabled = true;
                 }
-                this.closest('form').setAttribute('action', '<?= Url::to(['scanner/run-scan']) ?>');
-                e.preventDefault();
-                this.closest('form').submit();
+                const form = this.closest('form');
+                form.setAttribute('action', '<?= Url::to(['scanner/run-scan']) ?>');
+                form.submit();
             });
 
             document.getElementById('exchange')?.addEventListener('change', function () {

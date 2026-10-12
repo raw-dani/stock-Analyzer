@@ -16,7 +16,7 @@ final class ScanFilterForm extends Model
     private const INT_ATTRS = ['minScore', 'limit', 'minMarketCap', 'maxMarketCap'];
 
     /** Atribut bertipe angka desimal. */
-    private const FLOAT_ATTRS = ['minBuyRatio', 'minVolumeGrowth', 'minVolume', 'minPrice', 'maxPrice', 'minRvol'];
+    private const FLOAT_ATTRS = ['minBuyRatio', 'minVolumeGrowth', 'minVolume', 'minPrice', 'maxPrice', 'minRvol', 'minChangePct', 'minDailyRvol'];
 
     /** Atribut bertipe teks. */
     private const STRING_ATTRS = ['symbol', 'exchange', 'sector', 'signal', 'mode'];
@@ -32,8 +32,10 @@ final class ScanFilterForm extends Model
     public ?string $signal = null;
     public ?float $minBuyRatio = null;       // 0..1
     public ?float $minVolumeGrowth = null;   // 0..1
-    public ?float $minVolume = null;         // total weekly volume (buy + sell)
-    public ?float $minRvol = null;           // RVOL minimum (e.g. 1.5, 2.0)
+    public ?float $minVolume = null;         // total volume
+    public ?float $minRvol = null;           // RVOL minimum mingguan (e.g. 1.5, 2.0)
+    public ?float $minChangePct = null;      // Gain harian minimum dalam % (e.g. 2.0 untuk +2%)
+    public ?float $minDailyRvol = null;      // RVOL harian minimum (e.g. 1.5x)
     public ?int $minScore = null;
     public ?string $sector = null;
     public ?int $minMarketCap = null;
@@ -126,6 +128,8 @@ final class ScanFilterForm extends Model
             'minVolumeGrowth' => 'Volume growth minimum',
             'minVolume' => 'Volume minimum',
             'minRvol' => 'RVOL minimum',
+            'minChangePct' => 'Gain harian minimum (%)',
+            'minDailyRvol' => 'Daily RVOL minimum',
             'minMarketCap' => 'Market cap minimum',
             'maxMarketCap' => 'Market cap maksimum',
             'minPrice' => 'Harga minimum',
@@ -252,7 +256,8 @@ final class ScanFilterForm extends Model
             [['mode'], 'in', 'range' => self::MODES,
                 'message' => 'Mode harus "weekly" atau "daily".'],
             [['minBuyRatio'], 'number', 'min' => 0, 'max' => 1],
-            [['minVolumeGrowth', 'minVolume', 'minPrice', 'maxPrice', 'minRvol'], 'number', 'min' => 0],
+            [['minVolumeGrowth', 'minVolume', 'minPrice', 'maxPrice', 'minRvol', 'minDailyRvol'], 'number', 'min' => 0],
+            [['minChangePct'], 'number'], // bisa minus jika ingin filter toleransi penurunan
             // Market cap realistis (dolar penuh, bukan juta): maks ~$10T.
             [['minMarketCap', 'maxMarketCap'], 'integer', 'min' => 0, 'max' => 10000000000000],
             [['minScore'], 'integer', 'min' => 0, 'max' => 100],

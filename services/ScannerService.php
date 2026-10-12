@@ -115,14 +115,20 @@ final class ScannerService
     }
 
     /**
-     * Daily view — query daily_price untuk 7 hari terakhir.
+     * Daily view — snapshot data harian terbaru per saham dengan indikator momentum & akumulasi harian.
      */
     public function dailySearch(ScanFilterForm $form): ActiveDataProvider
     {
+        // Ambil ID bar harian terbaru untuk setiap saham agar tidak terjadi duplikasi tanggal
+        $latestPriceSubquery = (new \yii\db\Query())
+            ->select(['max_id' => new Expression('MAX(id)')])
+            ->from('{{%daily_price}}')
+            ->groupBy('stock_id');
+
         $query = DailyPrice::find()
             ->joinWith(['stock'])
-            ->andWhere(['{{%stock}}.active' => true])
-            ->andWhere(['>=', '{{%daily_price}}.date', date('Y-m-d', strtotime('-7 days'))]);
+            ->where(['in', '{{%daily_price}}.id', $latestPriceSubquery])
+            ->andWhere(['{{%stock}}.active' => true]);
 
         if (!empty($form->symbol)) {
             $query->andFilterWhere(['like', '{{%stock}}.symbol', $form->symbol]);
@@ -139,9 +145,14 @@ final class ScannerService
             $query->andWhere(['>=', new Expression('CAST({{%daily_price}}.buy_volume AS REAL) / NULLIF({{%daily_price}}.buy_volume + {{%daily_price}}.sell_volume, 0)'), $form->minBuyRatio]);
         }
 
+        // Filter gain harian (% change close vs open)
+        if ($form->minChangePct !== null) {
+            $query->andWhere(['>=', new Expression('((CAST({{%daily_price}}.close AS REAL) - {{%daily_price}}.open) / NULLIF({{%daily_price}}.open, 0)) * 100'), $form->minChangePct]);
+        }
+
         $query->orderBy([
             '{{%daily_price}}.date' => SORT_DESC,
-            '{{%stock}}.symbol' => SORT_ASC,
+            '{{%daily_price}}.volume' => SORT_DESC,
         ]);
 
         return new ActiveDataProvider([
@@ -150,7 +161,7 @@ final class ScannerService
             'sort' => [
                 'defaultOrder' => [
                     'date' => SORT_DESC,
-                    'symbol' => SORT_ASC,
+                    'volume' => SORT_DESC,
                 ],
                 'attributes' => [
                     'date' => [

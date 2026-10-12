@@ -41,17 +41,34 @@ final class ScannerController extends Controller
         try {
             $baseQuery = clone $dataProvider->query;
             if ($form->mode === 'daily') {
-                $stats['strongBuy'] = (int) (clone $baseQuery)->andWhere(['>=', new \yii\db\Expression('CAST({{%daily_price}}.buy_volume AS REAL) / NULLIF({{%daily_price}}.buy_volume + {{%daily_price}}.sell_volume, 0)'), 0.70])->count();
+                $statRow = (clone $baseQuery)
+                    ->select([
+                        'strongBuy' => new \yii\db\Expression('SUM(CASE WHEN CAST({{%daily_price}}.buy_volume AS REAL) / NULLIF({{%daily_price}}.buy_volume + {{%daily_price}}.sell_volume, 0) >= 0.70 THEN 1 ELSE 0 END)'),
+                        'avgBuyRatio' => new \yii\db\Expression('AVG(CAST({{%daily_price}}.buy_volume AS REAL) / NULLIF({{%daily_price}}.buy_volume + {{%daily_price}}.sell_volume, 0))'),
+                    ])
+                    ->asArray()
+                    ->one();
+
+                $stats['strongBuy'] = (int) ($statRow['strongBuy'] ?? 0);
                 $stats['heavyAccumulation'] = $stats['strongBuy'];
-                $stats['avgRvol'] = 0.0;
+                $stats['avgRvol'] = round((float) (($statRow['avgBuyRatio'] ?? 0) * 100), 1); // Indikator akumulasi rata-rata % di mode harian
             } else {
-                $stats['strongBuy'] = (int) (clone $baseQuery)->andWhere(['{{%weekly_analysis}}.signal' => 'STRONG_BUY'])->count();
-                $stats['heavyAccumulation'] = (int) (clone $baseQuery)->andWhere(['>=', '{{%weekly_analysis}}.buy_ratio', 0.70])->count();
-                $stats['avgRvol'] = round((float) ((clone $baseQuery)->average('{{%weekly_analysis}}.rvol') ?? 0), 2);
+                $statRow = (clone $baseQuery)
+                    ->select([
+                        'strongBuy' => new \yii\db\Expression("SUM(CASE WHEN {{%weekly_analysis}}.signal = 'STRONG_BUY' THEN 1 ELSE 0 END)"),
+                        'heavyAccumulation' => new \yii\db\Expression('SUM(CASE WHEN {{%weekly_analysis}}.buy_ratio >= 0.70 THEN 1 ELSE 0 END)'),
+                        'avgRvol' => new \yii\db\Expression('AVG({{%weekly_analysis}}.rvol)'),
+                    ])
+                    ->asArray()
+                    ->one();
+
+                $stats['strongBuy'] = (int) ($statRow['strongBuy'] ?? 0);
+                $stats['heavyAccumulation'] = (int) ($statRow['heavyAccumulation'] ?? 0);
+                $stats['avgRvol'] = round((float) ($statRow['avgRvol'] ?? 0), 2);
             }
 
-            // Extract unique symbols for 1-click clipboard copy / TradingView watchlist
-            $rows = (clone $baseQuery)->select(['{{%stock}}.symbol', '{{%stock}}.exchange'])->asArray()->all();
+            // Extract unique symbols for 1-click clipboard copy / TradingView watchlist (dibatasi 500 teratas agar ringan)
+            $rows = (clone $baseQuery)->select(['{{%stock}}.symbol', '{{%stock}}.exchange'])->limit(500)->asArray()->all();
             foreach ($rows as $r) {
                 if (!empty($r['symbol'])) {
                     $sym = (string) $r['symbol'];
@@ -194,18 +211,26 @@ final class ScannerController extends Controller
         $i = 0;
         $fromDate = date('Y-m-d', strtotime('-14 days'));
 
+        // Jika user memasukkan simbol spesifik (misal: "NVDA"), lakukan live sync dari Yahoo Finance
+        $hasSpecificSymbol = !empty($form->symbol);
+        if ($hasSpecificSymbol) {
+            foreach ($stocks as $stock) {
+                try {
+                    $marketService->syncSymbol($stock->symbol, $fromDate);
+                    Yii::info("Live sync berhasil untuk simbol spesifik {$stock->symbol}", 'app\services\scanner');
+                } catch (\Throwable $e) {
+                    Yii::warning("Live sync gagal {$stock->symbol}: " . $e->getMessage(), 'app\services\scanner');
+                }
+            }
+        }
+
+        // Jalankan analisa dan scoring lokal dengan cepat
         foreach ($stocks as $stock) {
             $i++;
-            Yii::info("Proses scan saham: {$stock->symbol}", 'app\services\scanner');
-
-            try {
-                $marketService->syncSymbol($stock->symbol, $fromDate);
-            } catch (\Throwable $e) {
-                Yii::warning("Fetch gagal {$stock->symbol}: " . $e->getMessage(), 'app\services\scanner');
-            }
-
+            // Klasifikasi bar yang belum terklasifikasi dan agregasi data mingguan
             $analyzer->analyzeStock($stock->id);
 
+            // Jalankan scoring engine
             $count = $engine->scoreStock($stock);
             $total += $count;
 
@@ -217,13 +242,13 @@ final class ScannerController extends Controller
             if (isset($signals[$latestSignal])) {
                 $signals[$latestSignal]++;
             }
-
-            Yii::info("Sukses scan {$stock->symbol}: {$count} minggu discoring (sinyal: {$latestSignal})", 'app\services\scanner');
         }
 
         Yii::info("Proses scan selesai: {$total} total minggu discoring untuk {$stockCount} saham. Distribusi sinyal: " . json_encode($signals), 'app\services\scanner');
 
-        Yii::$app->session->setFlash('success', "Scan selesai untuk {$filterLabel} ({$stockCount} saham, {$total} minggu). " . json_encode($signals));
+        $flashMsg = "Scan & scoring selesai untuk {$filterLabel} ({$stockCount} saham di database). " 
+            . ($hasSpecificSymbol ? "Data pasar terkini diperbarui." : "Hasil diurutkan berdasarkan sinyal terbaik.");
+        Yii::$app->session->setFlash('success', $flashMsg);
 
         $redirectParams = array_filter([
             'exchange' => $form->exchange,

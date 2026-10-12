@@ -222,6 +222,20 @@ $dailyColumns = [
         'format' => 'raw',
     ],
     [
+        'label' => 'Perubahan Hari Ini',
+        'headerOptions' => ['class' => 'text-end', 'style' => 'width: 120px'],
+        'contentOptions' => ['class' => 'text-end'],
+        'value' => function ($m) {
+            if (empty($m->open) || $m->open <= 0) return '-';
+            $diff = (float) $m->close - (float) $m->open;
+            $pct = round(($diff / (float) $m->open) * 100, 2);
+            $badgeClass = $pct > 0 ? 'text-success fw-bold' : ($pct < 0 ? 'text-danger fw-bold' : 'text-muted');
+            $icon = $pct > 0 ? '<i class="bi bi-caret-up-fill"></i> +' : ($pct < 0 ? '<i class="bi bi-caret-down-fill"></i> ' : '');
+            return '<span class="' . $badgeClass . '">' . $icon . $pct . '%</span>';
+        },
+        'format' => 'raw',
+    ],
+    [
         'attribute' => 'volume',
         'label' => 'Volume Total',
         'headerOptions' => ['class' => 'text-end'],
@@ -231,7 +245,7 @@ $dailyColumns = [
         },
     ],
     [
-        'label' => 'Buy Ratio Harian',
+        'label' => 'Buy Pressure (Harian)',
         'headerOptions' => ['class' => 'text-center', 'style' => 'width: 140px'],
         'contentOptions' => ['class' => 'text-center'],
         'value' => function ($m) {
@@ -247,6 +261,28 @@ $dailyColumns = [
                 . '<div class="progress-bar bg-danger" style="width: ' . $sellPct . '%"></div>'
                 . '</div>'
                 . '<div class="small fw-bold ' . $color . ' mt-1" style="font-size: 0.78rem;">' . $pct . '% Buy</div>';
+        },
+        'format' => 'raw',
+    ],
+    [
+        'label' => 'Kategori Day Trade',
+        'headerOptions' => ['class' => 'text-center', 'style' => 'width: 125px'],
+        'contentOptions' => ['class' => 'text-center'],
+        'value' => function ($m) {
+            $total = (int) $m->buy_volume + (int) $m->sell_volume;
+            $ratio = $total > 0 ? (int) $m->buy_volume / $total : 0.5;
+            $gainPct = !empty($m->open) && $m->open > 0 ? (($m->close - $m->open) / $m->open) * 100 : 0;
+
+            if ($gainPct >= 2.0 && $ratio >= 0.65) {
+                return '<span class="badge bg-success text-white shadow-sm" title="Momentum breakout kuat dengan akumulasi dominan"><i class="bi bi-rocket-takeoff-fill"></i> BREAKOUT</span>';
+            } elseif ($ratio >= 0.70) {
+                return '<span class="badge bg-primary text-white shadow-sm" title="Tekanan beli tinggi"><i class="bi bi-buildings"></i> AKUMULASI</span>';
+            } elseif ($gainPct >= 3.0) {
+                return '<span class="badge bg-warning text-dark shadow-sm" title="Kenaikan harga tajam"><i class="bi bi-lightning-fill"></i> MOMENTUM</span>';
+            } elseif ($gainPct <= -1.0 && $ratio >= 0.60) {
+                return '<span class="badge bg-info text-white shadow-sm" title="Harga turun namun volume beli terserap (Buy on weakness)"><i class="bi bi-arrow-down-left-square"></i> ABSORPTION</span>';
+            }
+            return '<span class="badge bg-light text-muted border">NETRAL</span>';
         },
         'format' => 'raw',
     ],
@@ -358,12 +394,12 @@ $dailyColumns = [
         </a>
     </div>
     <div class="col-6 col-md-3">
-        <a href="<?= $filterWith(['minRvol' => '1.5']) ?>" class="text-decoration-none">
-            <div class="card border-0 shadow-sm bg-warning bg-opacity-10 text-center h-100 py-2 border-start border-warning border-4 hover-card <?= ($searchModel->minRvol == 1.5) ? 'ring-active' : '' ?>">
+        <a href="<?= $isDaily ? $filterWith(['minChangePct' => '2.0']) : $filterWith(['minRvol' => '1.5']) ?>" class="text-decoration-none">
+            <div class="card border-0 shadow-sm bg-warning bg-opacity-10 text-center h-100 py-2 border-start border-warning border-4 hover-card <?= (($isDaily && $searchModel->minChangePct == 2.0) || (!$isDaily && $searchModel->minRvol == 1.5)) ? 'ring-active' : '' ?>">
                 <div class="card-body p-2">
-                    <div class="text-warning-emphasis small fw-semibold text-uppercase">Rata-rata RVOL</div>
-                    <div class="h2 mb-0 fw-bold text-warning-emphasis"><?= number_format((float) ($stats['avgRvol'] ?? 0), 1) ?>x</div>
-                    <div class="small text-muted"><i class="bi bi-lightning-fill text-warning"></i> Aktivitas Volume Relatif</div>
+                    <div class="text-warning-emphasis small fw-semibold text-uppercase"><?= $isDaily ? 'Rata-rata Buy Pressure' : 'Rata-rata RVOL' ?></div>
+                    <div class="h2 mb-0 fw-bold text-warning-emphasis"><?= number_format((float) ($stats['avgRvol'] ?? 0), 1) ?><?= $isDaily ? '%' : 'x' ?></div>
+                    <div class="small text-muted"><i class="bi bi-lightning-fill text-warning"></i> <?= $isDaily ? 'Intensitas Akumulasi' : 'Aktivitas Relatif Mingguan' ?></div>
                 </div>
             </div>
         </a>
