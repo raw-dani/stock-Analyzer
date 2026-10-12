@@ -326,7 +326,7 @@ $dailyColumns = [
         <span class="badge bg-<?= $isDaily ? 'info' : 'primary' ?> px-2 py-1">
             Mode: <?= strtoupper($searchModel->mode ?? 'weekly') ?>
         </span>
-        <a href="<?= Url::to(['scanner/run-scan']) ?>" class="btn btn-warning btn-sm fw-bold px-3 shadow-sm">
+        <a href="<?= Url::to(array_merge(['scanner/run-scan'], $currentGet)) ?>" class="btn btn-warning btn-sm fw-bold px-3 shadow-sm">
             <i class="bi bi-arrow-clockwise"></i> Jalankan Scan Harian
         </a>
     </div>
@@ -372,12 +372,12 @@ $dailyColumns = [
         </a>
     </div>
     <div class="col-6 col-md-3">
-        <a href="<?= $filterWith(['signal' => 'STRONG_BUY']) ?>" class="text-decoration-none">
-            <div class="card border-0 shadow-sm bg-success bg-opacity-10 text-center h-100 py-2 border-start border-success border-4 hover-card <?= ($searchModel->signal === 'STRONG_BUY') ? 'ring-active' : '' ?>">
+        <a href="<?= $isDaily ? $filterWith(['minBuyRatio' => '0.7', 'minChangePct' => '2.0']) : $filterWith(['signal' => 'STRONG_BUY']) ?>" class="text-decoration-none">
+            <div class="card border-0 shadow-sm bg-success bg-opacity-10 text-center h-100 py-2 border-start border-success border-4 hover-card <?= ((!$isDaily && $searchModel->signal === 'STRONG_BUY') || ($isDaily && $searchModel->minBuyRatio == 0.7 && $searchModel->minChangePct == 2.0)) ? 'ring-active' : '' ?>">
                 <div class="card-body p-2">
-                    <div class="text-success small fw-semibold text-uppercase">Strong Buy Signals</div>
+                    <div class="text-success small fw-semibold text-uppercase"><?= $isDaily ? 'Strong Breakout' : 'Strong Buy Signals' ?></div>
                     <div class="h2 mb-0 fw-bold text-success"><?= number_format((int) ($stats['strongBuy'] ?? 0)) ?></div>
-                    <div class="small text-success"><i class="bi bi-gem"></i> Dominasi Akumulasi Kuat</div>
+                    <div class="small text-success"><i class="bi bi-gem"></i> <?= $isDaily ? 'Tekanan Beli & Gain Tinggi' : 'Dominasi Akumulasi Kuat' ?></div>
                 </div>
             </div>
         </a>

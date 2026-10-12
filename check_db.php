@@ -1,11 +1,34 @@
 <?php
 require __DIR__ . '/vendor/autoload.php';
+require __DIR__ . '/bootstrap-env.php';
 require __DIR__ . '/vendor/yiisoft/yii2/Yii.php';
-$db = new PDO('sqlite:' . __DIR__ . '/data/stocks.db');
-echo 'stock: ' . $db->query('SELECT COUNT(*) FROM stock')->fetchColumn() . PHP_EOL;
-echo 'daily_price: ' . $db->query('SELECT COUNT(*) FROM daily_price')->fetchColumn() . PHP_EOL;
-echo 'weekly_analysis: ' . $db->query('SELECT COUNT(*) FROM weekly_analysis')->fetchColumn() . PHP_EOL;
-echo 'signal: ' . $db->query('SELECT COUNT(*) FROM signal')->fetchColumn() . PHP_EOL;
-echo 'sample daily: ' . PHP_EOL;
-$r = $db->query('SELECT symbol, date, close, volume FROM daily_price LIMIT 5')->fetchAll(PDO::FETCH_ASSOC);
-foreach ($r as $row) { echo '  ' . $row['symbol'] . ' ' . $row['date'] . ' close=' . $row['close'] . ' vol=' . $row['volume'] . PHP_EOL; }
+$config = require __DIR__ . '/config/console.php';
+new yii\console\Application($config);
+
+$form = new \app\models\form\ScanFilterForm();
+$form->load(['mode' => 'daily', 'minChangePct' => '2.0', 'minBuyRatio' => '0.65'], '');
+echo 'Form Valid: ' . ($form->validate() ? 'YES' : 'NO') . PHP_EOL;
+if ($form->hasErrors()) {
+    print_r($form->getErrors());
+}
+
+$presets = [
+    'Day Breakout (+2% & Acc >= 65%)' => ['mode' => 'daily', 'minChangePct' => '2.0', 'minBuyRatio' => '0.65'],
+    'High Volume Surge (>= 70% Buy)' => ['mode' => 'daily', 'minBuyRatio' => '0.70', 'minVolume' => '500000'],
+    'Buy On Absorption (< $50)' => ['mode' => 'daily', 'minBuyRatio' => '0.65', 'maxPrice' => '50'],
+];
+
+$service = new \app\services\ScannerService();
+foreach ($presets as $name => $params) {
+    $f = new \app\models\form\ScanFilterForm();
+    $f->load($params, '');
+    $dp = $service->search($f);
+    echo "Preset '{$name}': Lolos {$dp->getTotalCount()} saham\n";
+    $first = $dp->getModels()[0] ?? null;
+    if ($first) {
+        $tot = $first->buy_volume + $first->sell_volume;
+        $ratio = $tot > 0 ? round(($first->buy_volume / $tot) * 100, 1) : 0;
+        $gain = $first->open > 0 ? round((($first->close - $first->open) / $first->open) * 100, 2) : 0;
+        echo "   Contoh: {$first->stock->symbol} ({$first->date}) - Close: \${$first->close}, Gain: {$gain}%, Buy Ratio: {$ratio}%\n";
+    }
+}

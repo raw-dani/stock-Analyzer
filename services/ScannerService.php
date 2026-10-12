@@ -142,12 +142,18 @@ final class ScannerService
         $query->andFilterWhere(['<=', '{{%stock}}.market_cap', $form->maxMarketCap]);
 
         if ($form->minBuyRatio !== null) {
-            $query->andWhere(['>=', new Expression('CAST({{%daily_price}}.buy_volume AS REAL) / NULLIF({{%daily_price}}.buy_volume + {{%daily_price}}.sell_volume, 0)'), $form->minBuyRatio]);
+            $query->andWhere(new Expression(
+                'CAST({{%daily_price}}.buy_volume AS REAL) / NULLIF({{%daily_price}}.buy_volume + {{%daily_price}}.sell_volume, 0) >= CAST(:minBuyRatio AS REAL)',
+                [':minBuyRatio' => (float) $form->minBuyRatio]
+            ));
         }
 
         // Filter gain harian (% change close vs open)
         if ($form->minChangePct !== null) {
-            $query->andWhere(['>=', new Expression('((CAST({{%daily_price}}.close AS REAL) - {{%daily_price}}.open) / NULLIF({{%daily_price}}.open, 0)) * 100'), $form->minChangePct]);
+            $query->andWhere(new Expression(
+                '((CAST({{%daily_price}}.close AS REAL) - {{%daily_price}}.open) / NULLIF({{%daily_price}}.open, 0)) * 100 >= CAST(:minChangePct AS REAL)',
+                [':minChangePct' => (float) $form->minChangePct]
+            ));
         }
 
         $query->orderBy([

@@ -41,17 +41,26 @@ final class ScannerController extends Controller
         try {
             $baseQuery = clone $dataProvider->query;
             if ($form->mode === 'daily') {
-                $statRow = (clone $baseQuery)
-                    ->select([
-                        'strongBuy' => new \yii\db\Expression('SUM(CASE WHEN CAST({{%daily_price}}.buy_volume AS REAL) / NULLIF({{%daily_price}}.buy_volume + {{%daily_price}}.sell_volume, 0) >= 0.70 THEN 1 ELSE 0 END)'),
-                        'avgBuyRatio' => new \yii\db\Expression('AVG(CAST({{%daily_price}}.buy_volume AS REAL) / NULLIF({{%daily_price}}.buy_volume + {{%daily_price}}.sell_volume, 0))'),
-                    ])
-                    ->asArray()
-                    ->one();
-
-                $stats['strongBuy'] = (int) ($statRow['strongBuy'] ?? 0);
-                $stats['heavyAccumulation'] = $stats['strongBuy'];
-                $stats['avgRvol'] = round((float) (($statRow['avgBuyRatio'] ?? 0) * 100), 1); // Indikator akumulasi rata-rata % di mode harian
+                $statDaily = (clone $baseQuery)->asArray()->all();
+                $strongBuy = 0;
+                $sumBuyRatio = 0.0;
+                $validCount = 0;
+                foreach ($statDaily as $row) {
+                    $b = (float) ($row['buy_volume'] ?? 0);
+                    $s = (float) ($row['sell_volume'] ?? 0);
+                    $tot = $b + $s;
+                    if ($tot > 0) {
+                        $ratio = $b / $tot;
+                        if ($ratio >= 0.70) {
+                            $strongBuy++;
+                        }
+                        $sumBuyRatio += $ratio;
+                        $validCount++;
+                    }
+                }
+                $stats['strongBuy'] = $strongBuy;
+                $stats['heavyAccumulation'] = $strongBuy;
+                $stats['avgRvol'] = $validCount > 0 ? round(($sumBuyRatio / $validCount) * 100, 1) : 0.0;
             } else {
                 $statRow = (clone $baseQuery)
                     ->select([
@@ -206,48 +215,43 @@ final class ScannerController extends Controller
         $analyzer = new VolumeAnalyzerService();
         $engine = new SignalEngineService();
 
-        $total = 0;
-        $signals = ['STRONG_BUY' => 0, 'BUY' => 0, 'WATCH' => 0, 'WEAK' => 0, 'SELL' => 0];
-        $i = 0;
-        $fromDate = date('Y-m-d', strtotime('-14 days'));
-
-        // Jika user memasukkan simbol spesifik (misal: "NVDA"), lakukan live sync dari Yahoo Finance
+        // Jika user mencari simbol tertentu, lakukan sync simbol tersebut
         $hasSpecificSymbol = !empty($form->symbol);
         if ($hasSpecificSymbol) {
             foreach ($stocks as $stock) {
                 try {
                     $marketService->syncSymbol($stock->symbol, $fromDate);
-                    Yii::info("Live sync berhasil untuk simbol spesifik {$stock->symbol}", 'app\services\scanner');
+                    $analyzer->analyzeStock($stock->id);
+                    $engine->scoreStock($stock);
                 } catch (\Throwable $e) {
-                    Yii::warning("Live sync gagal {$stock->symbol}: " . $e->getMessage(), 'app\services\scanner');
+                    Yii::warning("Sync gagal {$stock->symbol}: " . $e->getMessage(), 'app\services\scanner');
                 }
             }
-        }
-
-        // Jalankan analisa dan scoring lokal dengan cepat
-        foreach ($stocks as $stock) {
-            $i++;
-            // Klasifikasi bar yang belum terklasifikasi dan agregasi data mingguan
-            $analyzer->analyzeStock($stock->id);
-
-            // Jalankan scoring engine
-            $count = $engine->scoreStock($stock);
-            $total += $count;
-
-            $latestSignal = \app\models\WeeklyAnalysis::find()
-                ->select('signal')
-                ->where(['stock_id' => $stock->id])
-                ->orderBy(['week_start' => SORT_DESC])
-                ->scalar();
-            if (isset($signals[$latestSignal])) {
-                $signals[$latestSignal]++;
+            $flashMsg = "Sinkronisasi & scoring simbol {$form->symbol} berhasil diperbarui.";
+        } else {
+            // Cek apakah ada bar harian yang belum diklasifikasi buy/sell volume-nya (biasanya bar baru)
+            $unclassifiedCount = (int) \app\models\DailyPrice::find()->where(['buy_volume' => null])->count();
+            if ($unclassifiedCount > 0) {
+                // Klasifikasi hanya bar baru yang belum diproses secara batch langsung via SQL update cepat
+                \Yii::$app->db->createCommand("
+                    UPDATE {{%daily_price}} 
+                    SET buy_volume = CASE 
+                        WHEN close > open THEN volume 
+                        WHEN close < open THEN 0 
+                        ELSE CAST(volume / 2 AS INTEGER) 
+                    END,
+                    sell_volume = CASE 
+                        WHEN close > open THEN 0 
+                        WHEN close < open THEN volume 
+                        ELSE CAST(volume - CAST(volume / 2 AS INTEGER) AS INTEGER) 
+                    END
+                    WHERE buy_volume IS NULL
+                ")->execute();
             }
+
+            $flashMsg = "Scan selesai! Menampilkan hasil terkini untuk {$filterLabel} ({$stockCount} saham).";
         }
 
-        Yii::info("Proses scan selesai: {$total} total minggu discoring untuk {$stockCount} saham. Distribusi sinyal: " . json_encode($signals), 'app\services\scanner');
-
-        $flashMsg = "Scan & scoring selesai untuk {$filterLabel} ({$stockCount} saham di database). " 
-            . ($hasSpecificSymbol ? "Data pasar terkini diperbarui." : "Hasil diurutkan berdasarkan sinyal terbaik.");
         Yii::$app->session->setFlash('success', $flashMsg);
 
         $redirectParams = array_filter([
@@ -262,6 +266,7 @@ final class ScannerController extends Controller
             'maxPrice' => $form->maxPrice,
             'minVolume' => $form->minVolume,
             'signal' => $form->signal,
+            'mode' => $form->mode,
         ], fn ($v) => $v !== null && $v !== '');
 
         return $this->redirect(array_merge(['index'], $redirectParams));
