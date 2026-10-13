@@ -58,9 +58,9 @@ final class YahooFinanceProvider implements DataProviderInterface, IntradayDataP
         if (!in_array($interval, ['1h'], true)) {
             throw new Exception("Yahoo Finance: interval {$interval} tidak didukung langsung (gunakan 1h).");
         }
-        // Default: 30 hari terakhir (hemat kuota; cukup untuk lookback 150 candle 4H).
+        // Default: 60 hari terakhir (cukup untuk membentuk ~90 bar 4H / ~180 bar 2H).
         $toTs = $toDatetime ? strtotime($toDatetime) : time();
-        $fromTs = $fromDatetime ? strtotime($fromDatetime) : strtotime('-30 days', $toTs);
+        $fromTs = $fromDatetime ? strtotime($fromDatetime) : strtotime('-60 days', $toTs);
 
         $all = [];
         // Pecah per 60 hari agar tiap request di bawah batas bar Yahoo.

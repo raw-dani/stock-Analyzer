@@ -553,12 +553,12 @@ final class MovingAverageService
             return $out;
         }
 
-        // Intraday logic dengan fallback
+        // Intraday logic dengan fallback ke DailyPrice jika data belum cukup
         try {
             $rows = IntradayPrice::find()
                 ->where(['stock_id' => $stockId])
                 ->orderBy(['datetime' => SORT_DESC])
-                ->limit($lookback * 4)
+                ->limit(max($lookback * 4, 120))
                 ->all();
 
             if (count($rows) >= 20) {
@@ -579,7 +579,10 @@ final class MovingAverageService
                     default => 1,
                 };
                 $candles = $this->aggregate($base, $per);
-                return array_slice($candles, -$lookback);
+                // Jika bar hasil agregasi cukup (minimal 52 candle untuk MA50), gunakan intraday
+                if (count($candles) >= 52) {
+                    return array_slice($candles, -$lookback);
+                }
             }
         } catch (\Throwable $e) {
             // fallback

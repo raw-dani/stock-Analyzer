@@ -73,7 +73,7 @@ final class MovingAverageController extends Controller
     /**
      * Halaman Detail: Rencana Trading Presisi & Chart Candlestick MA.
      */
-    public function actionDetail(string $symbol): string
+    public function actionDetail(string $symbol): Response|string
     {
         $stock = Stock::find()->where(['symbol' => strtoupper(trim($symbol)), 'active' => true])->one();
         if ($stock === null) {
