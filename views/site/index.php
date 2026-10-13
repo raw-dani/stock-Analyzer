@@ -19,6 +19,7 @@ $this->title = 'Stock Volume & Pattern Analyzer';
                         Platform analisis kuantitatif dan teknikal berbasis <strong>Volume Breakdown</strong> dan pola pembalikan arah <strong>Double Bottom</strong> untuk menemukan peluang transaksi saham dengan Risk-to-Reward terukur.
                     </p>
                     <div class="d-flex flex-wrap gap-2 pt-2">
+                        <?= Html::a('💼 Portofolio &amp; Averaging', ['/portfolio/index'], ['class' => 'btn btn-success btn-lg px-4 shadow-sm']) ?>
                         <?= Html::a('📉 Buka Double Bottom Scanner', ['/double-bottom/index'], ['class' => 'btn btn-primary btn-lg px-4 shadow-sm']) ?>
                         <?= Html::a('📊 Lihat Dashboard Pasar', ['/dashboard/index'], ['class' => 'btn btn-outline-dark btn-lg px-4']) ?>
                         <?= Html::a('🔍 Scanner Volume', ['/scanner/index'], ['class' => 'btn btn-outline-secondary btn-lg px-3']) ?>
@@ -40,6 +41,23 @@ $this->title = 'Stock Volume & Pattern Analyzer';
 
     <!-- Feature Grid / Menu Hub -->
     <div class="row g-4 mb-4">
+        <!-- Feature 0: Portofolio & Averaging -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 border-success border-top border-4 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="badge bg-success">Portofolio Management</span>
+                        <span class="text-muted small">Profit &amp; Recovery</span>
+                    </div>
+                    <h4 class="card-title fw-bold">💼 Portofolio &amp; Averaging</h4>
+                    <p class="card-text text-muted">
+                        Pantau saham yang sudah dibeli (untung/rugi realtime), tetapkan target profit (misal +3%) dengan kalkulasi harga jual presisi, serta simulasi strategi Average Down multi-fitur saat posisi minus.
+                    </p>
+                    <?= Html::a('Buka Portofolio &raquo;', ['/portfolio/index'], ['class' => 'btn btn-outline-success w-100 fw-bold']) ?>
+                </div>
+            </div>
+        </div>
+
         <!-- Feature 1: Double Bottom -->
         <div class="col-md-6 col-lg-4">
             <div class="card h-100 border-primary border-top border-4 shadow-sm">

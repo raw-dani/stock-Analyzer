@@ -22,6 +22,7 @@ $ctrlId = Yii::$app->controller?->id;
 $sideMenuGroups = [
     'Overview' => [
         ['label' => '📊 Dashboard', 'url' => ['/dashboard/index'], 'active' => $ctrlId === 'dashboard'],
+        ['label' => '💼 Portofolio & Averaging', 'url' => ['/portfolio/index'], 'active' => $ctrlId === 'portfolio', 'badge' => 'New'],
     ],
     'Scanners & Patterns' => [
         ['label' => '🎯 Confluence Strategy', 'url' => ['/strategy-confluence/index'], 'active' => $ctrlId === 'strategy-confluence', 'badge' => 'PRO'],
@@ -70,6 +71,7 @@ $sideMenuGroups = [
     // Top navigation with direct access to all main features
     $topNavItems = [
         ['label' => '📊 Dashboard', 'url' => ['/dashboard/index'], 'active' => $ctrlId === 'dashboard'],
+        ['label' => '💼 Portofolio', 'url' => ['/portfolio/index'], 'active' => $ctrlId === 'portfolio'],
         [
             'label' => '📉 Scanners & Patterns',
             'active' => in_array($ctrlId, ['strategy-confluence', 'double-bottom', 'triple-bottom', 'rsi-double-bottom', 'scanner', 'moving-average', 'fibonacci', 'candlestick'], true),
