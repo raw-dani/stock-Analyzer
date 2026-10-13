@@ -24,6 +24,7 @@ $sideMenuGroups = [
         ['label' => '⭐ Watchlist', 'url' => ['/watchlist/index'], 'active' => Yii::$app->controller->id === 'watchlist'],
     ],
     'Scanners & Patterns' => [
+        ['label' => '🎯 Confluence Strategy', 'url' => ['/strategy-confluence/index'], 'active' => Yii::$app->controller->id === 'strategy-confluence', 'badge' => 'PRO'],
         ['label' => '📉 Double Bottom (Core)', 'url' => ['/double-bottom/index'], 'active' => Yii::$app->controller->id === 'double-bottom', 'badge' => 'Core'],
         ['label' => '📉 Triple Bottom Scanner', 'url' => ['/triple-bottom/index'], 'active' => Yii::$app->controller->id === 'triple-bottom', 'badge' => 'New'],
         ['label' => '📉 RSI Strategy & Signals', 'url' => ['/rsi-double-bottom/index'], 'active' => str_starts_with(Yii::$app->controller->id, 'rsi-double-bottom')],
@@ -79,8 +80,10 @@ $sideMenuGroups['System'] = [
         ['label' => '📊 Dashboard', 'url' => ['/dashboard/index'], 'active' => Yii::$app->controller->id === 'dashboard'],
         [
             'label' => '📉 Scanners & Patterns',
-            'active' => in_array(Yii::$app->controller->id, ['double-bottom', 'triple-bottom', 'rsi-double-bottom', 'scanner', 'moving-average', 'fibonacci', 'candlestick'], true),
+            'active' => in_array(Yii::$app->controller->id, ['strategy-confluence', 'double-bottom', 'triple-bottom', 'rsi-double-bottom', 'scanner', 'moving-average', 'fibonacci', 'candlestick'], true),
             'items' => [
+                ['label' => '🎯 Confluence Strategy (PRO)', 'url' => ['/strategy-confluence/index']],
+                '<div class="dropdown-divider"></div>',
                 ['label' => '📉 Double Bottom Scanner (Core)', 'url' => ['/double-bottom/index']],
                 ['label' => '📉 Triple Bottom Scanner', 'url' => ['/triple-bottom/index']],
                 ['label' => '📉 RSI Strategy & Signals', 'url' => ['/rsi-double-bottom/index']],
