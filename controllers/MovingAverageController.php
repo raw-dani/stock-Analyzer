@@ -83,6 +83,7 @@ final class MovingAverageController extends Controller
         $params = $this->resolveParams();
         $analysis = $this->service->analyzeStock((int) $stock->id, [
             'timeframe' => $params['timeframe'],
+            'maPair' => $params['maPair'],
             'lookback' => 150,
         ]);
 

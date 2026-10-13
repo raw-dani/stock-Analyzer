@@ -137,13 +137,19 @@ final class MovingAverageService
             return null;
         }
 
-        $fastPeriod = (int) ($options['fastPeriod'] ?? 20);
-        $slowPeriod = (int) ($options['slowPeriod'] ?? 50);
+        if (!empty($options['maPair'])) {
+            [$fastPeriod, $slowPeriod] = $this->parsePeriods($options['maPair']);
+        } else {
+            $fastPeriod = (int) ($options['fastPeriod'] ?? 20);
+            $slowPeriod = (int) ($options['slowPeriod'] ?? 50);
+        }
         $trendPeriod = 200;
         $timeframe = (int) ($options['timeframe'] ?? self::TIMEFRAME_1D);
         $lookback = (int) ($options['lookback'] ?? 120);
 
-        $candles = $this->loadCandles($stockId, $timeframe, max($lookback, $slowPeriod + 20));
+        $minRequired = $slowPeriod + 2;
+        $neededLookback = ($timeframe === self::TIMEFRAME_1D) ? max($lookback, $trendPeriod + 20) : max($lookback, $slowPeriod + 20);
+        [$candles, $isFallback] = $this->loadCandles($stockId, $timeframe, $neededLookback, $minRequired);
         $count = count($candles);
         if ($count < $slowPeriod + 2) {
             return null;
@@ -241,6 +247,9 @@ final class MovingAverageService
             'target_2_pct' => $levels['target_2_pct'],
             'rr_ratio' => $levels['rr_ratio'],
             'checklist' => $checklist,
+            'timeframe' => $timeframe,
+            'timeframe_label' => self::getTimeframes()[$timeframe] ?? 'Daily',
+            'is_fallback' => $isFallback,
             // Candle data untuk ECharts
             'candles' => $candles,
             'dates' => $dates,
@@ -529,14 +538,15 @@ final class MovingAverageService
 
     /**
      * Load candle data dari database.
+     * @return array{0: array, 1: bool} [candles, isFallback]
      */
-    private function loadCandles(int $stockId, int $timeframe, int $lookback): array
+    private function loadCandles(int $stockId, int $timeframe, int $lookback, int $minRequired = 32): array
     {
         if ($timeframe === self::TIMEFRAME_1D) {
             $prices = DailyPrice::find()
                 ->where(['stock_id' => $stockId])
                 ->orderBy(['date' => SORT_DESC])
-                ->limit($lookback)
+                ->limit(max($lookback, 220))
                 ->all();
 
             $out = [];
@@ -550,15 +560,15 @@ final class MovingAverageService
                     'date' => $p->date,
                 ];
             }
-            return $out;
+            return [$out, false];
         }
 
         // Intraday logic dengan fallback ke DailyPrice jika data belum cukup
         try {
             $rows = IntradayPrice::find()
-                ->where(['stock_id' => $stockId])
+                ->where(['stock_id' => $stockId, 'timeframe' => IntradayPrice::TF_1H])
                 ->orderBy(['datetime' => SORT_DESC])
-                ->limit(max($lookback * 4, 120))
+                ->limit(max($lookback * 4, 160))
                 ->all();
 
             if (count($rows) >= 20) {
@@ -579,16 +589,17 @@ final class MovingAverageService
                     default => 1,
                 };
                 $candles = $this->aggregate($base, $per);
-                // Jika bar hasil agregasi cukup (minimal 52 candle untuk MA50), gunakan intraday
-                if (count($candles) >= 52) {
-                    return array_slice($candles, -$lookback);
+                // Jika bar hasil agregasi cukup untuk kalkulasi MA
+                if (count($candles) >= $minRequired) {
+                    return [array_slice($candles, -$lookback), false];
                 }
             }
         } catch (\Throwable $e) {
             // fallback
         }
 
-        return $this->loadCandles($stockId, self::TIMEFRAME_1D, $lookback);
+        [$daily, ] = $this->loadCandles($stockId, self::TIMEFRAME_1D, $lookback);
+        return [$daily, true];
     }
 
     /**
@@ -628,7 +639,7 @@ final class MovingAverageService
         ];
     }
 
-    private function parsePeriods(string $pair): array
+    public function parsePeriods(string $pair): array
     {
         return match ($pair) {
             self::PAIR_50_200 => [50, 200],

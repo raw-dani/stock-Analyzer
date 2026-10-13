@@ -249,6 +249,7 @@ $badgeAction = [
             <h5 class="mb-0 fw-bold text-dark">
                 <i class="bi bi-table text-primary me-1"></i> Sinyal &amp; Rencana Posisi Trading
                 <span class="badge bg-secondary ms-1"><?= count($results) ?> Saham Lolos</span>
+                <span class="badge bg-primary ms-1"><i class="bi bi-stopwatch"></i> <?= Html::encode($timeframes[$params['timeframe']] ?? 'Daily') ?></span>
             </h5>
         </div>
 
@@ -338,7 +339,7 @@ $badgeAction = [
                                 <div class="d-flex align-items-center gap-1">
                                     <?= Html::a(
                                         Html::encode($r['symbol']),
-                                        ['/moving-average/detail', 'symbol' => $r['symbol']],
+                                        ['/moving-average/detail', 'symbol' => $r['symbol'], 'timeframe' => $params['timeframe'], 'maPair' => $params['maPair']],
                                         ['class' => 'fw-bold text-primary text-decoration-none fs-6']
                                     ) ?>
                                     <?php if (!empty($r['exchange'])): ?>
@@ -353,6 +354,12 @@ $badgeAction = [
                                 <div class="fw-bold text-dark"><?= Yii::$app->formatter->asCurrency($r['current_price']) ?></div>
                                 <div class="small text-muted" style="font-size: 0.72rem;">
                                     Fast MA: <?= Yii::$app->formatter->asCurrency($r['fast_ma']) ?>
+                                </div>
+                                <div class="small text-muted" style="font-size: 0.70rem;">
+                                    <i class="bi bi-clock me-1"></i><?= Html::encode($r['date']) ?>
+                                    <?php if (!empty($r['is_fallback'])): ?>
+                                        <span class="badge bg-warning text-dark py-0 px-1" title="Data intraday belum cukup, memakai data harian">Harian</span>
+                                    <?php endif; ?>
                                 </div>
                             </td>
                             <td class="text-center">
@@ -419,7 +426,7 @@ $badgeAction = [
                                 <div class="btn-group btn-group-sm">
                                     <?= Html::a(
                                         '<i class="bi bi-eye"></i> Plan',
-                                        ['/moving-average/detail', 'symbol' => $r['symbol']],
+                                        ['/moving-average/detail', 'symbol' => $r['symbol'], 'timeframe' => $params['timeframe'], 'maPair' => $params['maPair']],
                                         ['class' => 'btn btn-primary py-0 px-2 fw-semibold', 'title' => 'Lihat Rencana Trading Presisi & Chart MA']
                                     ) ?>
                                     <?= Html::a(

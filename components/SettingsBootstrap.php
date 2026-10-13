@@ -13,8 +13,8 @@ use Yii;
  * {{%setting}}) ke Yii::$app->params saat aplikasi boot.
  *
  * Ini memastikan komponen yg membaca params (SignalEngineService →
- * signalThresholds, DataProviderFactory → marketDataProvider, RateLimitFilter,
- * AlertService) otomatis memakai nilai yang disimpan admin via halaman
+ * signalThresholds, DataProviderFactory → marketDataProvider, RateLimitFilter)
+ * otomatis memakai nilai yang disimpan admin via halaman
  * settings, tanpa mengubah cara baca mereka.
  */
 class SettingsBootstrap implements BootstrapInterface

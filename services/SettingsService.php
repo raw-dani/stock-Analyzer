@@ -14,7 +14,7 @@ use yii\base\BaseObject;
  * Nilai default diambil dari config/params.php; nilai yang disimpan admin
  * via halaman settings di tabel {{%setting}} akan menimpa default tersebut.
  * Karena sinyal/scoring diambil dari params saat runtime (SignalEngine,
- * DataProviderFactory, AlertService), halaman settings menyimpan override di
+ * DataProviderFactory), halaman settings menyimpan override di
  * DB — service ini menyatukan keduanya.
  */
 class SettingsService extends BaseObject

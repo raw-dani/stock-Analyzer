@@ -76,7 +76,7 @@ $markLines = [
 
 <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
     <div>
-        <div class="d-flex align-items-center gap-2 mb-1">
+        <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
             <h1 class="h3 mb-0 fw-bold text-dark">
                 <?= Html::encode($stock->symbol) ?>
             </h1>
@@ -84,10 +84,16 @@ $markLines = [
             <span class="badge bg-<?= $badgeColor ?> fs-6 px-3 py-1 shadow-sm">
                 <?= Html::encode($action) ?>
             </span>
+            <span class="badge bg-primary fs-6 px-3 py-1 shadow-sm">
+                <i class="bi bi-stopwatch"></i> <?= Html::encode($timeframes[$params['timeframe']] ?? 'Daily') ?>
+            </span>
+            <span class="badge bg-dark fs-6 px-3 py-1 shadow-sm">
+                <?= Html::encode($maPairs[$params['maPair']] ?? 'MA20 / MA50') ?>
+            </span>
         </div>
         <p class="text-muted small mb-0">
             <?= Html::encode($stock->name) ?> &bull; Sektor: <strong><?= Html::encode($stock->sector ?? 'Umum') ?></strong>
-            &bull; Tanggal Analisis: <?= Html::encode($analysis['date']) ?>
+            &bull; Waktu Data: <strong><?= Html::encode($analysis['date']) ?></strong>
         </p>
     </div>
     <div class="d-flex flex-wrap align-items-center gap-2">
@@ -108,6 +114,15 @@ $markLines = [
         </a>
     </div>
 </div>
+
+<?php if (!empty($analysis['is_fallback'])): ?>
+    <div class="alert alert-warning py-2 px-3 small mb-3 shadow-sm d-flex align-items-center gap-2">
+        <i class="bi bi-exclamation-triangle-fill fs-5 text-warning"></i>
+        <div>
+            <strong>Catatan Data Timeframe:</strong> Data bar intraday (<?= Html::encode($timeframes[$params['timeframe']] ?? '') ?>) untuk saham <?= Html::encode($stock->symbol) ?> belum mencukupi untuk periode MA yang dipilih, sehingga sistem secara otomatis menggunakan data historis harian (*Daily Fallback*).
+        </div>
+    </div>
+<?php endif; ?>
 
 <!-- Kartu Rencana Trading Presisi (Precision Trading Plan) -->
 <div class="row g-3 mb-4">

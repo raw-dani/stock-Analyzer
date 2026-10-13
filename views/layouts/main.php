@@ -18,32 +18,24 @@ $this->registerMetaTag(['name' => 'viewport', 'content' => 'width=device-width, 
 $this->registerLinkTag(['rel' => 'icon', 'type' => 'image/x-icon', 'href' => Yii::getAlias('@web/favicon.ico')]);
 
 // menu sidebar (task 5.1 & complete feature navigation)
+$ctrlId = Yii::$app->controller?->id;
 $sideMenuGroups = [
     'Overview' => [
-        ['label' => '📊 Dashboard', 'url' => ['/dashboard/index'], 'active' => Yii::$app->controller->id === 'dashboard'],
-        ['label' => '⭐ Watchlist', 'url' => ['/watchlist/index'], 'active' => Yii::$app->controller->id === 'watchlist'],
+        ['label' => '📊 Dashboard', 'url' => ['/dashboard/index'], 'active' => $ctrlId === 'dashboard'],
     ],
     'Scanners & Patterns' => [
-        ['label' => '🎯 Confluence Strategy', 'url' => ['/strategy-confluence/index'], 'active' => Yii::$app->controller->id === 'strategy-confluence', 'badge' => 'PRO'],
-        ['label' => '📉 Double Bottom (Core)', 'url' => ['/double-bottom/index'], 'active' => Yii::$app->controller->id === 'double-bottom', 'badge' => 'Core'],
-        ['label' => '📉 Triple Bottom Scanner', 'url' => ['/triple-bottom/index'], 'active' => Yii::$app->controller->id === 'triple-bottom', 'badge' => 'New'],
-        ['label' => '📉 RSI Strategy & Signals', 'url' => ['/rsi-double-bottom/index'], 'active' => str_starts_with(Yii::$app->controller->id, 'rsi-double-bottom')],
-        ['label' => '🔍 Volume Scanner', 'url' => ['/scanner/index'], 'active' => Yii::$app->controller->id === 'scanner'],
-        ['label' => '📈 Moving Average Signals', 'url' => ['/moving-average/index'], 'active' => Yii::$app->controller->id === 'moving-average', 'badge' => 'New'],
-        ['label' => '🌀 Fibonacci Levels', 'url' => ['/fibonacci/index'], 'active' => Yii::$app->controller->id === 'fibonacci', 'badge' => 'New'],
-        ['label' => '🕯️ Candlestick Scanner', 'url' => ['/candlestick/index'], 'active' => Yii::$app->controller->id === 'candlestick', 'badge' => 'New'],
+        ['label' => '🎯 Confluence Strategy', 'url' => ['/strategy-confluence/index'], 'active' => $ctrlId === 'strategy-confluence', 'badge' => 'PRO'],
+        ['label' => '📉 Double Bottom (Core)', 'url' => ['/double-bottom/index'], 'active' => $ctrlId === 'double-bottom', 'badge' => 'Core'],
+        ['label' => '📉 Triple Bottom Scanner', 'url' => ['/triple-bottom/index'], 'active' => $ctrlId === 'triple-bottom', 'badge' => 'New'],
+        ['label' => '📉 RSI Strategy & Signals', 'url' => ['/rsi-double-bottom/index'], 'active' => str_starts_with($ctrlId ?? '', 'rsi-double-bottom')],
+        ['label' => '🔍 Volume Scanner', 'url' => ['/scanner/index'], 'active' => $ctrlId === 'scanner'],
+        ['label' => '📈 Moving Average Signals', 'url' => ['/moving-average/index'], 'active' => $ctrlId === 'moving-average', 'badge' => 'New'],
+        ['label' => '🌀 Fibonacci Levels', 'url' => ['/fibonacci/index'], 'active' => $ctrlId === 'fibonacci', 'badge' => 'New'],
+        ['label' => '🕯️ Candlestick Scanner', 'url' => ['/candlestick/index'], 'active' => $ctrlId === 'candlestick', 'badge' => 'New'],
     ],
-    'Market Intelligence' => [
-        ['label' => '🗺️ Sectors', 'url' => ['/sector/index'], 'active' => Yii::$app->controller->id === 'sector'],
-        ['label' => '📈 Signals', 'url' => ['/signal/index'], 'active' => Yii::$app->controller->id === 'signal'],
+    'System' => [
+        ['label' => '⚙️ Settings', 'url' => ['/settings/index'], 'active' => $ctrlId === 'settings'],
     ],
-    'Strategy & Tools' => [
-        ['label' => '🧪 Backtesting', 'url' => ['/backtest/index'], 'active' => Yii::$app->controller->id === 'backtest'],
-        ['label' => '🔔 Alerts', 'url' => ['/alert/index'], 'active' => Yii::$app->controller->id === 'alert'],
-    ],
-];
-$sideMenuGroups['System'] = [
-    ['label' => '⚙️ Settings', 'url' => ['/settings/index'], 'active' => Yii::$app->controller->id === 'settings'],
 ];
 ?>
 <?php $this->beginPage() ?>
@@ -77,10 +69,10 @@ $sideMenuGroups['System'] = [
     
     // Top navigation with direct access to all main features
     $topNavItems = [
-        ['label' => '📊 Dashboard', 'url' => ['/dashboard/index'], 'active' => Yii::$app->controller->id === 'dashboard'],
+        ['label' => '📊 Dashboard', 'url' => ['/dashboard/index'], 'active' => $ctrlId === 'dashboard'],
         [
             'label' => '📉 Scanners & Patterns',
-            'active' => in_array(Yii::$app->controller->id, ['strategy-confluence', 'double-bottom', 'triple-bottom', 'rsi-double-bottom', 'scanner', 'moving-average', 'fibonacci', 'candlestick'], true),
+            'active' => in_array($ctrlId, ['strategy-confluence', 'double-bottom', 'triple-bottom', 'rsi-double-bottom', 'scanner', 'moving-average', 'fibonacci', 'candlestick'], true),
             'items' => [
                 ['label' => '🎯 Confluence Strategy (PRO)', 'url' => ['/strategy-confluence/index']],
                 '<div class="dropdown-divider"></div>',
@@ -94,25 +86,7 @@ $sideMenuGroups['System'] = [
                 ['label' => '🕯️ Candlestick Scanner', 'url' => ['/candlestick/index']],
             ],
         ],
-        [
-            'label' => '🗺️ Market',
-            'active' => in_array(Yii::$app->controller->id, ['sector', 'watchlist', 'signal'], true),
-            'items' => [
-                ['label' => '🗺️ Sectors', 'url' => ['/sector/index']],
-                ['label' => '⭐ Watchlist', 'url' => ['/watchlist/index']],
-                ['label' => '📈 Signals', 'url' => ['/signal/index']],
-            ],
-        ],
-        [
-            'label' => '🧪 Tools',
-            'active' => in_array(Yii::$app->controller->id, ['backtest', 'alert', 'settings'], true),
-            'items' => [
-                ['label' => '🧪 Backtesting', 'url' => ['/backtest/index']],
-                ['label' => '🔔 Alerts', 'url' => ['/alert/index']],
-                '<div class="dropdown-divider"></div>',
-                ['label' => '⚙️ Settings', 'url' => ['/settings/index']],
-            ],
-        ],
+        ['label' => '⚙️ Settings', 'url' => ['/settings/index'], 'active' => $ctrlId === 'settings'],
     ];
 
     if (Yii::$app->user->isGuest) {

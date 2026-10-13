@@ -43,26 +43,4 @@ class ApiCest
         $I->seeResponseCodeIs(200);
         $I->see('reasons');
     }
-
-    public function watchlistRequiresBearer(\FunctionalTester $I)
-    {
-        $I->amOnRoute('api/v1/watchlists');
-        $I->seeResponseCodeIs(401);
-    }
-
-    public function watchlistWithBearerToken(\FunctionalTester $I)
-    {
-        $I->haveHttpHeader('Authorization', 'Bearer 100-token');
-        $I->amOnRoute('api/v1/watchlists');
-        $I->seeResponseCodeIs(200);
-        $I->see('items');
-    }
-
-    public function alertsEndpointWithBearerToken(\FunctionalTester $I)
-    {
-        $I->haveHttpHeader('Authorization', 'Bearer 100-token');
-        $I->amOnRoute('api/v1/alerts');
-        $I->seeResponseCodeIs(200);
-        $I->see('items');
-    }
 }

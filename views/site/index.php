@@ -108,36 +108,36 @@ $this->title = 'Stock Volume & Pattern Analyzer';
             </div>
         </div>
 
-        <!-- Feature 5: Sector Performance -->
+        <!-- Feature 5: Candlestick Scanner -->
         <div class="col-md-6 col-lg-4">
             <div class="card h-100 border-warning border-top border-4 shadow-sm">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span class="badge bg-warning text-dark">Rotasi Sektor</span>
-                        <span class="text-muted small">Heatmap</span>
+                        <span class="badge bg-warning text-dark">Price Action</span>
+                        <span class="text-muted small">Multi-Timeframe</span>
                     </div>
-                    <h4 class="card-title fw-bold">🗺️ Sector Analysis</h4>
+                    <h4 class="card-title fw-bold">🕯️ Candlestick Scanner</h4>
                     <p class="card-text text-muted">
-                        Identifikasi sektor mana yang sedang dimasuki dana institusional dan sektor mana yang mengalami distribusi tekanan jual.
+                        Pindai pola candlestick potensial (Doji, Shooting Star, Hammer, Engulfing, Marubozu) dengan konfirmasi volume multi-timeframe (1D, 4H, 2H, 1H).
                     </p>
-                    <?= Html::a('Buka Sektor &raquo;', ['/sector/index'], ['class' => 'btn btn-outline-warning w-100 text-dark']) ?>
+                    <?= Html::a('Buka Candlestick &raquo;', ['/candlestick/index'], ['class' => 'btn btn-outline-warning w-100 text-dark']) ?>
                 </div>
             </div>
         </div>
 
-        <!-- Feature 6: Backtesting Engine -->
+        <!-- Feature 6: Confluence Strategy -->
         <div class="col-md-6 col-lg-4">
             <div class="card h-100 border-dark border-top border-4 shadow-sm">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span class="badge bg-dark">Validasi Data</span>
-                        <span class="text-muted small">Historis</span>
+                        <span class="badge bg-dark">Multi-Indikator</span>
+                        <span class="text-muted small">PRO Signal</span>
                     </div>
-                    <h4 class="card-title fw-bold">🧪 Backtesting Engine</h4>
+                    <h4 class="card-title fw-bold">🎯 Confluence Strategy</h4>
                     <p class="card-text text-muted">
-                        Uji strategi parameter volume dan pola sinyal terhadap data riwayat harga historis untuk mengukur win rate, profit factor, dan max drawdown.
+                        Kombinasi sinyal multi-indikator terpadu (Pola Reversal, RSI Divergensi, Fibonacci Retracement, dan MA Alignment) untuk probabilitas akurasi maksimal.
                     </p>
-                    <?= Html::a('Buka Backtest &raquo;', ['/backtest/index'], ['class' => 'btn btn-outline-dark w-100']) ?>
+                    <?= Html::a('Buka Confluence &raquo;', ['/strategy-confluence/index'], ['class' => 'btn btn-outline-dark w-100']) ?>
                 </div>
             </div>
         </div>
