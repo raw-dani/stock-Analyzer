@@ -35,6 +35,7 @@ $sideMenuGroups = [
     ],
     'Scanners & Patterns' => [
         ['label' => '🎯 Confluence Strategy', 'url' => ['/strategy-confluence/index'], 'active' => $ctrlId === 'strategy-confluence', 'badge' => 'PRO'],
+        ['label' => '🚀 Bullish Patterns', 'url' => ['/bullish-pattern/index'], 'active' => $ctrlId === 'bullish-pattern', 'badge' => 'New'],
         ['label' => '📉 Double Bottom (Core)', 'url' => ['/double-bottom/index'], 'active' => $ctrlId === 'double-bottom', 'badge' => 'Core'],
         ['label' => '📉 Triple Bottom Scanner', 'url' => ['/triple-bottom/index'], 'active' => $ctrlId === 'triple-bottom', 'badge' => 'New'],
         ['label' => '📉 RSI Strategy & Signals', 'url' => ['/rsi-double-bottom/index'], 'active' => str_starts_with($ctrlId ?? '', 'rsi-double-bottom')],
@@ -84,10 +85,11 @@ if (!empty($systemItems)) {
         ['label' => '💼 Portofolio', 'url' => ['/portfolio/index'], 'active' => $ctrlId === 'portfolio'],
         [
             'label' => '📉 Scanners & Patterns',
-            'active' => in_array($ctrlId, ['strategy-confluence', 'double-bottom', 'triple-bottom', 'rsi-double-bottom', 'scanner', 'moving-average', 'fibonacci', 'candlestick'], true),
+            'active' => in_array($ctrlId, ['strategy-confluence', 'bullish-pattern', 'double-bottom', 'triple-bottom', 'rsi-double-bottom', 'scanner', 'moving-average', 'fibonacci', 'candlestick'], true),
             'items' => [
                 ['label' => '🎯 Confluence Strategy (PRO)', 'url' => ['/strategy-confluence/index']],
                 '<div class="dropdown-divider"></div>',
+                ['label' => '🚀 Bullish Breakout Patterns', 'url' => ['/bullish-pattern/index']],
                 ['label' => '📉 Double Bottom Scanner (Core)', 'url' => ['/double-bottom/index']],
                 ['label' => '📉 Triple Bottom Scanner', 'url' => ['/triple-bottom/index']],
                 ['label' => '📉 RSI Strategy & Signals', 'url' => ['/rsi-double-bottom/index']],
