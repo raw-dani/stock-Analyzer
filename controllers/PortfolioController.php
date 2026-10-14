@@ -152,12 +152,18 @@ final class PortfolioController extends Controller
     public function actionUpdate(int $id): Response
     {
         $model = $this->findModel($id);
-        $post = Yii::$app->request->post('PortfolioPosition', []);
+        $request = Yii::$app->request;
+        $loaded = $model->load($request->post());
 
-        if ($model->load($post, '') && $model->save()) {
+        if (!$loaded) {
+            $post = $request->post('PortfolioPosition', []);
+            $loaded = $model->load($post, '');
+        }
+
+        if ($loaded && $model->save()) {
             Yii::$app->session->setFlash('success', "Perubahan posisi {$model->stock->symbol} berhasil disimpan.");
         } else {
-            $errors = implode(', ', $model->getFirstErrors());
+            $errors = !empty($model->getFirstErrors()) ? implode(', ', $model->getFirstErrors()) : 'Data tidak valid atau tidak ada perubahan yang dikirim.';
             Yii::$app->session->setFlash('danger', "Gagal memperbarui posisi: {$errors}");
         }
 
