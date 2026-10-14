@@ -21,6 +21,11 @@ $ma50 = $pattern['ma50'] ?? null;
 $isAboveMa50 = !empty($pattern['is_above_ma50']);
 $isBuy = in_array($pattern['action'] ?? '', ['BUY_NOW', 'BUY_PULLBACK', 'MOMENTUM_BUY'], true);
 $isSell = in_array($pattern['action'] ?? '', ['SELL_NOW', 'TAKE_PROFIT'], true);
+$tp1Pct = (float) ($pattern['tp1_pct'] ?? ($curPrice > 0 ? round((($tp1 - $curPrice) / $curPrice) * 100, 2) : 0));
+$tp2Pct = (float) ($pattern['tp2_pct'] ?? ($curPrice > 0 ? round((($tp2 - $curPrice) / $curPrice) * 100, 2) : 0));
+$tp3Pct = (float) ($pattern['tp3_pct'] ?? ($curPrice > 0 ? round((($tp3 - $curPrice) / $curPrice) * 100, 2) : 0));
+$slPct = (float) ($pattern['potential_risk'] ?? ($curPrice > 0 ? round((($curPrice - $slSwing) / $curPrice) * 100, 2) : 0));
+$slTightPct = $curPrice > 0 ? round((($curPrice - $slTight) / $curPrice) * 100, 2) : 0;
 ?>
 
 <div class="row g-3 mb-4">
@@ -85,18 +90,42 @@ $isSell = in_array($pattern['action'] ?? '', ['SELL_NOW', 'TAKE_PROFIT'], true);
                         </tr>
                         <tr class="border-bottom">
                             <td class="text-muted py-2"><i class="bi bi-shield-x text-danger me-1"></i> Batas Cut Loss (SL)</td>
-                            <td class="text-end py-2 text-danger fw-bold">
-                                $<?= number_format($slSwing, 2) ?>
-                                <small class="text-muted fw-normal d-block" style="font-size: 0.72rem;">(Tight SL: $<?= number_format($slTight, 2) ?>)</small>
+                            <td class="text-end py-2">
+                                <span class="text-danger fw-bold fs-6">$<?= number_format($slSwing, 2) ?></span>
+                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger-subtle ms-1">-<?= number_format($slPct, 2) ?>%</span>
+                                <small class="text-muted fw-normal d-block" style="font-size: 0.72rem;">Tight SL: $<?= number_format($slTight, 2) ?> (-<?= number_format($slTightPct, 2) ?>%)</small>
                             </td>
                         </tr>
-                        <tr class="table-success bg-opacity-25">
-                            <td class="fw-bold text-success py-2"><i class="bi bi-bullseye me-1"></i> Target Profit (TP1 Utama)</td>
-                            <td class="text-end fw-bold text-success fs-5 py-2">
-                                $<?= number_format($tp1, 2) ?>
+                        <tr class="table-success bg-opacity-25 border-bottom">
+                            <td class="fw-bold text-success py-2">
+                                <i class="bi bi-bullseye me-1"></i> Target Profit 1 (TP1 Utama)
+                            </td>
+                            <td class="text-end py-2">
+                                <span class="fw-bold text-success fs-5">$<?= number_format($tp1, 2) ?></span>
+                                <span class="badge bg-success text-white fw-bold ms-1">+<?= number_format($tp1Pct, 2) ?>%</span>
                                 <?php if ($riskReward !== null): ?>
-                                    <small class="d-block text-muted fw-normal" style="font-size: 0.75rem;">Risk/Reward 1:<?= number_format((float) $riskReward, 1) ?> (TP2: $<?= number_format($tp2, 2) ?>)</small>
+                                    <small class="d-block text-muted fw-normal" style="font-size: 0.75rem;">Risk/Reward 1:<?= number_format((float) $riskReward, 1) ?> (Swing High / Min 1.8R)</small>
                                 <?php endif; ?>
+                            </td>
+                        </tr>
+                        <tr class="border-bottom">
+                            <td class="text-muted py-2">
+                                <i class="bi bi-graph-up-arrow text-primary me-1"></i> Target Profit 2 (TP2 Runner)
+                            </td>
+                            <td class="text-end py-2">
+                                <span class="fw-semibold text-primary">$<?= number_format($tp2, 2) ?></span>
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-bold ms-1">+<?= number_format($tp2Pct, 2) ?>%</span>
+                                <small class="d-block text-muted fw-normal" style="font-size: 0.72rem;">Extended 2.8R Target</small>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted py-2">
+                                <i class="bi bi-trophy text-warning me-1"></i> Target Profit 3 (TP3 Moonbag)
+                            </td>
+                            <td class="text-end py-2">
+                                <span class="fw-semibold text-dark">$<?= number_format($tp3, 2) ?></span>
+                                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle fw-bold ms-1">+<?= number_format($tp3Pct, 2) ?>%</span>
+                                <small class="d-block text-muted fw-normal" style="font-size: 0.72rem;">Extended 4.0R Trend Rider</small>
                             </td>
                         </tr>
                     </tbody>

@@ -30,32 +30,55 @@ final class MovingAverageController extends Controller
     public function actionIndex(): string
     {
         $params = $this->resolveParams();
-        $results = $this->service->scanAll($params);
-        $results = $this->sortResults($results, $params['sort']);
+        $cache = Yii::$app->cache;
+        $cacheKey = 'ma_scan_' . md5(json_encode($params));
 
-        $symbols = [];
-        $tvSymbols = [];
-        $stats = [
-            'total' => count($results),
-            'buyCount' => 0,
-            'pullbackCount' => 0,
-            'sellCount' => 0,
-        ];
+        $cachedData = $cache !== null ? $cache->get($cacheKey) : false;
+        if ($cachedData !== false && is_array($cachedData)) {
+            $results = $cachedData['results'];
+            $symbols = $cachedData['symbols'];
+            $tvSymbols = $cachedData['tvSymbols'];
+            $stats = $cachedData['stats'];
+        } else {
+            $rawResults = $this->service->scanAll($params);
+            $results = $this->sortResults($rawResults, $params['sort']);
 
-        foreach ($results as $r) {
-            $sym = $r['symbol'];
-            $symbols[] = $sym;
-            $exch = !empty($r['exchange']) ? $r['exchange'] . ':' : '';
-            $tvSymbols[] = $exch . $sym;
+            $symbols = [];
+            $tvSymbols = [];
+            $stats = [
+                'total' => count($results),
+                'buyCount' => 0,
+                'pullbackCount' => 0,
+                'sellCount' => 0,
+            ];
 
-            if ($r['action'] === 'BUY') {
-                $stats['buyCount']++;
+            foreach ($results as $r) {
+                $sym = $r['symbol'];
+                $symbols[] = $sym;
+                $exch = !empty($r['exchange']) ? $r['exchange'] . ':' : '';
+                $tvSymbols[] = $exch . $sym;
+
+                if ($r['action'] === 'BUY') {
+                    $stats['buyCount']++;
+                }
+                if ($r['signal'] === MovingAverageService::SIGNAL_PULLBACK_BUY) {
+                    $stats['pullbackCount']++;
+                }
+                if ($r['action'] === 'SELL' || $r['action'] === 'TAKE_PROFIT') {
+                    $stats['sellCount']++;
+                }
             }
-            if ($r['signal'] === MovingAverageService::SIGNAL_PULLBACK_BUY) {
-                $stats['pullbackCount']++;
-            }
-            if ($r['action'] === 'SELL' || $r['action'] === 'TAKE_PROFIT') {
-                $stats['sellCount']++;
+
+            $symbols = array_values(array_unique($symbols));
+            $tvSymbols = array_values(array_unique($tvSymbols));
+
+            if ($cache !== null) {
+                $cache->set($cacheKey, [
+                    'results' => $results,
+                    'symbols' => $symbols,
+                    'tvSymbols' => $tvSymbols,
+                    'stats' => $stats,
+                ], 900); // 15 menit
             }
         }
 
@@ -63,8 +86,8 @@ final class MovingAverageController extends Controller
             'results' => $results,
             'params' => $params,
             'stats' => $stats,
-            'symbols' => array_values(array_unique($symbols)),
-            'tvSymbols' => array_values(array_unique($tvSymbols)),
+            'symbols' => $symbols,
+            'tvSymbols' => $tvSymbols,
             'maPairs' => MovingAverageService::getMaPairs(),
             'timeframes' => MovingAverageService::getTimeframes(),
         ]);
@@ -84,6 +107,7 @@ final class MovingAverageController extends Controller
         $analysis = $this->service->analyzeStock((int) $stock->id, [
             'timeframe' => $params['timeframe'],
             'maPair' => $params['maPair'],
+            'maType' => $params['maType'],
             'lookback' => 150,
         ]);
 
@@ -176,6 +200,7 @@ final class MovingAverageController extends Controller
         $req = Yii::$app->request;
         return [
             'maPair' => (string) $req->get('maPair', MovingAverageService::PAIR_20_50),
+            'maType' => strtolower((string) $req->get('maType', 'sma')),
             'strategy' => (string) $req->get('strategy', 'all'),
             'minRr' => (float) $req->get('minRr', 0.0),
             'exchange' => (string) $req->get('exchange', ''),

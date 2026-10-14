@@ -178,25 +178,29 @@ $ma50Series = $pattern['ma50_series'] ?? [];
                 }
 
                 // Price MarkPoints & Lines
+                $tp1Label = sprintf('TP1: ${c} (+%.1f%%)', (float)($pattern['tp1_pct'] ?? 0));
+                $tp2Label = sprintf('TP2: ${c} (+%.1f%%)', (float)($pattern['tp2_pct'] ?? 0));
+                $slLabel = sprintf('SL: ${c} (-%.1f%%)', (float)($pattern['potential_risk'] ?? 0));
+
                 $priceMarkPoints = [];
                 $priceMarkLines = [
                     [
                         'name' => 'TP1',
                         'yAxis' => (float) $pattern['tp1_price'],
                         'lineStyle' => ['color' => '#198754', 'type' => 'dashed', 'width' => 1.5],
-                        'label' => ['formatter' => 'TP1: ${c}', 'position' => 'end'],
+                        'label' => ['formatter' => $tp1Label, 'position' => 'end'],
                     ],
                     [
                         'name' => 'TP2',
                         'yAxis' => (float) $pattern['tp2_price'],
                         'lineStyle' => ['color' => '#20c997', 'type' => 'dotted', 'width' => 1.5],
-                        'label' => ['formatter' => 'TP2: ${c}', 'position' => 'end'],
+                        'label' => ['formatter' => $tp2Label, 'position' => 'end'],
                     ],
                     [
                         'name' => 'Stop Loss',
                         'yAxis' => (float) $pattern['sl_price'],
                         'lineStyle' => ['color' => '#dc3545', 'type' => 'solid', 'width' => 1.5],
-                        'label' => ['formatter' => 'SL: ${c}', 'position' => 'end'],
+                        'label' => ['formatter' => $slLabel, 'position' => 'end'],
                     ],
                 ];
 

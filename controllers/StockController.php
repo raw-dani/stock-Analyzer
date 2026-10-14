@@ -32,13 +32,50 @@ final class StockController extends Controller
             ->orderBy(['week_start' => SORT_DESC])
             ->one();
 
-        // Signal record terkait minggu berjalan (untuk panel 7.4: daftar reason + confidence)
+        // Signal record: cari sinyal tanggal week_start, jika tidak ada fallback ke sinyal terbaru
         $currentSignal = null;
         if ($currentWeekly !== null) {
             $currentSignal = Signal::find()
                 ->where(['stock_id' => $stock->id, 'date' => $currentWeekly->week_start])
                 ->orderBy(['id' => SORT_DESC])
                 ->one();
+        }
+        if ($currentSignal === null) {
+            $currentSignal = Signal::find()
+                ->where(['stock_id' => $stock->id])
+                ->orderBy(['date' => SORT_DESC, 'id' => SORT_DESC])
+                ->one();
+        }
+
+        // Ambil 2 candle harian terakhir untuk kalkulasi harga aktual dan perubahan hari ini
+        $recentPrices = DailyPrice::find()
+            ->where(['stock_id' => $stock->id])
+            ->orderBy(['date' => SORT_DESC])
+            ->limit(2)
+            ->asArray()
+            ->all();
+
+        $latestDaily = !empty($recentPrices[0]) ? $recentPrices[0] : null;
+        $prevDaily = !empty($recentPrices[1]) ? $recentPrices[1] : null;
+
+        $priceStats = null;
+        if ($latestDaily !== null) {
+            $currClose = (float) $latestDaily['close'];
+            $prevClose = $prevDaily !== null ? (float) $prevDaily['close'] : (float) $latestDaily['open'];
+            $change = round($currClose - $prevClose, 2);
+            $changePct = $prevClose > 0 ? round(($change / $prevClose) * 100, 2) : 0.0;
+
+            $priceStats = [
+                'current_price' => $currClose,
+                'open' => (float) $latestDaily['open'],
+                'high' => (float) $latestDaily['high'],
+                'low' => (float) $latestDaily['low'],
+                'close' => $currClose,
+                'volume' => (int) $latestDaily['volume'],
+                'date' => $latestDaily['date'],
+                'change' => $change,
+                'change_pct' => $changePct,
+            ];
         }
 
         $weeklyProvider = new ActiveDataProvider([
@@ -55,6 +92,7 @@ final class StockController extends Controller
             'currentWeekly' => $currentWeekly,
             'currentSignal' => $currentSignal,
             'weeklyProvider' => $weeklyProvider,
+            'priceStats' => $priceStats,
         ]);
     }
 
@@ -79,18 +117,23 @@ final class StockController extends Controller
         $dates = [];
         $kline = [];   // [open, close, lowest, highest]
         $volumes = [];
-        // MA window
         $closes = [];
+
         foreach ($rows as $r) {
             $dates[] = $r['date'];
-            $kline[] = [(float)$r['open'], (float)$r['close'], (float)$r['low'], (float)$r['high']];
-            $volumes[] = [(int)$r['volume'] <= 0 ? 0 : 1, (int)$r['volume']];
-            $closes[] = (float)$r['close'];
+            $open = (float) $r['open'];
+            $close = (float) $r['close'];
+            $kline[] = [$open, $close, (float) $r['low'], (float) $r['high']];
+            // 1 jika bullish (close >= open), 0 jika bearish (close < open)
+            $isBullish = ($close >= $open) ? 1 : 0;
+            $volumes[] = [$isBullish, (int) $r['volume']];
+            $closes[] = $close;
         }
 
-        // MA20 & MA50 (simple moving average)
+        // Indikator MA20, MA50, dan MA200
         $ma20 = $this->sma($closes, 20);
         $ma50 = $this->sma($closes, 50);
+        $ma200 = $this->sma($closes, 200);
 
         // Weekly RVOL & buying pressure trend (task 7.5)
         $weeklyRows = WeeklyAnalysis::find()
@@ -117,6 +160,7 @@ final class StockController extends Controller
             'volumes' => $volumes,
             'ma20' => $ma20,
             'ma50' => $ma50,
+            'ma200' => $ma200,
             'weeklyDates' => $weeklyDates,
             'weeklyRvol' => $weeklyRvol,
             'weeklyBuyPressure' => $weeklyBuyPressure,

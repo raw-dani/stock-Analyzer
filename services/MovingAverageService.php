@@ -79,6 +79,11 @@ final class MovingAverageService
         $timeframe = (int) ($options['timeframe'] ?? self::TIMEFRAME_1D);
         $lookback = (int) ($options['lookback'] ?? 100);
 
+        $maType = strtolower((string) ($options['maType'] ?? 'sma'));
+        if (!in_array($maType, ['sma', 'ema'], true)) {
+            $maType = 'sma';
+        }
+
         [$fastPeriod, $slowPeriod] = $this->parsePeriods($maPair);
 
         $stockQuery = Stock::find()->where(['active' => true]);
@@ -101,6 +106,7 @@ final class MovingAverageService
                 'slowPeriod' => $slowPeriod,
                 'timeframe' => $timeframe,
                 'lookback' => $lookback,
+                'maType' => $maType,
             ]);
 
             if ($analysis === null) {
@@ -146,6 +152,10 @@ final class MovingAverageService
         $trendPeriod = 200;
         $timeframe = (int) ($options['timeframe'] ?? self::TIMEFRAME_1D);
         $lookback = (int) ($options['lookback'] ?? 120);
+        $maType = strtolower((string) ($options['maType'] ?? 'sma'));
+        if (!in_array($maType, ['sma', 'ema'], true)) {
+            $maType = 'sma';
+        }
 
         $minRequired = $slowPeriod + 2;
         $neededLookback = ($timeframe === self::TIMEFRAME_1D) ? max($lookback, $trendPeriod + 20) : max($lookback, $slowPeriod + 20);
@@ -159,9 +169,15 @@ final class MovingAverageService
         $dates = array_column($candles, 'date');
         $volumes = array_column($candles, 'volume');
 
-        $fastMaSeries = $this->sma($closes, $fastPeriod);
-        $slowMaSeries = $this->sma($closes, $slowPeriod);
-        $trendMaSeries = $this->sma($closes, $trendPeriod);
+        if ($maType === 'ema') {
+            $fastMaSeries = $this->ema($closes, $fastPeriod);
+            $slowMaSeries = $this->ema($closes, $slowPeriod);
+            $trendMaSeries = $this->ema($closes, $trendPeriod);
+        } else {
+            $fastMaSeries = $this->sma($closes, $fastPeriod);
+            $slowMaSeries = $this->sma($closes, $slowPeriod);
+            $trendMaSeries = $this->sma($closes, $trendPeriod);
+        }
 
         $currIdx = $count - 1;
         $prevIdx = $count - 2;
@@ -187,7 +203,10 @@ final class MovingAverageService
         $avgVol = count($recentVols) > 0 ? (array_sum($recentVols) / count($recentVols)) : 1.0;
         $rvol = $avgVol > 0 ? round($currVol / $avgVol, 2) : 1.0;
 
-        // Evaluasi Setup Strategi
+        // Hitung ATR (14-periode) untuk level risiko dinamis
+        $atr = $this->calculateAtr($candles, 14);
+
+        // Evaluasi Setup Strategi dengan konfirmasi Slope & ATR
         $setup = $this->evaluateSetup(
             $currClose,
             $prevClose,
@@ -198,11 +217,12 @@ final class MovingAverageService
             $currSlow,
             $prevSlow,
             $currTrend,
-            $rvol
+            $rvol,
+            $atr
         );
 
-        // Kalkulasi Posisi Presisi: Entry, Stop Loss, Target 1, Target 2, R:R
-        $levels = $this->calculateTradingLevels($currClose, $currLow, $currHigh, $currFast, $currSlow, $setup['action']);
+        // Kalkulasi Posisi Presisi: Entry, Stop Loss berbasis ATR, Target 1, Target 2, R:R
+        $levels = $this->calculateTradingLevels($currClose, $currLow, $currHigh, $currFast, $currSlow, $setup['action'], $atr);
 
         // Persentase jarak harga ke MA
         $distFastPct = round((($currClose - $currFast) / $currFast) * 100, 2);
@@ -222,6 +242,8 @@ final class MovingAverageService
             'sector' => $stock->sector,
             'current_price' => $currClose,
             'date' => $dates[$currIdx],
+            'ma_type' => strtoupper($maType),
+            'atr' => round($atr, 2),
             'fast_period' => $fastPeriod,
             'slow_period' => $slowPeriod,
             'fast_ma' => round($currFast, 2),
@@ -272,18 +294,25 @@ final class MovingAverageService
         float $currSlow,
         float $prevSlow,
         ?float $currTrend,
-        float $rvol
+        float $rvol,
+        float $atr = 0.0
     ): array {
+        // MA Slope check: hindari false Golden Cross saat Slow MA sedang mengarah turun tajam (downward slope)
+        $isSlowSlopeUp = ($currSlow >= $prevSlow * 0.9995);
+
         // 1. Golden Cross (Fast MA melintas naik di atas Slow MA)
         $isGoldenCross = ($prevFast <= $prevSlow && $currFast > $currSlow);
         if ($isGoldenCross) {
-            $isStrong = ($rvol >= 1.3 && $currClose > $currFast);
+            $isStrong = ($rvol >= 1.3 && $currClose > $currFast && $isSlowSlopeUp);
+            $hasSlopeConfirmation = $isSlowSlopeUp;
             return [
                 'signal' => $isStrong ? self::SIGNAL_STRONG_BUY : self::SIGNAL_BUY,
                 'action' => 'BUY',
-                'strategy_name' => 'Golden Cross (MA Crossover)',
+                'strategy_name' => $hasSlopeConfirmation ? 'Golden Cross (Konfirmasi Slope Positif)' : 'Golden Cross (Awal Crossover)',
                 'strategy_badge' => 'success',
-                'description' => "Fast MA menembus ke atas Slow MA. Konfirmasi momentum bullish awal tren.",
+                'description' => $hasSlopeConfirmation
+                    ? "Fast MA menembus ke atas Slow MA dengan kemiringan (slope) MA yang mulai mendatar/menanjak. Konfirmasi awal tren bullish valid."
+                    : "Fast MA memotong ke atas Slow MA. Perhatikan konfirmasi lanjutan karena kemiringan Slow MA masih cenderung melandai.",
             ];
         }
 
@@ -299,15 +328,16 @@ final class MovingAverageService
             ];
         }
 
-        // 3. Overextended Climax (Harga sudah naik terlalu jauh di atas MA20 > 10%) -> Zona Take Profit
+        // 3. Overextended Climax (Harga sudah naik terlalu jauh di atas Fast MA > 10% atau > 2.5x ATR) -> Zona Take Profit
         $distAboveFast = ($currClose - $currFast) / $currFast;
-        if ($distAboveFast >= 0.10 && $currFast > $currSlow) {
+        $isAtrClimax = ($atr > 0 && ($currClose - $currFast) > ($atr * 2.5));
+        if (($distAboveFast >= 0.10 || $isAtrClimax) && $currFast > $currSlow) {
             return [
                 'signal' => self::SIGNAL_TAKE_PROFIT,
                 'action' => 'TAKE_PROFIT',
                 'strategy_name' => 'Overextended Climax (Area Take Profit)',
                 'strategy_badge' => 'warning',
-                'description' => "Harga berada " . round($distAboveFast * 100, 1) . "% di atas MA. Rawan mean-reversion, disarankan ambil profit bertahap.",
+                'description' => "Harga berada " . round($distAboveFast * 100, 1) . "% di atas MA (melebihi volatilitas wajar). Rawan mean-reversion, disarankan ambil profit bertahap.",
             ];
         }
 
@@ -371,7 +401,7 @@ final class MovingAverageService
     }
 
     /**
-     * Hitung level presisi: Entry Price, Stop Loss, Target 1, Target 2, dan Risk/Reward.
+     * Hitung level presisi: Entry Price, Stop Loss (Dinamis ATR), Target 1, Target 2, dan Risk/Reward.
      */
     private function calculateTradingLevels(
         float $close,
@@ -379,7 +409,8 @@ final class MovingAverageService
         float $high,
         float $fastMa,
         float $slowMa,
-        string $action
+        string $action,
+        float $atr = 0.0
     ): array {
         if ($action === 'SELL' || $action === 'TAKE_PROFIT') {
             return [
@@ -401,11 +432,21 @@ final class MovingAverageService
         $entryHigh = round(max($close, $fastMa * 1.01), 2);
         $entryRange = '$' . number_format($entryLow, 2) . ' - $' . number_format($entryHigh, 2);
 
-        // Stop loss ketat: 1.5% - 2.5% di bawah low lilin atau di bawah Fast MA
+        // Stop loss: Gabungan support dinamis MA dan Volatilitas ATR (1.5x ATR buffer)
         $slRef = min($low, $fastMa);
-        $stopLoss = round($slRef * 0.98, 2); // 2% di bawah level support MA
+        if ($atr > 0.0) {
+            $atrBuffer = $atr * 1.5;
+            // Batasi buffer ATR agar tidak terlalu sempit (< 1.5%) atau terlalu lebar (> 7%)
+            $minBuffer = $entry * 0.015;
+            $maxBuffer = $entry * 0.07;
+            $effectiveBuffer = max($minBuffer, min($maxBuffer, $atrBuffer));
+            $stopLoss = round($slRef - $effectiveBuffer, 2);
+        } else {
+            $stopLoss = round($slRef * 0.98, 2); // default 2% di bawah support MA
+        }
+
         if ($stopLoss >= $entry) {
-            $stopLoss = round($entry * 0.97, 2); // default 3% risk buffer
+            $stopLoss = round($entry * 0.97, 2); // default 3% risk buffer jika level di atas entry
         }
 
         $risk = max(0.01, $entry - $stopLoss);
@@ -534,6 +575,61 @@ final class MovingAverageService
             $result[] = count($window) < $period ? null : (array_sum($window) / count($window));
         }
         return $result;
+    }
+
+    /**
+     * Hitung Exponential Moving Average (EMA).
+     * Bobot eksponensial lebih sensitif pada aksi harga terkini.
+     * @return (float|null)[]
+     */
+    public function ema(array $values, int $period): array
+    {
+        $count = count($values);
+        $result = array_fill(0, $count, null);
+        if ($count < $period) {
+            return $result;
+        }
+
+        // Nilai awal EMA adalah SMA dari periode pertama
+        $initialSlice = array_slice($values, 0, $period);
+        $prevEma = array_sum($initialSlice) / $period;
+        $result[$period - 1] = $prevEma;
+
+        $multiplier = 2.0 / ($period + 1);
+
+        for ($i = $period; $i < $count; $i++) {
+            $val = (float) $values[$i];
+            $prevEma = ($val - $prevEma) * $multiplier + $prevEma;
+            $result[$i] = $prevEma;
+        }
+
+        return $result;
+    }
+
+    /**
+     * Hitung Average True Range (ATR) untuk pengukuran volatilitas harga.
+     * @param array<int, array{open:float,high:float,low:float,close:float}> $candles
+     * @return float
+     */
+    public function calculateAtr(array $candles, int $period = 14): float
+    {
+        $n = count($candles);
+        if ($n < 2) {
+            return 0.0;
+        }
+
+        $trValues = [];
+        for ($i = 1; $i < $n; $i++) {
+            $high = (float) $candles[$i]['high'];
+            $low = (float) $candles[$i]['low'];
+            $prevClose = (float) $candles[$i - 1]['close'];
+
+            $tr = max($high - $low, abs($high - $prevClose), abs($low - $prevClose));
+            $trValues[] = $tr;
+        }
+
+        $slice = array_slice($trValues, -$period);
+        return count($slice) > 0 ? (array_sum($slice) / count($slice)) : 0.0;
     }
 
     /**

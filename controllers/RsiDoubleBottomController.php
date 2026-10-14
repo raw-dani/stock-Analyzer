@@ -46,19 +46,28 @@ final class RsiDoubleBottomController extends Controller
         $logCat = $defaults['logCategory'] ?? 'app\services\rsidoublebottom';
         Yii::info("RSI Strategy Scan: timeframe={$timeframe} lookback={$lookback} tolerance={$tolerance} period={$rsiPeriod} maxRsi={$maxRsi}", $logCat);
 
-        $service = new RsiDoubleBottomService();
-        try {
-            $results = $service->scanAll($timeframe, $lookback, $tolerance, $rsiPeriod, $maxRsi, $minSeparation, $maxSeparation, $necklineMin);
-        } catch (\InvalidArgumentException $e) {
-            Yii::warning("RSI Strategy Scan: {$e->getMessage()}", $logCat);
-            $lookback = $defaults['lookback'] ?? 150;
-            $tolerance = $defaults['tolerance'] ?? 3.0;
-            $rsiPeriod = $defaults['rsiPeriod'] ?? 14;
-            $maxRsi = $defaults['maxRsiForBottom'] ?? 40.0;
-            $minSeparation = $defaults['minSeparation'] ?? 5;
-            $maxSeparation = $defaults['maxSeparation'] ?? 30;
-            $necklineMin = $defaults['necklineMin'] ?? 2.0;
-            $results = $service->scanAll($timeframe, $lookback, $tolerance, $rsiPeriod, $maxRsi, $minSeparation, $maxSeparation, $necklineMin);
+        $cache = Yii::$app->cache;
+        $cacheKey = sprintf('rsi_scan_%d_%d_%.1f_%d_%.1f_%d_%d_%.1f', $timeframe, $lookback, $tolerance, $rsiPeriod, $maxRsi, $minSeparation, $maxSeparation, $necklineMin);
+        $results = $cache ? $cache->get($cacheKey) : false;
+
+        if ($results === false) {
+            $service = new RsiDoubleBottomService();
+            try {
+                $results = $service->scanAll($timeframe, $lookback, $tolerance, $rsiPeriod, $maxRsi, $minSeparation, $maxSeparation, $necklineMin);
+            } catch (\InvalidArgumentException $e) {
+                Yii::warning("RSI Strategy Scan: {$e->getMessage()}", $logCat);
+                $lookback = $defaults['lookback'] ?? 150;
+                $tolerance = $defaults['tolerance'] ?? 3.0;
+                $rsiPeriod = $defaults['rsiPeriod'] ?? 14;
+                $maxRsi = $defaults['maxRsiForBottom'] ?? 40.0;
+                $minSeparation = $defaults['minSeparation'] ?? 5;
+                $maxSeparation = $defaults['maxSeparation'] ?? 30;
+                $necklineMin = $defaults['necklineMin'] ?? 2.0;
+                $results = $service->scanAll($timeframe, $lookback, $tolerance, $rsiPeriod, $maxRsi, $minSeparation, $maxSeparation, $necklineMin);
+            }
+            if ($cache) {
+                $cache->set($cacheKey, $results, 900); // 15 menit
+            }
         }
 
         $allResults = $results;

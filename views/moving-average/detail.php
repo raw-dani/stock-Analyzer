@@ -88,8 +88,13 @@ $markLines = [
                 <i class="bi bi-stopwatch"></i> <?= Html::encode($timeframes[$params['timeframe']] ?? 'Daily') ?>
             </span>
             <span class="badge bg-dark fs-6 px-3 py-1 shadow-sm">
-                <?= Html::encode($maPairs[$params['maPair']] ?? 'MA20 / MA50') ?>
+                <?= Html::encode($analysis['ma_type'] ?? 'SMA') ?>: <?= Html::encode($maPairs[$params['maPair']] ?? 'MA20 / MA50') ?>
             </span>
+            <?php if (!empty($analysis['atr'])): ?>
+                <span class="badge bg-info text-dark fs-6 px-3 py-1 shadow-sm">
+                    ATR(14): <?= Yii::$app->formatter->asCurrency($analysis['atr']) ?>
+                </span>
+            <?php endif; ?>
         </div>
         <p class="text-muted small mb-0">
             <?= Html::encode($stock->name) ?> &bull; Sektor: <strong><?= Html::encode($stock->sector ?? 'Umum') ?></strong>
@@ -98,15 +103,27 @@ $markLines = [
     </div>
     <div class="d-flex flex-wrap align-items-center gap-2">
         <div class="btn-group btn-group-sm shadow-sm" role="group">
+            <?= Html::a(
+                'SMA',
+                ['/moving-average/detail', 'symbol' => $stock->symbol, 'timeframe' => $params['timeframe'], 'maPair' => $params['maPair'], 'maType' => 'sma'],
+                ['class' => 'btn btn-sm ' . (($params['maType'] ?? 'sma') === 'sma' ? 'btn-dark' : 'btn-outline-dark')]
+            ) ?>
+            <?= Html::a(
+                'EMA',
+                ['/moving-average/detail', 'symbol' => $stock->symbol, 'timeframe' => $params['timeframe'], 'maPair' => $params['maPair'], 'maType' => 'ema'],
+                ['class' => 'btn btn-sm ' . (($params['maType'] ?? 'sma') === 'ema' ? 'btn-dark' : 'btn-outline-dark')]
+            ) ?>
+        </div>
+        <div class="btn-group btn-group-sm shadow-sm" role="group">
             <?php foreach ($timeframes as $tfKey => $tfLabel): ?>
                 <?= Html::a(
                     Html::encode($tfLabel),
-                    ['/moving-average/detail', 'symbol' => $stock->symbol, 'timeframe' => $tfKey, 'maPair' => $params['maPair']],
+                    ['/moving-average/detail', 'symbol' => $stock->symbol, 'timeframe' => $tfKey, 'maPair' => $params['maPair'], 'maType' => $params['maType'] ?? 'sma'],
                     ['class' => 'btn btn-sm ' . ((int) $params['timeframe'] === (int) $tfKey ? 'btn-primary' : 'btn-outline-secondary')]
                 ) ?>
             <?php endforeach; ?>
         </div>
-        <a href="<?= Url::to(['/moving-average/index', 'timeframe' => $params['timeframe'], 'maPair' => $params['maPair']]) ?>" class="btn btn-outline-secondary btn-sm shadow-sm">
+        <a href="<?= Url::to(['/moving-average/index', 'timeframe' => $params['timeframe'], 'maPair' => $params['maPair'], 'maType' => $params['maType'] ?? 'sma']) ?>" class="btn btn-outline-secondary btn-sm shadow-sm">
             <i class="bi bi-arrow-left"></i> Kembali ke Scanner
         </a>
         <a href="<?= Url::to(['/stock/view', 'symbol' => $stock->symbol]) ?>" class="btn btn-outline-primary btn-sm shadow-sm">
@@ -241,6 +258,20 @@ $markLines = [
                 </ul>
 
                 <div class="bg-light p-3 rounded mt-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="small fw-bold text-muted">Tipe Moving Average</span>
+                        <span class="badge bg-dark fs-7">
+                            <?= Html::encode($analysis['ma_type'] ?? 'SMA') ?>
+                        </span>
+                    </div>
+                    <?php if (!empty($analysis['atr'])): ?>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="small fw-bold text-muted">Volatilitas ATR (14)</span>
+                            <span class="badge bg-info text-dark fs-7">
+                                <?= Yii::$app->formatter->asCurrency($analysis['atr']) ?>
+                            </span>
+                        </div>
+                    <?php endif; ?>
                     <div class="d-flex justify-content-between align-items-center mb-1">
                         <span class="small fw-bold text-muted">Risk to Reward (R:R)</span>
                         <span class="badge bg-<?= $analysis['rr_ratio'] >= 2.0 ? 'success' : 'primary' ?> fs-7">

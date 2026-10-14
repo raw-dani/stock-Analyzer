@@ -40,6 +40,19 @@ $badgeAction = [
         </p>
     </div>
     <div class="d-flex flex-wrap align-items-center gap-2">
+        <!-- MA Type Toggle: SMA vs EMA -->
+        <div class="btn-group btn-group-sm shadow-sm" role="group">
+            <?= Html::a(
+                'SMA',
+                $filterWith(['maType' => 'sma']),
+                ['class' => 'btn btn-sm ' . (($params['maType'] ?? 'sma') === 'sma' ? 'btn-dark' : 'btn-outline-dark')]
+            ) ?>
+            <?= Html::a(
+                'EMA',
+                $filterWith(['maType' => 'ema']),
+                ['class' => 'btn btn-sm ' . (($params['maType'] ?? 'sma') === 'ema' ? 'btn-dark' : 'btn-outline-dark')]
+            ) ?>
+        </div>
         <div class="btn-group btn-group-sm shadow-sm" role="group">
             <?php foreach ($timeframes as $tfKey => $tfLabel): ?>
                 <?= Html::a(
@@ -50,7 +63,7 @@ $badgeAction = [
             <?php endforeach; ?>
         </div>
         <span class="badge bg-dark px-3 py-2 fs-7 shadow-sm">
-            <?= Html::encode($maPairs[$params['maPair']] ?? 'MA20 / MA50') ?>
+            <?= strtoupper($params['maType'] ?? 'SMA') ?>: <?= Html::encode($maPairs[$params['maPair']] ?? 'MA20 / MA50') ?>
         </span>
     </div>
 </div>
@@ -168,6 +181,14 @@ $badgeAction = [
     </div>
     <div class="card-body p-3">
         <?= Html::beginForm(['/moving-average/index'], 'get', ['class' => 'row g-2 align-items-end']) ?>
+            <div class="col-md-2 col-6">
+                <label class="form-label small fw-bold text-muted mb-1">Tipe MA</label>
+                <?= Html::dropDownList('maType', $params['maType'] ?? 'sma', [
+                    'sma' => 'SMA (Simple)',
+                    'ema' => 'EMA (Exponential)',
+                ], ['class' => 'form-select form-select-sm', 'onchange' => 'this.form.submit()']) ?>
+            </div>
+
             <div class="col-md-3 col-6">
                 <label class="form-label small fw-bold text-muted mb-1">Kombinasi MA (Periode)</label>
                 <?= Html::dropDownList('maPair', $params['maPair'], $maPairs, ['class' => 'form-select form-select-sm', 'onchange' => 'this.form.submit()']) ?>
@@ -192,7 +213,7 @@ $badgeAction = [
                 ], ['class' => 'form-select form-select-sm']) ?>
             </div>
 
-            <div class="col-md-2 col-6">
+            <div class="col-md-3 col-6">
                 <label class="form-label small fw-bold text-muted mb-1">Min. Risk/Reward (R:R)</label>
                 <?= Html::dropDownList('minRr', $params['minRr'], [
                     '0' => 'Semua R:R',
@@ -202,7 +223,7 @@ $badgeAction = [
                 ], ['class' => 'form-select form-select-sm']) ?>
             </div>
 
-            <div class="col-md-3 col-12">
+            <div class="col-md-3 col-12 mt-2">
                 <label class="form-label small fw-bold text-muted mb-1">Urutan Hasil (Sorting)</label>
                 <?= Html::dropDownList('sort', $params['sort'], [
                     'rr' => 'Risk/Reward Tertinggi',
@@ -228,14 +249,14 @@ $badgeAction = [
                 ], ['class' => 'form-select form-select-sm']) ?>
             </div>
 
-            <div class="col-md-5 col-12 mt-2">
-                <div class="small text-muted pt-3">
-                    <i class="bi bi-info-circle text-primary me-1"></i>
-                    Level <strong>Stop Loss</strong> dihitung 1.5%-2.5% di bawah support MA, dan <strong>TP1/TP2</strong> dihitung otomatis berdasarkan kelipatan R:R.
+            <div class="col-md-3 col-12 mt-2">
+                <div class="small text-muted pt-2" style="font-size: 0.78rem;">
+                    <i class="bi bi-shield-check text-success me-1"></i>
+                    <strong>Stop Loss Dinamis ATR</strong> &amp; konfirmasi <strong>Slope MA</strong> aktif untuk presisi sinyal maksimal.
                 </div>
             </div>
 
-            <div class="col-md-3 col-12 mt-2 text-end">
+            <div class="col-md-2 col-12 mt-2 text-end">
                 <?= Html::submitButton('<i class="bi bi-search"></i> Pindai Saham', ['class' => 'btn btn-primary btn-sm px-4 fw-bold shadow-sm w-100']) ?>
             </div>
         <?= Html::endForm() ?>
@@ -339,7 +360,7 @@ $badgeAction = [
                                 <div class="d-flex align-items-center gap-1">
                                     <?= Html::a(
                                         Html::encode($r['symbol']),
-                                        ['/moving-average/detail', 'symbol' => $r['symbol'], 'timeframe' => $params['timeframe'], 'maPair' => $params['maPair']],
+                                        ['/moving-average/detail', 'symbol' => $r['symbol'], 'timeframe' => $params['timeframe'], 'maPair' => $params['maPair'], 'maType' => $params['maType'] ?? 'sma'],
                                         ['class' => 'fw-bold text-primary text-decoration-none fs-6']
                                     ) ?>
                                     <?php if (!empty($r['exchange'])): ?>

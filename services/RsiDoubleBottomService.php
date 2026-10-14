@@ -399,9 +399,12 @@ final class RsiDoubleBottomService
         $tp1Price = round(max($swingHigh, $curPrice + ($riskAmount * 1.8)), 2);
         $tp2Price = round($curPrice + ($riskAmount * 2.8), 2);
         $tp3Price = round($curPrice + ($riskAmount * 4.0), 2);
+        $tp1Pct = $curPrice > 0 ? round((($tp1Price - $curPrice) / $curPrice) * 100, 2) : 0.0;
+        $tp2Pct = $curPrice > 0 ? round((($tp2Price - $curPrice) / $curPrice) * 100, 2) : 0.0;
+        $tp3Pct = $curPrice > 0 ? round((($tp3Price - $curPrice) / $curPrice) * 100, 2) : 0.0;
 
-        $upsidePct = $curPrice > 0 ? round((($tp1Price - $curPrice) / $curPrice) * 100, 1) : 0.0;
-        $riskPct = $curPrice > 0 ? round((($curPrice - $slPrice) / $curPrice) * 100, 1) : 0.0;
+        $upsidePct = $tp1Pct;
+        $riskPct = $curPrice > 0 ? round((($curPrice - $slPrice) / $curPrice) * 100, 2) : 0.0;
         $rrRatio = $riskAmount > 0 ? round(($tp1Price - $curPrice) / $riskAmount, 2) : 0.0;
 
         // Data backward-compatible untuk RSI Double Bottom jika ada
@@ -442,6 +445,9 @@ final class RsiDoubleBottomService
             'tp1_price' => $tp1Price,
             'tp2_price' => $tp2Price,
             'tp3_price' => $tp3Price,
+            'tp1_pct' => $tp1Pct,
+            'tp2_pct' => $tp2Pct,
+            'tp3_pct' => $tp3Pct,
             'target_price' => $tp1Price,
             'potential_upside' => $upsidePct,
             'potential_risk' => $riskPct,
