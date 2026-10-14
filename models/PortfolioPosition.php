@@ -82,6 +82,20 @@ class PortfolioPosition extends ActiveRecord
     }
 
     /**
+     * Mengambil daftar riwayat dengan aman (fallback array kosong jika query gagal atau tabel belum ada)
+     * @return PortfolioHistory[]
+     */
+    public function getHistoriesList(): array
+    {
+        try {
+            return $this->histories;
+        } catch (\Throwable $e) {
+            \Yii::warning('Failed fetching portfolio histories: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
      * Ambil harga pasar real-time terkini:
      * 1. Cek live quote dari cache / Yahoo Finance real-time.
      * 2. Jika offline/gagal, fallback ke IntradayPrice atau DailyPrice terbaru di DB.

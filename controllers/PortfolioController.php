@@ -198,7 +198,7 @@ final class PortfolioController extends Controller
         $dcaData = $this->service->calculateDcaScenarios($position, $multiAnalysis['best_support_price'] ?? null);
 
         // Riwayat Penerapan Skenario
-        $histories = $position->histories;
+        $histories = $position->getHistoriesList();
 
         return $this->render('detail', [
             'position' => $position,
@@ -244,21 +244,25 @@ final class PortfolioController extends Controller
 
             if ($position->save()) {
                 // Catat log riwayat eksekusi skenario
-                $history = new \app\models\PortfolioHistory([
-                    'position_id' => $position->id,
-                    'user_id' => (int) $position->user_id,
-                    'action_type' => \app\models\PortfolioHistory::ACTION_AVERAGE_DOWN,
-                    'scenario_name' => $scenarioName,
-                    'old_price' => $oldPrice,
-                    'new_price' => $newAvgPrice,
-                    'old_shares' => $oldShares,
-                    'added_shares' => $addShares,
-                    'new_shares' => $newTotalShares,
-                    'added_price' => $addPrice > 0 ? $addPrice : null,
-                    'added_cost' => $addCost > 0 ? $addCost : null,
-                    'notes' => $notes,
-                ]);
-                $history->save();
+                try {
+                    $history = new \app\models\PortfolioHistory([
+                        'position_id' => $position->id,
+                        'user_id' => (int) $position->user_id,
+                        'action_type' => \app\models\PortfolioHistory::ACTION_AVERAGE_DOWN,
+                        'scenario_name' => $scenarioName,
+                        'old_price' => $oldPrice,
+                        'new_price' => $newAvgPrice,
+                        'old_shares' => $oldShares,
+                        'added_shares' => $addShares,
+                        'new_shares' => $newTotalShares,
+                        'added_price' => $addPrice > 0 ? $addPrice : null,
+                        'added_cost' => $addCost > 0 ? $addCost : null,
+                        'notes' => $notes,
+                    ]);
+                    $history->save();
+                } catch (\Throwable $e) {
+                    Yii::warning('Failed saving portfolio history: ' . $e->getMessage());
+                }
 
                 Yii::$app->session->setFlash('success', sprintf(
                     "Berhasil menerapkan skenario '%s' untuk %s! Harga rata-rata modal turun dari $%s menjadi $%s (Total: %s lembar).",
