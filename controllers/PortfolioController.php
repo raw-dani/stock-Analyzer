@@ -8,6 +8,7 @@ use app\models\PortfolioPosition;
 use app\models\Stock;
 use app\services\PortfolioAveragingService;
 use Yii;
+use yii\filters\AccessControl;
 use yii\filters\VerbFilter;
 use yii\web\Controller;
 use yii\web\NotFoundHttpException;
@@ -29,6 +30,15 @@ final class PortfolioController extends Controller
     public function behaviors(): array
     {
         return [
+            'access' => [
+                'class' => AccessControl::class,
+                'rules' => [
+                    [
+                        'allow' => true,
+                        'roles' => ['@'],
+                    ],
+                ],
+            ],
             'verbs' => [
                 'class' => VerbFilter::class,
                 'actions' => [
@@ -44,7 +54,7 @@ final class PortfolioController extends Controller
      */
     public function actionIndex(): string
     {
-        $userId = (int) (Yii::$app->user->id ?? 100);
+        $userId = (int) Yii::$app->user->id;
         $tab = Yii::$app->request->get('tab', 'all');
 
         $query = PortfolioPosition::find()
@@ -111,7 +121,7 @@ final class PortfolioController extends Controller
      */
     public function actionCreate(): Response
     {
-        $userId = (int) (Yii::$app->user->id ?? 100);
+        $userId = (int) Yii::$app->user->id;
         $post = Yii::$app->request->post('PortfolioPosition', []);
         $symbol = strtoupper(trim((string) Yii::$app->request->post('symbol', '')));
 
@@ -238,7 +248,7 @@ final class PortfolioController extends Controller
             return $this->redirect(['detail', 'id' => $id]);
         }
 
-        $userId = (int) (Yii::$app->user->id ?? 100);
+        $userId = (int) Yii::$app->user->id;
         $positions = PortfolioPosition::find()->where(['user_id' => $userId])->all();
         $updated = 0;
         foreach ($positions as $pos) {
@@ -265,7 +275,7 @@ final class PortfolioController extends Controller
 
     private function findModel(int $id): PortfolioPosition
     {
-        $userId = (int) (Yii::$app->user->id ?? 100);
+        $userId = (int) Yii::$app->user->id;
         $model = PortfolioPosition::find()
             ->where(['id' => $id, 'user_id' => $userId])
             ->with(['stock'])

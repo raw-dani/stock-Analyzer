@@ -45,7 +45,9 @@ class PortfolioPosition extends ActiveRecord
             [['buy_price', 'shares'], 'number', 'min' => 0.0001],
             [['target_profit_pct'], 'number', 'min' => 0.1, 'max' => 1000],
             [['target_profit_pct'], 'default', 'value' => 3.00],
-            [['user_id'], 'default', 'value' => 100],
+            [['user_id'], 'default', 'value' => function () {
+                return \Yii::$app->user->id ?? 100;
+            }],
             [['buy_date'], 'string', 'max' => 10],
             [['notes'], 'string', 'max' => 1000],
         ];

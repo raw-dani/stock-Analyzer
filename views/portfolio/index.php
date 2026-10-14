@@ -29,9 +29,12 @@ $fmt = Yii::$app->formatter;
         <div>
             <h1 class="h3 fw-bold text-dark mb-1">
                 <i class="bi bi-briefcase-fill text-primary me-2"></i><?= Html::encode($this->title) ?>
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle fs-6 align-middle ms-2">
+                    <i class="bi bi-person-fill me-1"></i><?= Html::encode(Yii::$app->user->identity->username ?? 'User') ?>
+                </span>
             </h1>
             <p class="text-muted small mb-0">
-                Pantau status untung/rugi saham yang sudah Anda beli, set target profit presisi (contoh: 3%), serta jalankan simulasi strategi <strong>Average Down</strong> terintegrasi sinyal teknikal.
+                Portofolio pribadi Anda: Pantau status untung/rugi saham yang sudah dibeli, set target profit presisi (contoh: 3%), serta jalankan simulasi strategi <strong>Average Down</strong> terintegrasi sinyal teknikal.
             </p>
         </div>
         <div class="d-flex gap-2 flex-wrap">

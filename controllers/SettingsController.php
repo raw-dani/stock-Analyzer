@@ -26,7 +26,15 @@ final class SettingsController extends Controller
             'access' => [
                 'class' => AccessControl::class,
                 'rules' => [
-                    ['allow' => true],
+                    [
+                        'allow' => true,
+                        'roles' => ['@'],
+                        'matchCallback' => function ($rule, $action) {
+                            /** @var User|null $user */
+                            $user = Yii::$app->user->identity;
+                            return $user !== null && $user->isAdmin();
+                        },
+                    ],
                 ],
             ],
         ];

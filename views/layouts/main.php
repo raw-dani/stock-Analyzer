@@ -19,6 +19,15 @@ $this->registerLinkTag(['rel' => 'icon', 'type' => 'image/x-icon', 'href' => Yii
 
 // menu sidebar (task 5.1 & complete feature navigation)
 $ctrlId = Yii::$app->controller?->id;
+$currentUser = Yii::$app->user->identity;
+$isAdmin = $currentUser !== null && $currentUser->isAdmin();
+
+$systemItems = [];
+if ($isAdmin) {
+    $systemItems[] = ['label' => '⚙️ Settings', 'url' => ['/settings/index'], 'active' => $ctrlId === 'settings'];
+    $systemItems[] = ['label' => '👥 User Management', 'url' => ['/user/index'], 'active' => $ctrlId === 'user', 'badge' => 'Admin'];
+}
+
 $sideMenuGroups = [
     'Overview' => [
         ['label' => '📊 Dashboard', 'url' => ['/dashboard/index'], 'active' => $ctrlId === 'dashboard'],
@@ -34,10 +43,11 @@ $sideMenuGroups = [
         ['label' => '🌀 Fibonacci Levels', 'url' => ['/fibonacci/index'], 'active' => $ctrlId === 'fibonacci', 'badge' => 'New'],
         ['label' => '🕯️ Candlestick Scanner', 'url' => ['/candlestick/index'], 'active' => $ctrlId === 'candlestick', 'badge' => 'New'],
     ],
-    'System' => [
-        ['label' => '⚙️ Settings', 'url' => ['/settings/index'], 'active' => $ctrlId === 'settings'],
-    ],
 ];
+
+if (!empty($systemItems)) {
+    $sideMenuGroups['Administration'] = $systemItems;
+}
 ?>
 <?php $this->beginPage() ?>
 <!DOCTYPE html>
@@ -88,24 +98,36 @@ $sideMenuGroups = [
                 ['label' => '🕯️ Candlestick Scanner', 'url' => ['/candlestick/index']],
             ],
         ],
-        ['label' => '⚙️ Settings', 'url' => ['/settings/index'], 'active' => $ctrlId === 'settings'],
     ];
 
+    if ($isAdmin) {
+        $topNavItems[] = [
+            'label' => '⚙️ Admin',
+            'active' => in_array($ctrlId, ['settings', 'user'], true),
+            'items' => [
+                ['label' => '⚙️ Settings', 'url' => ['/settings/index']],
+                ['label' => '👥 User Management', 'url' => ['/user/index']],
+            ],
+        ];
+    }
+
     if (Yii::$app->user->isGuest) {
+        $topNavItems[] = ['label' => '📝 Register', 'url' => ['/site/register']];
         $topNavItems[] = ['label' => '🔑 Login', 'url' => ['/site/login']];
     } else {
-        $topNavItems[] = '<li class="nav-item">'
+        $roleBadge = $isAdmin ? ' <span class="badge bg-danger ms-1">Admin</span>' : '';
+        $topNavItems[] = '<li class="nav-item d-flex align-items-center ms-lg-2">'
             . Html::beginForm(['/site/logout'])
             . Html::submitButton(
-                'Logout (' . Html::encode(Yii::$app->user->identity->username) . ')',
-                ['class' => 'nav-link btn btn-link text-decoration-none border-0 text-white-50']
+                '<i class="bi bi-box-arrow-right me-1"></i> Logout (' . Html::encode($currentUser->username) . ')' . $roleBadge,
+                ['class' => 'btn btn-outline-light btn-sm text-decoration-none border-secondary text-white-50 py-1 px-2']
             )
             . Html::endForm()
             . '</li>';
     }
 
     echo Nav::widget([
-        'options' => ['class' => 'navbar-nav ms-auto'],
+        'options' => ['class' => 'navbar-nav ms-auto align-items-lg-center'],
         'items' => $topNavItems,
     ]);
     NavBar::end();

@@ -118,6 +118,11 @@ class User extends ActiveRecord implements IdentityInterface
 
     // ==== Relasi ====
 
+    public function getPortfolioPositions(): \yii\db\ActiveQuery
+    {
+        return $this->hasMany(PortfolioPosition::class, ['user_id' => 'id']);
+    }
+
     public function getWatchlists(): \yii\db\ActiveQuery
     {
         return $this->hasMany(Watchlist::class, ['user_id' => 'id']);
