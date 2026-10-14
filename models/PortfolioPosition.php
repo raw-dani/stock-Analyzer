@@ -76,6 +76,11 @@ class PortfolioPosition extends ActiveRecord
         return $this->hasOne(User::class, ['id' => 'user_id']);
     }
 
+    public function getHistories(): ActiveQuery
+    {
+        return $this->hasMany(PortfolioHistory::class, ['position_id' => 'id'])->orderBy(['created_at' => SORT_DESC]);
+    }
+
     /**
      * Ambil harga pasar real-time terkini:
      * 1. Cek live quote dari cache / Yahoo Finance real-time.

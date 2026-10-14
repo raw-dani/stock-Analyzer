@@ -172,6 +172,12 @@ $fmt = Yii::$app->formatter;
                                         <div class="fw-bold fs-6">
                                             <?= Html::a(Html::encode($stock->symbol), ['/portfolio/detail', 'id' => $pos->id], ['class' => 'text-decoration-none text-primary']) ?>
                                             <span class="badge bg-light text-secondary border ms-1" style="font-size:0.65rem;"><?= Html::encode($stock->exchange) ?></span>
+                                            <?php $histCount = count($pos->histories); ?>
+                                            <?php if ($histCount > 0): ?>
+                                                <a href="<?= Url::to(['/portfolio/detail', 'id' => $pos->id]) ?>#history-tab" class="badge bg-info bg-opacity-25 text-primary border border-primary border-opacity-25 text-decoration-none ms-1" style="font-size:0.65rem;" title="<?= $histCount ?>x riwayat averaging down telah diterapkan">
+                                                    <i class="bi bi-clock-history"></i> <?= $histCount ?>x Avg
+                                                </a>
+                                            <?php endif; ?>
                                         </div>
                                         <div class="small text-muted text-truncate" style="max-width: 150px; font-size: 0.72rem;">
                                             <?= Html::encode($stock->name) ?>

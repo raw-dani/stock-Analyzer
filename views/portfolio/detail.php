@@ -159,6 +159,11 @@ $fib = $signals['fibonacci'] ?? null;
                 <i class="bi bi-cpu-fill text-primary me-2"></i> 3. Pusat Analisis Multi-Fitur (Candle, RSI, MA, Fibo)
             </button>
         </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link fw-bold py-3 text-secondary" id="history-tab" data-bs-toggle="tab" data-bs-target="#history-pane" type="button" role="tab">
+                <i class="bi bi-clock-history text-secondary me-2"></i> 4. Riwayat Skenario Diterapkan (<?= count($histories ?? []) ?>)
+            </button>
+        </li>
     </ul>
 
     <div class="tab-content" id="portfolioTabContent">
@@ -259,7 +264,11 @@ $fib = $signals['fibonacci'] ?? null;
                                             <?php $formApply = ActiveForm::begin(['action' => ['/portfolio/apply-average', 'id' => $position->id], 'method' => 'post']); ?>
                                                 <input type="hidden" name="new_avg_price" value="<?= $sc['new_avg_price'] ?>">
                                                 <input type="hidden" name="new_total_shares" value="<?= $sc['new_total_shares'] ?>">
-                                                <input type="hidden" name="notes" value="Eksekusi <?= Html::encode($sc['title']) ?> di harga $<?= $sc['add_price'] ?>">
+                                                <input type="hidden" name="scenario_name" value="<?= Html::encode($sc['title']) ?>">
+                                                <input type="hidden" name="add_price" value="<?= $sc['add_price'] ?>">
+                                                <input type="hidden" name="add_shares" value="<?= $sc['add_shares'] ?>">
+                                                <input type="hidden" name="add_cost" value="<?= $sc['add_cost'] ?>">
+                                                <input type="hidden" name="notes" value="Eksekusi <?= Html::encode($sc['title']) ?> di harga $<?= $sc['add_price'] ?> (+<?= \app\models\PortfolioPosition::formatShares($sc['add_shares']) ?> lbr)">
                                                 <button type="submit" class="btn btn-outline-success btn-sm py-0 px-2 fw-semibold" onclick="return confirm('Terapkan harga rata-rata baru $<?= $sc['new_avg_price'] ?> dan total <?= \app\models\PortfolioPosition::formatShares($sc['new_total_shares']) ?> lembar ke posisi portofolio Anda?');">
                                                     <i class="bi bi-check-lg"></i> Terapkan
                                                 </button>
@@ -389,6 +398,10 @@ $fib = $signals['fibonacci'] ?? null;
                         ]); ?>
                             <input type="hidden" name="new_avg_price" id="custom-form-new-avg" value="">
                             <input type="hidden" name="new_total_shares" id="custom-form-new-shares" value="">
+                            <input type="hidden" name="scenario_name" value="Kalkulator Kustom Averaging">
+                            <input type="hidden" name="add_price" id="custom-form-add-price" value="">
+                            <input type="hidden" name="add_shares" id="custom-form-add-shares" value="">
+                            <input type="hidden" name="add_cost" id="custom-form-add-cost" value="">
                             <input type="hidden" name="notes" id="custom-form-notes" value="">
                             <button type="submit" class="btn btn-success fw-bold shadow-sm" id="btn-apply-custom" onclick="return confirm('Terapkan harga rata-rata baru ini ke posisi portofolio Anda?');" disabled>
                                 <i class="bi bi-check-circle-fill me-1"></i> Terapkan Hasil Kustom ke Portofolio
@@ -681,6 +694,95 @@ $fib = $signals['fibonacci'] ?? null;
                             </a>
                         </div>
                     </div>
+        <!-- ========================================== -->
+        <!-- TAB 4: RIWAYAT SKENARIO DITERAPKAN         -->
+        <!-- ========================================== -->
+        <div class="tab-pane fade" id="history-pane" role="tabpanel">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold text-dark">
+                        <i class="bi bi-clock-history text-primary me-2"></i> Riwayat Eksekusi Averaging Down &amp; Perubahan Posisi
+                    </h5>
+                    <span class="badge bg-light text-dark border"><?= count($histories ?? []) ?> Catatan</span>
+                </div>
+                <div class="card-body p-0">
+                    <?php if (empty($histories)): ?>
+                        <div class="text-center py-5">
+                            <div class="display-6 text-muted mb-2"><i class="bi bi-journal-x"></i></div>
+                            <h6 class="fw-bold text-secondary">Belum ada riwayat skenario averaging down yang diterapkan</h6>
+                            <p class="text-muted small mb-0">
+                                Saat Anda menekan tombol <strong>"Terapkan"</strong> pada salah satu skenario averaging down atau kalkulator kustom, rekam jejak eksekusi akan otomatis tersimpan di sini.
+                            </p>
+                        </div>
+                    <?php else: ?>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light small text-uppercase text-muted">
+                                    <tr>
+                                        <th style="width: 40px;">#</th>
+                                        <th>Waktu Eksekusi</th>
+                                        <th>Nama Skenario</th>
+                                        <th class="text-end">Harga Beli Lama</th>
+                                        <th class="text-end text-primary">Harga Rata-rata Baru</th>
+                                        <th class="text-center">Penurunan Avg</th>
+                                        <th class="text-center">Lembar Ditambah</th>
+                                        <th class="text-end">Harga Beli Tambahan</th>
+                                        <th class="text-end">Modal Ditambahkan</th>
+                                        <th>Catatan</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($histories as $hIdx => $h): ?>
+                                        <?php
+                                        $oldP = (float) $h->old_price;
+                                        $newP = (float) $h->new_price;
+                                        $dropAmount = $oldP - $newP;
+                                        $dropPct = $oldP > 0 ? round(($dropAmount / $oldP) * 100, 2) : 0.0;
+                                        ?>
+                                        <tr>
+                                            <td class="text-muted small"><?= $hIdx + 1 ?></td>
+                                            <td>
+                                                <div class="fw-bold text-dark"><?= date('d M Y', (int) $h->created_at) ?></div>
+                                                <div class="small text-muted" style="font-size: 0.72rem;"><?= date('H:i:s', (int) $h->created_at) ?> WIB</div>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2 py-1">
+                                                    <?= Html::encode($h->scenario_name ?? 'Averaging Down') ?>
+                                                </span>
+                                            </td>
+                                            <td class="text-end text-muted">
+                                                $<?= number_format($oldP, 2) ?>
+                                            </td>
+                                            <td class="text-end fw-bold text-primary fs-6">
+                                                $<?= number_format($newP, 2) ?>
+                                            </td>
+                                            <td class="text-center text-success fw-bold">
+                                                <?php if ($dropPct > 0): ?>
+                                                    -<?= $dropPct ?>%
+                                                    <div class="small text-muted" style="font-size:0.70rem;">(-$<?= number_format($dropAmount, 2) ?>)</div>
+                                                <?php else: ?>
+                                                    —
+                                                <?php endif; ?>
+                                            </td>
+                                            <td class="text-center fw-semibold">
+                                                +<?= \app\models\PortfolioPosition::formatShares((float) $h->added_shares) ?> lbr
+                                                <div class="small text-muted" style="font-size:0.70rem;">(Total: <?= \app\models\PortfolioPosition::formatShares((float) $h->new_shares) ?>)</div>
+                                            </td>
+                                            <td class="text-end fw-semibold">
+                                                <?= $h->added_price ? '$' . number_format((float) $h->added_price, 2) : '—' ?>
+                                            </td>
+                                            <td class="text-end text-muted">
+                                                <?= $h->added_cost ? '$' . number_format((float) $h->added_cost, 2) : '—' ?>
+                                            </td>
+                                            <td class="small text-muted" style="max-width: 220px;">
+                                                <?= Html::encode($h->notes ?? '—') ?>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -901,6 +1003,15 @@ document.addEventListener('DOMContentLoaded', function () {
         // Set nilai ke form apply
         formNewAvg.value = newAvgPrice.toFixed(2);
         formNewShares.value = newTotalShares.toFixed(4);
+        if (document.getElementById('custom-form-add-price')) {
+            document.getElementById('custom-form-add-price').value = addPrice.toFixed(2);
+        }
+        if (document.getElementById('custom-form-add-shares')) {
+            document.getElementById('custom-form-add-shares').value = addShares.toFixed(4);
+        }
+        if (document.getElementById('custom-form-add-cost')) {
+            document.getElementById('custom-form-add-cost').value = addCost.toFixed(2);
+        }
         formNotes.value = 'Kalkulasi Kustom: Beli di $' + addPrice.toFixed(2) + ' sebanyak +' + fmtShares(addShares) + ' lbr (' + fmtUSD(addCost) + ')';
         btnApply.disabled = false;
     }

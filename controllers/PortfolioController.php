@@ -191,11 +191,15 @@ final class PortfolioController extends Controller
         // Simulasi Skenario Averaging Down
         $dcaData = $this->service->calculateDcaScenarios($position, $multiAnalysis['best_support_price'] ?? null);
 
+        // Riwayat Penerapan Skenario
+        $histories = $position->histories;
+
         return $this->render('detail', [
             'position' => $position,
             'stock' => $stock,
             'multiAnalysis' => $multiAnalysis,
             'dcaData' => $dcaData,
+            'histories' => $histories,
         ]);
     }
 
@@ -209,20 +213,52 @@ final class PortfolioController extends Controller
 
         $newAvgPrice = (float) $req->post('new_avg_price', 0);
         $newTotalShares = (float) $req->post('new_total_shares', 0);
+        $scenarioName = (string) $req->post('scenario_name', 'Averaging Down');
+        $addPrice = (float) $req->post('add_price', 0);
+        $addShares = (float) $req->post('add_shares', 0);
+        $addCost = (float) $req->post('add_cost', 0);
         $notes = (string) $req->post('notes', '');
 
         if ($newAvgPrice > 0 && $newTotalShares > 0) {
-            $oldPrice = $position->buy_price;
+            $oldPrice = (float) $position->buy_price;
+            $oldShares = (float) $position->shares;
+
+            if ($addShares <= 0) {
+                $addShares = max(0, $newTotalShares - $oldShares);
+            }
+            if ($addCost <= 0 && $addPrice > 0) {
+                $addCost = $addPrice * $addShares;
+            }
+
             $position->buy_price = $newAvgPrice;
             $position->shares = $newTotalShares;
             if (!empty($notes)) {
                 $position->notes = trim($position->notes . "\n[Avg Down " . date('Y-m-d') . "] " . $notes);
             }
+
             if ($position->save()) {
+                // Catat log riwayat eksekusi skenario
+                $history = new \app\models\PortfolioHistory([
+                    'position_id' => $position->id,
+                    'user_id' => (int) $position->user_id,
+                    'action_type' => \app\models\PortfolioHistory::ACTION_AVERAGE_DOWN,
+                    'scenario_name' => $scenarioName,
+                    'old_price' => $oldPrice,
+                    'new_price' => $newAvgPrice,
+                    'old_shares' => $oldShares,
+                    'added_shares' => $addShares,
+                    'new_shares' => $newTotalShares,
+                    'added_price' => $addPrice > 0 ? $addPrice : null,
+                    'added_cost' => $addCost > 0 ? $addCost : null,
+                    'notes' => $notes,
+                ]);
+                $history->save();
+
                 Yii::$app->session->setFlash('success', sprintf(
-                    "Berhasil menerapkan averaging down untuk %s! Harga rata-rata modal turun dari $%s menjadi $%s (Total: %s lembar).",
+                    "Berhasil menerapkan skenario '%s' untuk %s! Harga rata-rata modal turun dari $%s menjadi $%s (Total: %s lembar).",
+                    $scenarioName,
                     $position->stock->symbol,
-                    number_format((float)$oldPrice, 2),
+                    number_format($oldPrice, 2),
                     number_format($newAvgPrice, 2),
                     PortfolioPosition::formatShares($newTotalShares)
                 ));
