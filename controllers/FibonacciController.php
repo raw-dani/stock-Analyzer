@@ -34,36 +34,59 @@ final class FibonacciController extends Controller
     public function actionIndex(): string
     {
         $params = $this->resolveParams();
-        $results = $this->service->scanAll($params);
-        $results = $this->sortResults($results, $params['sort']);
+        $cache = Yii::$app->cache;
+        $cacheKey = 'fib_scan_' . md5(json_encode($params));
 
-        $symbols = [];
-        $tvSymbols = [];
-        $stats = [
-            'total' => count($results),
-            'goldenPocketCount' => 0,
-            'buyCount' => 0,
-            'targetReachedCount' => 0,
-            'breakdownCount' => 0,
-        ];
+        $cachedData = $cache !== null ? $cache->get($cacheKey) : false;
+        if ($cachedData !== false && is_array($cachedData)) {
+            $results = $cachedData['results'];
+            $symbols = $cachedData['symbols'];
+            $tvSymbols = $cachedData['tvSymbols'];
+            $stats = $cachedData['stats'];
+        } else {
+            $rawResults = $this->service->scanAll($params);
+            $results = $this->sortResults($rawResults, $params['sort']);
 
-        foreach ($results as $r) {
-            $sym = $r['symbol'];
-            $symbols[] = $sym;
-            $exch = !empty($r['exchange']) ? $r['exchange'] . ':' : '';
-            $tvSymbols[] = $exch . $sym;
+            $symbols = [];
+            $tvSymbols = [];
+            $stats = [
+                'total' => count($results),
+                'goldenPocketCount' => 0,
+                'buyCount' => 0,
+                'targetReachedCount' => 0,
+                'breakdownCount' => 0,
+            ];
 
-            if ($r['signal'] === FibonacciService::SIGNAL_GOLDEN_POCKET) {
-                $stats['goldenPocketCount']++;
+            foreach ($results as $r) {
+                $sym = $r['symbol'];
+                $symbols[] = $sym;
+                $exch = !empty($r['exchange']) ? $r['exchange'] . ':' : '';
+                $tvSymbols[] = $exch . $sym;
+
+                if ($r['signal'] === FibonacciService::SIGNAL_GOLDEN_POCKET) {
+                    $stats['goldenPocketCount']++;
+                }
+                if ($r['action'] === 'BUY') {
+                    $stats['buyCount']++;
+                }
+                if ($r['signal'] === FibonacciService::SIGNAL_TARGET_REACHED) {
+                    $stats['targetReachedCount']++;
+                }
+                if ($r['signal'] === FibonacciService::SIGNAL_FIB_BREAKDOWN) {
+                    $stats['breakdownCount']++;
+                }
             }
-            if ($r['action'] === 'BUY') {
-                $stats['buyCount']++;
-            }
-            if ($r['signal'] === FibonacciService::SIGNAL_TARGET_REACHED) {
-                $stats['targetReachedCount']++;
-            }
-            if ($r['signal'] === FibonacciService::SIGNAL_FIB_BREAKDOWN) {
-                $stats['breakdownCount']++;
+
+            $symbols = array_values(array_unique($symbols));
+            $tvSymbols = array_values(array_unique($tvSymbols));
+
+            if ($cache !== null) {
+                $cache->set($cacheKey, [
+                    'results' => $results,
+                    'symbols' => $symbols,
+                    'tvSymbols' => $tvSymbols,
+                    'stats' => $stats,
+                ], 900); // 15 menit
             }
         }
 
@@ -71,8 +94,8 @@ final class FibonacciController extends Controller
             'results' => $results,
             'params' => $params,
             'stats' => $stats,
-            'symbols' => array_values(array_unique($symbols)),
-            'tvSymbols' => array_values(array_unique($tvSymbols)),
+            'symbols' => $symbols,
+            'tvSymbols' => $tvSymbols,
             'timeframes' => FibonacciService::getTimeframes(),
         ]);
     }

@@ -181,8 +181,10 @@ final class FibonacciService
         $currentRetraceRatio = ($swingHigh - $currClose) / $range;
         $currentRetracePct = round($currentRetraceRatio * 100, 1);
 
+        $prevCandle = $candles[$currIdx - 1] ?? null;
+
         // Evaluasi Setup Fibonacci
-        $setup = $this->evaluateFibonacciSetup($currClose, $currLow, $currHigh, $fibLevels, $currentRetraceRatio, $isUptrendWave, $rvol);
+        $setup = $this->evaluateFibonacciSetup($currClose, $currLow, $currHigh, $fibLevels, $currentRetraceRatio, $isUptrendWave, $rvol, $prevCandle);
 
         // Kalkulasi Level Trading Presisi (Entry, Stop Loss, TP1, TP2, TP3, R:R)
         $levels = $this->calculateTradeLevels($currClose, $currLow, $fibLevels, $setup['action'], $setup['signal']);
@@ -238,6 +240,7 @@ final class FibonacciService
 
     /**
      * Cari Swing High dan Swing Low utama pada jendela data candle.
+     * Menggunakan algoritma Pivot/Fractal (N=3 bar kanan-kiri) dengan fokus pada gelombang impulsif terkini.
      */
     private function findSwingPoints(array $candles): ?array
     {
@@ -246,7 +249,56 @@ final class FibonacciService
             return null;
         }
 
-        // Cari High tertinggi dan Low terendah dalam jendela
+        // 1. Deteksi Pivot High & Low berbasis Fractal (Window +/- 2-3 bar)
+        $pivotsHigh = [];
+        $pivotsLow = [];
+
+        for ($i = 2; $i < $count - 2; $i++) {
+            $h = (float) $candles[$i]['high'];
+            $l = (float) $candles[$i]['low'];
+
+            // Pivot High: lebih tinggi dari 2 bar sebelum dan 2 bar sesudahnya
+            if (
+                $h > (float) $candles[$i - 1]['high'] &&
+                $h > (float) $candles[$i - 2]['high'] &&
+                $h >= (float) $candles[$i + 1]['high'] &&
+                $h >= (float) $candles[$i + 2]['high']
+            ) {
+                $pivotsHigh[] = ['idx' => $i, 'high' => $h, 'date' => $candles[$i]['date']];
+            }
+
+            // Pivot Low: lebih rendah dari 2 bar sebelum dan 2 bar sesudahnya
+            if (
+                $l < (float) $candles[$i - 1]['low'] &&
+                $l < (float) $candles[$i - 2]['low'] &&
+                $l <= (float) $candles[$i + 1]['low'] &&
+                $l <= (float) $candles[$i + 2]['low']
+            ) {
+                $pivotsLow[] = ['idx' => $i, 'low' => $l, 'date' => $candles[$i]['date']];
+            }
+        }
+
+        // Jika terdapat pivot terdeteksi, ambil ayunan mayor terbaru
+        if (!empty($pivotsHigh) && !empty($pivotsLow)) {
+            $latestHigh = end($pivotsHigh);
+            $latestLow = end($pivotsLow);
+
+            // Jika pivot terbaru membentuk jarak rentang minimal 2%
+            if ($latestHigh['high'] > $latestLow['low'] && (($latestHigh['high'] - $latestLow['low']) / $latestLow['low']) >= 0.02) {
+                return [
+                    'high' => round($latestHigh['high'], 2),
+                    'high_idx' => $latestHigh['idx'],
+                    'high_date' => $latestHigh['date'],
+                    'low' => round($latestLow['low'], 2),
+                    'low_idx' => $latestLow['idx'],
+                    'low_date' => $latestLow['date'],
+                    'is_uptrend' => ($latestLow['idx'] < $latestHigh['idx']),
+                ];
+            }
+        }
+
+        // 2. Fallback: Cari High tertinggi dan Low terendah dalam 60 bar terkini
+        $searchSlice = array_slice($candles, -60, null, true);
         $maxHigh = -INF;
         $maxHighIdx = -1;
         $maxHighDate = '';
@@ -255,7 +307,7 @@ final class FibonacciService
         $minLowIdx = -1;
         $minLowDate = '';
 
-        foreach ($candles as $i => $c) {
+        foreach ($searchSlice as $i => $c) {
             if ($c['high'] > $maxHigh) {
                 $maxHigh = (float) $c['high'];
                 $maxHighIdx = $i;
@@ -287,7 +339,7 @@ final class FibonacciService
     }
 
     /**
-     * Evaluasi Setup Fibonacci dan penentuan timing terbaik beli/jual.
+     * Evaluasi Setup Fibonacci dan penentuan timing terbaik beli/jual dengan konfirmasi pantulan.
      */
     private function evaluateFibonacciSetup(
         float $close,
@@ -296,8 +348,12 @@ final class FibonacciService
         array $fib,
         float $retraceRatio,
         bool $isUptrend,
-        float $rvol
+        float $rvol,
+        ?array $prevCandle = null
     ): array {
+        // Cek konfirmasi rebound: lilin hijau atau penutupan di atas open & low memantul dari area support
+        $isGreenCandle = ($prevCandle !== null && $close >= (float) $prevCandle['close']);
+
         // 1. Ekstensi Target Tercapai (1.272x atau 1.618x) -> WAKTU JUAL TERBAIK / TAKE PROFIT
         if ($close >= $fib['fib_1618'] * 0.98) {
             return [
@@ -345,17 +401,18 @@ final class FibonacciService
             ];
         }
 
-        // 4. GOLDEN POCKET RETEST (50.0% - 61.8%) -> WAKTU BELI TERBAIK (THE SWEET SPOT!)
-        // Area antara 50% dan 61.8% adalah rasio probabilitas tertinggi di dunia trading
+        // 4. GOLDEN POCKET RETEST (50.0% - 61.8%) -> WAKTU BELI TERBAIK
+        // Dilengkapi konfirmasi penolakan harga (price rejection / bounce)
         $inGoldenPocket = ($close <= $fib['fib_500'] * 1.015 && $close >= $fib['fib_618'] * 0.985);
         if ($inGoldenPocket) {
+            $isConfirmedRebound = ($isGreenCandle || $close >= $fib['fib_618']);
             return [
                 'signal' => self::SIGNAL_GOLDEN_POCKET,
                 'action' => 'BUY',
-                'strategy_name' => '⭐ Golden Pocket Rebound (50% - 61.8%)',
+                'strategy_name' => $isConfirmedRebound ? '⭐ Golden Pocket Rebound (Terkonfirmasi)' : '⭐ Golden Pocket (Area Uji Pantulan)',
                 'strategy_badge' => 'success',
-                'timing_recommendation' => 'WAKTU BELI TERBAIK (Golden Entry Zone)',
-                'description' => 'Harga menguji zona emas Fibonacci 50% - 61.8%. Rasio Risk to Reward maksimal dengan batas stop loss sangat terukur.',
+                'timing_recommendation' => $isConfirmedRebound ? 'WAKTU BELI TERBAIK (Konfirmasi Rebound Valid)' : 'WAKTU BELI BERTAHAP (Uji Support 61.8%)',
+                'description' => 'Harga menguji zona emas Fibonacci 50% - 61.8%. Rasio Risk to Reward maksimal dengan level pertahanan terukur di bawah 78.6%.',
             ];
         }
 

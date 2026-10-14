@@ -34,52 +34,75 @@ final class CandlestickController extends Controller
     public function actionIndex(): string
     {
         $params = $this->resolveParams();
-        $results = $this->service->scanAll($params);
-        $results = $this->sortResults($results, $params['sort']);
+        $cache = Yii::$app->cache;
+        $cacheKey = 'candle_scan_' . md5(json_encode($params));
 
-        $symbols = [];
-        $tvSymbols = [];
-        $stats = [
-            'total' => count($results),
-            'buyCount' => 0,
-            'surgeCount' => 0,
-            'supportiveCount' => 0,
-            'hammerCount' => 0,
-            'engulfingCount' => 0,
-            'marubozuCount' => 0,
-            'dojiCount' => 0,
-            'sellCount' => 0,
-        ];
+        $cachedData = $cache !== null ? $cache->get($cacheKey) : false;
+        if ($cachedData !== false && is_array($cachedData)) {
+            $results = $cachedData['results'];
+            $symbols = $cachedData['symbols'];
+            $tvSymbols = $cachedData['tvSymbols'];
+            $stats = $cachedData['stats'];
+        } else {
+            $rawResults = $this->service->scanAll($params);
+            $results = $this->sortResults($rawResults, $params['sort']);
 
-        foreach ($results as $r) {
-            $sym = $r['symbol'];
-            $symbols[] = $sym;
-            $exch = !empty($r['exchange']) ? $r['exchange'] . ':' : '';
-            $tvSymbols[] = $exch . $sym;
+            $symbols = [];
+            $tvSymbols = [];
+            $stats = [
+                'total' => count($results),
+                'buyCount' => 0,
+                'surgeCount' => 0,
+                'supportiveCount' => 0,
+                'hammerCount' => 0,
+                'engulfingCount' => 0,
+                'marubozuCount' => 0,
+                'dojiCount' => 0,
+                'sellCount' => 0,
+            ];
 
-            if (in_array($r['action'], [CandlestickService::ACTION_BUY, CandlestickService::ACTION_STRONG_BUY], true)) {
-                $stats['buyCount']++;
+            foreach ($results as $r) {
+                $sym = $r['symbol'];
+                $symbols[] = $sym;
+                $exch = !empty($r['exchange']) ? $r['exchange'] . ':' : '';
+                $tvSymbols[] = $exch . $sym;
+
+                if (in_array($r['action'], [CandlestickService::ACTION_BUY, CandlestickService::ACTION_STRONG_BUY], true)) {
+                    $stats['buyCount']++;
+                }
+                if ($r['volume_status'] === CandlestickService::VOL_SURGE) {
+                    $stats['surgeCount']++;
+                }
+                if (!empty($r['volume_supports_bullish'])) {
+                    $stats['supportiveCount']++;
+                }
+                if (in_array($r['pattern_code'], [CandlestickService::PATTERN_HAMMER, CandlestickService::PATTERN_INVERTED_HAMMER], true)) {
+                    $stats['hammerCount']++;
+                }
+                if (in_array($r['pattern_code'], [CandlestickService::PATTERN_BULLISH_ENGULFING, CandlestickService::PATTERN_BEARISH_ENGULFING], true)) {
+                    $stats['engulfingCount']++;
+                }
+                if (in_array($r['pattern_code'], [CandlestickService::PATTERN_BULLISH_MARUBOZU, CandlestickService::PATTERN_BEARISH_MARUBOZU], true)) {
+                    $stats['marubozuCount']++;
+                }
+                if ($r['pattern_code'] === CandlestickService::PATTERN_DOJI) {
+                    $stats['dojiCount']++;
+                }
+                if (in_array($r['action'], [CandlestickService::ACTION_SELL, CandlestickService::ACTION_STRONG_SELL], true)) {
+                    $stats['sellCount']++;
+                }
             }
-            if ($r['volume_status'] === CandlestickService::VOL_SURGE) {
-                $stats['surgeCount']++;
-            }
-            if (!empty($r['volume_supports_bullish'])) {
-                $stats['supportiveCount']++;
-            }
-            if (in_array($r['pattern_code'], [CandlestickService::PATTERN_HAMMER, CandlestickService::PATTERN_INVERTED_HAMMER], true)) {
-                $stats['hammerCount']++;
-            }
-            if (in_array($r['pattern_code'], [CandlestickService::PATTERN_BULLISH_ENGULFING, CandlestickService::PATTERN_BEARISH_ENGULFING], true)) {
-                $stats['engulfingCount']++;
-            }
-            if (in_array($r['pattern_code'], [CandlestickService::PATTERN_BULLISH_MARUBOZU, CandlestickService::PATTERN_BEARISH_MARUBOZU], true)) {
-                $stats['marubozuCount']++;
-            }
-            if ($r['pattern_code'] === CandlestickService::PATTERN_DOJI) {
-                $stats['dojiCount']++;
-            }
-            if (in_array($r['action'], [CandlestickService::ACTION_SELL, CandlestickService::ACTION_STRONG_SELL], true)) {
-                $stats['sellCount']++;
+
+            $symbols = array_values(array_unique($symbols));
+            $tvSymbols = array_values(array_unique($tvSymbols));
+
+            if ($cache !== null) {
+                $cache->set($cacheKey, [
+                    'results' => $results,
+                    'symbols' => $symbols,
+                    'tvSymbols' => $tvSymbols,
+                    'stats' => $stats,
+                ], 900); // 15 menit
             }
         }
 

@@ -666,8 +666,11 @@ final class CandlestickService
             return null;
         }
 
-        // Kalkulasi Trading Plan (Entry, SL, TP1, TP2, R:R)
-        $tradingPlan = $this->calculateTradingPlan($curr, $prev, $action, $patternCode);
+        // Hitung ATR dari riwayat lilin untuk stop loss adaptif
+        $atr = $this->calculateAtr($history, 14);
+
+        // Kalkulasi Trading Plan (Entry, SL berbasis ATR, TP1, TP2, R:R)
+        $tradingPlan = $this->calculateTradingPlan($curr, $prev, $action, $patternCode, $atr);
 
         // Kalkulasi Skor Keyakinan Total (0 - 100%)
         // Dipengaruhi oleh: Bobot Pola + Bobot Volume + Bobot R:R
@@ -831,15 +834,44 @@ final class CandlestickService
     }
 
     /**
-     * Kalkulasi Level Trading Plan Presisi (Entry, Stop Loss, TP1, TP2, RR Ratio).
+     * Hitung Average True Range (ATR) untuk pengukuran volatilitas harga lilin.
+     *
+     * @param array<int, array{open:float,high:float,low:float,close:float,volume:int,date:string}> $candles
+     * @param int $period
+     * @return float
+     */
+    public function calculateAtr(array $candles, int $period = 14): float
+    {
+        $n = count($candles);
+        if ($n < 2) {
+            return 0.0;
+        }
+
+        $trValues = [];
+        for ($i = 1; $i < $n; $i++) {
+            $high = (float) $candles[$i]['high'];
+            $low = (float) $candles[$i]['low'];
+            $prevClose = (float) $candles[$i - 1]['close'];
+
+            $tr = max($high - $low, abs($high - $prevClose), abs($low - $prevClose));
+            $trValues[] = $tr;
+        }
+
+        $slice = array_slice($trValues, -$period);
+        return count($slice) > 0 ? (array_sum($slice) / count($slice)) : 0.0;
+    }
+
+    /**
+     * Kalkulasi Level Trading Plan Presisi (Entry, Stop Loss Dinamis ATR, TP1, TP2, RR Ratio).
      *
      * @param array{open:float,high:float,low:float,close:float,volume:int,date:string} $curr
      * @param array{open:float,high:float,low:float,close:float,volume:int,date:string} $prev
      * @param string $action
      * @param string $patternCode
+     * @param float $atr
      * @return array<string, mixed>
      */
-    private function calculateTradingPlan(array $curr, array $prev, string $action, string $patternCode): array
+    private function calculateTradingPlan(array $curr, array $prev, string $action, string $patternCode, float $atr = 0.0): array
     {
         $cClose = (float) $curr['close'];
         $cHigh = (float) $curr['high'];
@@ -857,19 +889,25 @@ final class CandlestickService
                 default => round($cClose, 2),
             };
 
-            // Stop loss tepat di bawah swing low pola dengan buffer 1%
+            // Stop loss tepat di bawah swing low pola dengan buffer dinamis ATR
             $patternLow = min($cLow, $pLow);
-            $stopLoss = round($patternLow * 0.99, 2);
+            if ($atr > 0.0) {
+                $atrBuffer = $atr * 1.2;
+                $effectiveBuffer = max($entry * 0.015, min($entry * 0.06, $atrBuffer));
+                $stopLoss = round($patternLow - $effectiveBuffer, 2);
+            } else {
+                $stopLoss = round($patternLow * 0.99, 2);
+            }
 
-            // Buffer minimal 1.5% jika candle sangat kecil agar SL tidak tersentuh noise
-            if (($entry - $stopLoss) < ($entry * 0.015)) {
-                $stopLoss = round($entry * 0.98, 2);
+            // Batasi agar stop loss tidak melebihi entry dan tidak terlalu dekat
+            if ($stopLoss >= $entry || ($entry - $stopLoss) < ($entry * 0.015)) {
+                $stopLoss = round($entry * 0.975, 2);
             }
 
             $risk = max(0.01, $entry - $stopLoss);
             $stopLossPct = round((($entry - $stopLoss) / $entry) * 100, 2);
 
-            // TP1: 1.5x risk, TP2: 2.5x risk
+            // TP1: 1.6x risk, TP2: 2.6x risk
             $target1 = round($entry + (1.6 * $risk), 2);
             $target1Pct = round((($target1 - $entry) / $entry) * 100, 2);
 
@@ -883,7 +921,14 @@ final class CandlestickService
         } else {
             // Sell Setup
             $entry = round($cClose, 2);
-            $stopLoss = round(max($cHigh, (float) $prev['high']) * 1.01, 2);
+            $patternHigh = max($cHigh, (float) $prev['high']);
+            if ($atr > 0.0) {
+                $atrBuffer = $atr * 1.2;
+                $effectiveBuffer = max($entry * 0.015, min($entry * 0.06, $atrBuffer));
+                $stopLoss = round($patternHigh + $effectiveBuffer, 2);
+            } else {
+                $stopLoss = round($patternHigh * 1.01, 2);
+            }
             $stopLossPct = round((($stopLoss - $entry) / $entry) * 100, 2);
 
             $risk = max(0.01, $stopLoss - $entry);
