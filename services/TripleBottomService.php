@@ -27,11 +27,24 @@ final class TripleBottomService
     public const STOP_LOSS_BUFFER = 0.02; // buffer 2% di bawah level support
     private const MIN_INTRADAY_BARS = 30;
 
+    // Pattern Types
+    public const PATTERN_ALL = 'ALL';
+    public const PATTERN_TRIPLE_BOTTOM = 'TRIPLE_BOTTOM';
+    public const PATTERN_INVERSE_HS = 'INVERSE_HEAD_AND_SHOULDERS';
+
+    // False Breakout Risk Levels
+    public const RISK_ALL = 'ALL';
+    public const RISK_LOW = 'LOW';
+    public const RISK_MEDIUM = 'MEDIUM';
+    public const RISK_HIGH = 'HIGH';
+    public const RISK_BULL_TRAP = 'BULL_TRAP';
+
     /**
-     * Scan seluruh saham aktif untuk mendeteksi pola Triple Bottom
+     * Scan seluruh saham aktif untuk mendeteksi pola Triple Bottom dan Inverted Head & Shoulders
+     * Mendukung pemanggilan positional maupun array options untuk kompatibilitas penuh.
      */
     public function scanAll(
-        int $timeframe = self::DEFAULT_TIMEFRAME,
+        int|array $timeframe = self::DEFAULT_TIMEFRAME,
         ?int $lookback = null,
         ?float $tolerance = null,
         int $minSeparation = self::DEFAULT_MIN_SEPARATION,
@@ -41,23 +54,63 @@ final class TripleBottomService
         ?float $necklineMinDepth = null,
         ?string $statusFilter = null,
         ?float $minRr = null,
-        bool $volOnly = false
+        bool $volOnly = false,
+        ?string $patternType = null,
+        ?string $falseBreakoutRisk = null
     ): array {
+        $singleSymbol = null;
+        if (is_array($timeframe)) {
+            $opts = $timeframe;
+            $timeframe = (int) ($opts['timeframe'] ?? self::DEFAULT_TIMEFRAME);
+            $lookback = isset($opts['lookback']) ? (int) $opts['lookback'] : $lookback;
+            $tolerance = isset($opts['tolerance']) ? (float) $opts['tolerance'] : $tolerance;
+            $minSeparation = isset($opts['minSeparation']) ? (int) $opts['minSeparation'] : $minSeparation;
+            $maxSeparation = isset($opts['maxSeparation']) ? (int) $opts['maxSeparation'] : $maxSeparation;
+            $breakoutOnly = isset($opts['breakoutOnly']) ? (bool) $opts['breakoutOnly'] : $breakoutOnly;
+            $minConfidence = isset($opts['minConfidence']) ? (int) $opts['minConfidence'] : $minConfidence;
+            $necklineMinDepth = isset($opts['necklineMinDepth']) ? (float) $opts['necklineMinDepth'] : $necklineMinDepth;
+            $statusFilter = isset($opts['statusFilter']) ? (string) $opts['statusFilter'] : $statusFilter;
+            $minRr = isset($opts['minRr']) ? (float) $opts['minRr'] : $minRr;
+            $volOnly = isset($opts['volOnly']) ? (bool) $opts['volOnly'] : $volOnly;
+            $patternType = isset($opts['patternType']) ? (string) $opts['patternType'] : $patternType;
+            $falseBreakoutRisk = isset($opts['falseBreakoutRisk']) ? (string) $opts['falseBreakoutRisk'] : $falseBreakoutRisk;
+            $singleSymbol = $opts['symbol'] ?? null;
+        }
+
         $lookback ??= self::DEFAULT_LOOKBACK;
         $tolerance ??= self::DEFAULT_TOLERANCE;
         $necklineMinDepth ??= self::NECKLINE_MIN_DEPTH;
+        $patternType ??= self::PATTERN_ALL;
+        $falseBreakoutRisk ??= self::RISK_ALL;
+
         $this->validateOptions($timeframe, $lookback, $tolerance, $minSeparation, $maxSeparation, $necklineMinDepth);
         $maxSeparation ??= (int) floor($lookback / 2);
 
         $results = [];
-        $stocks = Stock::find()->where(['active' => true])->all();
+        $query = Stock::find()->where(['active' => true]);
+        if ($singleSymbol !== null && $singleSymbol !== '') {
+            $query->andWhere(['symbol' => $singleSymbol]);
+        }
+        $stocks = $query->all();
 
-        \Yii::info("Triple Bottom Scan started: " . count($stocks) . " stocks, timeframe={$timeframe}, lookback={$lookback}", 'app\services\triplebottom');
+        \Yii::info("Bottom Patterns Scan started: " . count($stocks) . " stocks, timeframe={$timeframe}, lookback={$lookback}, patternType={$patternType}", 'app\services\triplebottom');
 
         foreach ($stocks as $stock) {
-            $pattern = $this->detectPattern($stock->id, $timeframe, $lookback, $tolerance, $minSeparation, $maxSeparation, $necklineMinDepth);
+            $pattern = $this->detectPattern($stock->id, $timeframe, $lookback, $tolerance, $minSeparation, $maxSeparation, $necklineMinDepth, $patternType);
             if ($pattern === null) {
                 continue;
+            }
+            if ($patternType !== self::PATTERN_ALL && ($pattern['pattern_type'] ?? '') !== $patternType) {
+                continue;
+            }
+            if ($falseBreakoutRisk !== self::RISK_ALL) {
+                if ($falseBreakoutRisk === self::RISK_BULL_TRAP) {
+                    if (empty($pattern['bull_trap_detected'])) {
+                        continue;
+                    }
+                } elseif (($pattern['false_breakout_risk'] ?? '') !== $falseBreakoutRisk) {
+                    continue;
+                }
             }
             if ($breakoutOnly && !$pattern['breakout']) {
                 continue;
@@ -103,7 +156,7 @@ final class TripleBottomService
     }
 
     /**
-     * Deteksi pola Triple Bottom pada satu saham
+     * Deteksi pola Triple Bottom atau Inverted Head & Shoulders pada satu saham
      */
     public function detectPattern(
         int $stockId,
@@ -112,11 +165,13 @@ final class TripleBottomService
         ?float $tolerance = null,
         int $minSeparation = self::DEFAULT_MIN_SEPARATION,
         ?int $maxSeparation = null,
-        ?float $necklineMinDepth = null
+        ?float $necklineMinDepth = null,
+        ?string $patternType = null
     ): ?array {
         $lookback ??= self::DEFAULT_LOOKBACK;
         $tolerance ??= self::DEFAULT_TOLERANCE;
         $necklineMinDepth ??= self::NECKLINE_MIN_DEPTH;
+        $patternType ??= self::PATTERN_ALL;
         $this->validateOptions($timeframe, $lookback, $tolerance, $minSeparation, $maxSeparation, $necklineMinDepth);
         $maxSeparation ??= (int) floor($lookback / 2);
 
@@ -130,7 +185,8 @@ final class TripleBottomService
             $tolerance,
             $minSeparation,
             $maxSeparation,
-            $necklineMinDepth
+            $necklineMinDepth,
+            $patternType
         );
 
         if ($pattern !== null) {
@@ -154,19 +210,23 @@ final class TripleBottomService
     }
 
     /**
-     * Algoritma deteksi 3 Lembah (Triple Bottom) & Neckline
+     * Algoritma deteksi 3 Lembah: Triple Bottom & Inverted Head and Shoulders (Bahu-Kepala-Bahu Terbalik)
+     * Meliputi penanganan risiko False Breakout (Bull Trap), multi-target TP, dan Stop Loss adaptif.
      */
     private function findTripleBottom(
         array $candles,
         float $tolerance,
         int $minSeparation,
         int $maxSeparation,
-        float $necklineMinDepth = self::NECKLINE_MIN_DEPTH
+        float $necklineMinDepth = self::NECKLINE_MIN_DEPTH,
+        ?string $requestedPatternType = null
     ): ?array {
         $count = count($candles);
         if ($count < 15) {
             return null;
         }
+
+        $requestedPatternType ??= self::PATTERN_ALL;
 
         // Cari semua titik lembah lokal (local minima) dengan filter pivot (window 1 bar kiri & kanan)
         $lows = [];
@@ -205,14 +265,51 @@ final class TripleBottomService
                         continue;
                     }
 
-                    // Cek toleransi variasi harga antar ketiga lembah
+                    // 1. Evaluasi Pola Triple Bottom (3 Lembah Horizontal Setara)
                     $diff1 = abs($low1['price'] - $avgLow) / $avgLow;
                     $diff2 = abs($low2['price'] - $avgLow) / $avgLow;
                     $diff3 = abs($low3['price'] - $avgLow) / $avgLow;
                     $maxDiff = max($diff1, $diff2, $diff3);
+                    $isTripleBottom = ($maxDiff <= $tolerance);
 
-                    if ($maxDiff > $tolerance) {
+                    // 2. Evaluasi Pola Inverted Head and Shoulders (Bahu Kiri, Kepala Lebih Rendah, Bahu Kanan)
+                    $headDropLeft = ($low1['price'] - $low2['price']) / max($low1['price'], 0.01);
+                    $headDropRight = ($low3['price'] - $low2['price']) / max($low3['price'], 0.01);
+                    $avgShoulder = ($low1['price'] + $low3['price']) / 2;
+                    $shoulderDiff = abs($low1['price'] - $low3['price']) / max($avgShoulder, 0.01);
+                    $shoulderTolerance = max($tolerance * 2.0, 0.08); // Toleransi simetri bahu 6-8%
+
+                    $isInverseHs = (
+                        $low2['price'] < $low1['price'] &&
+                        $low2['price'] < $low3['price'] &&
+                        $headDropLeft >= 0.025 &&
+                        $headDropRight >= 0.025 &&
+                        $headDropLeft <= 0.40 &&
+                        $headDropRight <= 0.40 &&
+                        $shoulderDiff <= $shoulderTolerance
+                    );
+
+                    // Filter berdasarkan tipe pola yang diminta
+                    if ($requestedPatternType === self::PATTERN_TRIPLE_BOTTOM && !$isTripleBottom) {
                         continue;
+                    }
+                    if ($requestedPatternType === self::PATTERN_INVERSE_HS && !$isInverseHs) {
+                        continue;
+                    }
+                    if (!$isTripleBottom && !$isInverseHs) {
+                        continue;
+                    }
+
+                    // Klasifikasikan tipe pola yang terdeteksi
+                    if ($isInverseHs && !$isTripleBottom) {
+                        $patternType = self::PATTERN_INVERSE_HS;
+                    } elseif ($isTripleBottom && !$isInverseHs) {
+                        $patternType = self::PATTERN_TRIPLE_BOTTOM;
+                    } else {
+                        // Jika memenuhi keduanya, utamakan IHS jika kepala jelas lebih dalam (>= 3.5%)
+                        $patternType = ($headDropLeft >= 0.035 && $headDropRight >= 0.035)
+                            ? self::PATTERN_INVERSE_HS
+                            : self::PATTERN_TRIPLE_BOTTOM;
                     }
 
                     // Cari 2 puncak perantara (Peak 1 antara L1 & L2, Peak 2 antara L2 & L3)
@@ -243,21 +340,25 @@ final class TripleBottomService
                     }
 
                     // Neckline dihitung sebagai level tertinggi / rata-rata kedua peak
-                    // Menggunakan peak tertinggi sebagai level konfirmasi breakout definitif
                     $neckline = max($peak1, $peak2);
                     $necklineAvg = ($peak1 + $peak2) / 2;
 
                     // Validasi kedalaman pola: Neckline harus cukup tinggi di atas support bottom
-                    $depth = ($neckline - $avgLow) / $avgLow;
+                    $supportBaseline = ($patternType === self::PATTERN_INVERSE_HS) ? $low2['price'] : $avgLow;
+                    $depth = ($neckline - $supportBaseline) / max($supportBaseline, 0.01);
                     if ($depth < $necklineMinDepth) {
                         continue;
                     }
 
-                    // Pastikan harga setelah Low 3 tidak jebol di bawah support (toleransi breakdown 2%)
+                    // Pastikan harga setelah Low 3 tidak jebol di bawah support dasar
                     $minSupport = min($low1['price'], $low2['price'], $low3['price']);
+                    $invalSupport = ($patternType === self::PATTERN_INVERSE_HS)
+                        ? $low2['price'] * (1 - self::STOP_LOSS_BUFFER)
+                        : $minSupport * (1 - self::STOP_LOSS_BUFFER);
+
                     $broken = false;
                     for ($post = $low3['index'] + 1; $post < $count; $post++) {
-                        if ($candles[$post]['close'] < $minSupport * (1 - self::STOP_LOSS_BUFFER)) {
+                        if ($candles[$post]['close'] < $invalSupport) {
                             $broken = true;
                             break;
                         }
@@ -269,30 +370,22 @@ final class TripleBottomService
                     $currentClose = (float) end($candles)['close'];
                     $breakout = $currentClose > $neckline;
 
-                    // Hitung skor confidence pola
-                    $confidence = $this->calculateConfidence(
-                        $low1,
-                        $low2,
-                        $low3,
-                        $peak1,
-                        $peak2,
-                        $neckline,
-                        $currentClose,
-                        $breakout,
-                        $maxDiff,
-                        $candles
-                    );
-
-                    // Level Target Take Profit (TP)
-                    $patternHeight = $neckline - $avgLow;
+                    // Measured Move Height & Target Take Profit (TP)
+                    // Pada Inverse H&S: tinggi diukur dari Neckline ke Head ($low2)
+                    // Pada Triple Bottom: tinggi diukur dari Neckline ke rata-rata bottom
+                    $patternHeight = ($patternType === self::PATTERN_INVERSE_HS) ? ($neckline - $low2['price']) : ($neckline - $avgLow);
                     $targetPrice = round($neckline + $patternHeight, 2); // 100% Measured move
                     $tp1 = round($neckline + ($patternHeight * 0.5), 2); // 50% Measured move
                     $tp2 = $targetPrice;
                     $tp3 = round($neckline + ($patternHeight * 1.618), 2); // Fib extension 161.8%
 
                     // Level Stop Loss (SL)
-                    $stopLossTight = round($neckline * 0.98, 2); // 2% di bawah neckline (untuk breakout / retest buyers)
-                    $stopLossSwing = round($minSupport * (1 - self::STOP_LOSS_BUFFER), 2); // 2% di bawah lowest bottom (untuk swing/bounce buyers)
+                    $stopLossTight = round($neckline * 0.98, 2); // 2% di bawah neckline (breakout buyers)
+                    $stopLossHead = round($low2['price'] * (1 - self::STOP_LOSS_BUFFER), 2);
+                    $stopLossRightShoulder = round($low3['price'] * (1 - self::STOP_LOSS_BUFFER), 2);
+                    $stopLossSwing = ($patternType === self::PATTERN_INVERSE_HS)
+                        ? $stopLossRightShoulder
+                        : round($minSupport * (1 - self::STOP_LOSS_BUFFER), 2);
 
                     // Jarak harga saat ini ke Neckline (%)
                     $distanceToNeckline = round(($currentClose - $neckline) / max($neckline, 0.0001) * 100, 2);
@@ -301,10 +394,10 @@ final class TripleBottomService
                     $low1Vol = (int) ($candles[$low1['index']]['volume'] ?? 0);
                     $low2Vol = (int) ($candles[$low2['index']]['volume'] ?? 0);
                     $low3Vol = (int) ($candles[$low3['index']]['volume'] ?? 0);
-                    
-                    // Pola Triple Bottom ideal: Volume mengering di Low 2 & Low 3 (penjual habis)
+
+                    // Pola bottom ideal: Volume mengering di Low 2 / Low 3 (penjual habis)
                     $volDryUp = ($low3Vol < $low1Vol * 0.85) || ($low2Vol < $low1Vol * 0.9);
-                    
+
                     $vols = array_column($candles, 'volume');
                     $avgVol = count($vols) > 0 ? (array_sum($vols) / count($vols)) : 1;
                     $currentVol = (int) (end($candles)['volume'] ?? 0);
@@ -312,7 +405,6 @@ final class TripleBottomService
                     $volConfirmed = ($breakout && $rvol >= 1.3) || $volDryUp;
 
                     // Evaluasi Sinyal Trading & Waktu Terbaik (Execution Directives)
-                    // Status: buy_zone, retest, bottom3_bounce, extended, overextended, approaching, forming
                     if ($breakout) {
                         if ($distanceToNeckline >= 0 && $distanceToNeckline <= 3.0) {
                             $tradeStatus = 'buy_zone';
@@ -349,9 +441,38 @@ final class TripleBottomService
                         }
                     }
 
+                    // Evaluasi False Breakout Risk (Bull Trap Engine)
+                    $falseBreakout = $this->evaluateFalseBreakoutRisk(
+                        $candles,
+                        $low3['index'],
+                        $neckline,
+                        $currentClose,
+                        $breakout,
+                        $rvol,
+                        $distanceToNeckline,
+                        $stopLossTight
+                    );
+
+                    // Hitung skor confidence pola
+                    $confidence = $this->calculateConfidence(
+                        $patternType,
+                        $low1,
+                        $low2,
+                        $low3,
+                        $peak1,
+                        $peak2,
+                        $neckline,
+                        $currentClose,
+                        $breakout,
+                        $maxDiff,
+                        $headDropLeft,
+                        $headDropRight,
+                        $shoulderDiff,
+                        $candles,
+                        $falseBreakout['risk_level']
+                    );
+
                     // Kalkulasi Risk / Reward Ratio (R:R)
-                    // Untuk breakout / golden zone: pakai Tight SL ke TP2
-                    // Untuk bottom bounce: pakai Swing SL ke Neckline / TP1
                     $activeSl = in_array($tradeStatus, ['bottom3_bounce', 'forming', 'approaching'], true) ? $stopLossSwing : $stopLossTight;
                     $risk = max($currentClose - $activeSl, 0.01);
                     $reward = max($targetPrice - $currentClose, 0.0);
@@ -364,6 +485,8 @@ final class TripleBottomService
                     $rrSwing = round(max($tp2 - $currentClose, 0.0) / $swingRisk, 2);
 
                     $candidate = [
+                        'pattern_type' => $patternType,
+                        'pattern_name' => $patternType === self::PATTERN_INVERSE_HS ? 'Inverted Head & Shoulders' : 'Triple Bottom',
                         'low1_price' => $low1['price'],
                         'low1_date' => $low1['date'],
                         'low1_index' => $low1['index'],
@@ -373,6 +496,13 @@ final class TripleBottomService
                         'low3_price' => $low3['price'],
                         'low3_date' => $low3['date'],
                         'low3_index' => $low3['index'],
+                        'trough1_price' => $low1['price'], // alias untuk PortfolioAveragingService
+                        'left_shoulder_price' => $low1['price'],
+                        'head_price' => $low2['price'],
+                        'right_shoulder_price' => $low3['price'],
+                        'head_drop_left_pct' => round($headDropLeft * 100, 1),
+                        'head_drop_right_pct' => round($headDropRight * 100, 1),
+                        'shoulder_diff_pct' => round($shoulderDiff * 100, 1),
                         'peak1_price' => $peak1,
                         'peak1_date' => $peak1Date,
                         'peak2_price' => $peak2,
@@ -390,13 +520,15 @@ final class TripleBottomService
                         'tp3_price' => $tp3,
                         'stop_loss' => $stopLossSwing,
                         'stop_loss_tight' => $stopLossTight,
+                        'stop_loss_head' => $stopLossHead,
+                        'stop_loss_right_shoulder' => ($patternType === self::PATTERN_INVERSE_HS ? $stopLossRightShoulder : null),
                         'risk_reward' => $rrRatio,
                         'rr_tight' => $rrTight,
                         'rr_swing' => $rrSwing,
                         'best_rr' => max($rrTight, $rrRatio),
                         'distance_neckline_pct' => $distanceToNeckline,
                         'pattern_height' => round($patternHeight, 2),
-                        'pattern_height_pct' => round(($patternHeight / $avgLow) * 100, 2),
+                        'pattern_height_pct' => round(($patternHeight / max($supportBaseline, 0.01)) * 100, 2),
                         'entry_zone_min' => round($neckline, 2),
                         'entry_zone_max' => round($neckline * 1.03, 2),
                         'trade_status' => $tradeStatus,
@@ -408,6 +540,17 @@ final class TripleBottomService
                         'total_span' => $low3['index'] - $low1['index'],
                         'span_12' => $sep12,
                         'span_23' => $sep23,
+                        // False Breakout Risk Engine data:
+                        'false_breakout_risk' => $falseBreakout['risk_level'],
+                        'false_breakout_score' => $falseBreakout['risk_score'],
+                        'bull_trap_detected' => $falseBreakout['bull_trap'],
+                        'penetration_reversal' => $falseBreakout['penetration_reversal'],
+                        'rejection_wick' => $falseBreakout['rejection_wick'],
+                        'upper_wick_pct' => $falseBreakout['upper_wick_pct'],
+                        'low_volume_breakout' => $falseBreakout['low_volume_breakout'],
+                        'is_overextended' => $falseBreakout['overextended'],
+                        'false_breakout_reasons' => $falseBreakout['risk_reasons'],
+                        'mitigation_strategies' => $falseBreakout['mitigation_strategies'],
                     ];
 
                     if ($best === null || $candidate['confidence'] > $best['confidence']) {
@@ -421,9 +564,138 @@ final class TripleBottomService
     }
 
     /**
+     * Evaluasi Risiko False Breakout (Bull Trap / Gagal Breakout) & Rekomendasi Mitigasi
+     */
+    public function evaluateFalseBreakoutRisk(
+        array $candles,
+        int $low3Index,
+        float $neckline,
+        float $currentClose,
+        bool $breakout,
+        float $rvol,
+        float $distanceToNeckline,
+        float $stopLossTight
+    ): array {
+        $count = count($candles);
+        $highestPostLow3 = 0.0;
+        $hadBreakoutClose = false;
+
+        for ($post = $low3Index + 1; $post < $count; $post++) {
+            if ($candles[$post]['high'] > $highestPostLow3) {
+                $highestPostLow3 = (float) $candles[$post]['high'];
+            }
+            if ($candles[$post]['close'] > $neckline) {
+                $hadBreakoutClose = true;
+            }
+        }
+
+        // 1. Bull Trap: Sempat closing di atas Neckline tapi harga anjlok kembali ke bawah Neckline
+        $bullTrap = ($hadBreakoutClose && $currentClose < $neckline);
+
+        // 2. Penetration Reversal: Sempat menusuk ke atas Neckline secara intraday namun closing di bawah
+        $penetrationReversal = (!$hadBreakoutClose && $highestPostLow3 >= $neckline && $currentClose < $neckline);
+
+        // 3. Rejection Upper Wick pada lilin terakhir (ekor atas >= 40% dari total range lilin)
+        $latestCandle = end($candles);
+        $latestRange = max(0.0001, (float) $latestCandle['high'] - (float) $latestCandle['low']);
+        $latestUpperWick = (float) $latestCandle['high'] - max((float) $latestCandle['open'], (float) $latestCandle['close']);
+        $upperWickRatio = $latestUpperWick / $latestRange;
+        $hasRejectionWick = ($upperWickRatio >= 0.40 && (float) $latestCandle['high'] >= $neckline * 0.98);
+
+        // 4. Low Volume Breakout: Breakout tanpa konfirmasi partisipasi institusi (RVOL < 1.0)
+        $lowVolumeBreakout = ($breakout && $rvol < 1.0);
+
+        // 5. Overextended Breakout (>6% di atas neckline tanpa istirahat)
+        $isOverextended = ($breakout && $distanceToNeckline > 6.0);
+
+        $riskScore = 10;
+        if ($bullTrap) {
+            $riskScore += 50;
+        } elseif ($penetrationReversal) {
+            $riskScore += 30;
+        }
+
+        if ($hasRejectionWick) {
+            $riskScore += 25;
+        }
+
+        if ($lowVolumeBreakout) {
+            $riskScore += 25;
+        }
+
+        if ($isOverextended) {
+            $riskScore += 20;
+        }
+
+        if ($breakout && $rvol >= 1.4 && !$hasRejectionWick) {
+            $riskScore -= 15;
+        }
+
+        if ($breakout && $distanceToNeckline >= 0 && $distanceToNeckline <= 2.5 && $rvol >= 1.2) {
+            $riskScore -= 10;
+        }
+
+        $riskScore = (int) min(95, max(5, $riskScore));
+
+        if ($riskScore >= 60 || $bullTrap) {
+            $riskLevel = self::RISK_HIGH;
+        } elseif ($riskScore >= 35 || $penetrationReversal || $hasRejectionWick || $lowVolumeBreakout) {
+            $riskLevel = self::RISK_MEDIUM;
+        } else {
+            $riskLevel = self::RISK_LOW;
+        }
+
+        $riskReasons = [];
+        $mitigationTips = [];
+
+        if ($bullTrap) {
+            $riskReasons[] = "Bull Trap Terdeteksi: Harga sempat menembus Neckline ($" . number_format($neckline, 2) . ") namun gagal bertahan dan anjlok kembali di bawahnya.";
+            $mitigationTips[] = "JANGAN BELI SEKARANG. Tunggu candle baru berhasil ditutup kembali di atas Neckline sebelum entri.";
+            $mitigationTips[] = "Jika Anda sudah memegang posisi, pasang Stop Loss disiplin di $" . number_format($stopLossTight, 2) . " untuk memotong kerugian dini.";
+        } elseif ($penetrationReversal) {
+            $riskReasons[] = "Rejection Resistance Intraday: Harga sempat menyentuh garis Neckline ($" . number_format($neckline, 2) . ") namun ditekan turun dan gagal closing di atas resistance.";
+            $mitigationTips[] = "Gunakan strategi Buy Stop Order tepat di atas harga tertinggi ($" . number_format($highestPostLow3, 2) . ") untuk mengonfirmasi penembusan sejati.";
+        }
+
+        if ($hasRejectionWick) {
+            $riskReasons[] = "Upper Wick Rejection (" . round($upperWickRatio * 100) . "%): Lilin terakhir memiliki ekor atas panjang, menandakan aksi ambil untung / penolakan kuat dari penjual.";
+            $mitigationTips[] = "Tunggu lilin konfirmasi berikutnya menembus harga tertinggi ekor ($" . number_format((float)$latestCandle['high'], 2) . ") sebelum membuka posisi baru.";
+        }
+
+        if ($lowVolumeBreakout) {
+            $riskReasons[] = "Low Volume Breakout (RVOL " . number_format($rvol, 1) . "x): Penembusan terjadi dengan volume di bawah rata-rata (kurang partisipasi institusi).";
+            $mitigationTips[] = "Hindari langsung beli agresif. Tunggu fase Retest Neckline dengan volume mengering (dry-up) lalu pantulan bervolume tinggi.";
+        }
+
+        if ($isOverextended) {
+            $riskReasons[] = "Overextended Breakout (+" . number_format($distanceToNeckline, 1) . "%): Harga telah bergerak terlalu jauh di atas titik breakout tanpa istirahat.";
+            $mitigationTips[] = "Hindari FOMO beli di pucuk. Tunggu harga pullback kembali ke area Golden Zone Neckline ($" . number_format($neckline, 2) . " - $" . number_format($neckline * 1.03, 2) . ").";
+        }
+
+        if (empty($riskReasons)) {
+            $riskReasons[] = "Breakout Sehat & Solid: Penembusan didukung struktur harga yang rapi dan tanpa tekanan jual penolakan yang membahayakan.";
+            $mitigationTips[] = "Pasang Stop Loss disiplin 2% di bawah Neckline ($" . number_format($stopLossTight, 2) . ") dan jalankan trailing stop bertahap saat mencapai TP1.";
+        }
+
+        return [
+            'risk_level' => $riskLevel,
+            'risk_score' => $riskScore,
+            'bull_trap' => $bullTrap,
+            'penetration_reversal' => $penetrationReversal,
+            'rejection_wick' => $hasRejectionWick,
+            'upper_wick_pct' => round($upperWickRatio * 100, 1),
+            'low_volume_breakout' => $lowVolumeBreakout,
+            'overextended' => $isOverextended,
+            'risk_reasons' => $riskReasons,
+            'mitigation_strategies' => $mitigationTips,
+        ];
+    }
+
+    /**
      * Hitung tingkat keyakinan (Confidence Score 0 - 100%)
      */
     private function calculateConfidence(
+        string $patternType,
         array $low1,
         array $low2,
         array $low3,
@@ -433,44 +705,71 @@ final class TripleBottomService
         float $currentClose,
         bool $breakout,
         float $maxDiff,
-        array $candles
+        float $headDropLeft,
+        float $headDropRight,
+        float $shoulderDiff,
+        array $candles,
+        string $riskLevel = self::RISK_LOW
     ): int {
-        $score = 40; // Base score untuk 3 lembah yang terdeteksi
+        $score = 40; // Base score untuk pola yang terdeteksi
 
-        // 1. Kesimetrisan level lembah (semakin rata, semakin kuat polanya)
-        if ($maxDiff <= 0.01) {
-            $score += 18; // variasi < 1%
-        } elseif ($maxDiff <= 0.02) {
-            $score += 12; // variasi < 2%
-        } elseif ($maxDiff <= 0.03) {
-            $score += 6;
+        if ($patternType === self::PATTERN_INVERSE_HS) {
+            // Kesimetrisan bahu kiri & kanan
+            if ($shoulderDiff <= 0.02) {
+                $score += 18;
+            } elseif ($shoulderDiff <= 0.04) {
+                $score += 12;
+            } elseif ($shoulderDiff <= 0.08) {
+                $score += 6;
+            }
+
+            // Kejelasan kedalaman kepala (Head prominence)
+            if ($headDropLeft >= 0.04 && $headDropRight >= 0.04) {
+                $score += 10;
+            }
+        } else {
+            // Kesimetrisan 3 lembah horizontal (Triple Bottom)
+            if ($maxDiff <= 0.01) {
+                $score += 18;
+            } elseif ($maxDiff <= 0.02) {
+                $score += 12;
+            } elseif ($maxDiff <= 0.03) {
+                $score += 6;
+            }
         }
 
-        // 2. Kesimetrisan puncak neckline (Peak 1 & Peak 2 setara)
+        // Kesimetrisan puncak neckline (Peak 1 & Peak 2)
         $peakDiff = abs($peak1 - $peak2) / max(($peak1 + $peak2) / 2, 0.01);
         if ($peakDiff <= 0.02) {
             $score += 10;
-        } elseif ($peakDiff <= 0.04) {
+        } elseif ($peakDiff <= 0.05) {
             $score += 5;
         }
 
-        // 3. Konfirmasi Breakout
+        // Konfirmasi Breakout
         if ($breakout) {
             $score += 15;
         }
 
-        // 4. Analisa Volume
+        // Analisa Volume
         $low1Vol = (int) ($candles[$low1['index']]['volume'] ?? 0);
         $low3Vol = (int) ($candles[$low3['index']]['volume'] ?? 0);
         if ($low1Vol > 0 && $low3Vol < $low1Vol * 0.85) {
-            $score += 10; // Volume mengering di Low 3
+            $score += 10; // Volume mengering di lembah ke-3
         }
 
         $vols = array_column($candles, 'volume');
         $avgVol = count($vols) > 0 ? (array_sum($vols) / count($vols)) : 1;
         $currentVol = (int) (end($candles)['volume'] ?? 0);
         if ($avgVol > 0 && ($currentVol / $avgVol) >= 1.3) {
-            $score += 7; // Lonjakan volume saat mendekati / menembus neckline
+            $score += 7; // Lonjakan volume
+        }
+
+        // Penalti bila risiko False Breakout tinggi
+        if ($riskLevel === self::RISK_HIGH) {
+            $score -= 15;
+        } elseif ($riskLevel === self::RISK_MEDIUM) {
+            $score -= 5;
         }
 
         return (int) min(100, max(20, $score));
@@ -589,6 +888,26 @@ final class TripleBottomService
     public static function getTimeframeLabel(int $tf): string
     {
         return self::getTimeframes()[$tf] ?? "{$tf}m";
+    }
+
+    public static function getPatternTypes(): array
+    {
+        return [
+            self::PATTERN_ALL => 'Semua Pola (Triple Bottom & Inverted H&S)',
+            self::PATTERN_TRIPLE_BOTTOM => 'Triple Bottom (3 Lembah Rata)',
+            self::PATTERN_INVERSE_HS => 'Inverted Head & Shoulders (Bahu-Kepala-Bahu Terbalik)',
+        ];
+    }
+
+    public static function getFalseBreakoutFilters(): array
+    {
+        return [
+            self::RISK_ALL => 'Semua Tingkat Risiko',
+            self::RISK_LOW => '🟢 Risiko Rendah (Aman)',
+            self::RISK_MEDIUM => '🟡 Risiko Sedang (Butuh Konfirmasi)',
+            self::RISK_HIGH => '🔴 Risiko Tinggi (Waspada)',
+            self::RISK_BULL_TRAP => '⚠️ Terdeteksi Bull Trap / Gagal Breakout',
+        ];
     }
 
     private function validateOptions(

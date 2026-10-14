@@ -21,17 +21,28 @@ final class TripleBottomController extends Controller
     public function actionIndex(): string
     {
         $params = $this->resolveParams();
-        Yii::info("Triple Bottom Scan: timeframe={$params['timeframe']}, lookback={$params['lookback']}", 'app\controllers\triplebottom');
+        Yii::info("Triple Bottom & IHS Scan: timeframe={$params['timeframe']}, lookback={$params['lookback']}, patternType={$params['patternType']}", 'app\controllers\triplebottom');
         [$results, $fromCache] = $this->cachedScan($params);
         $results = $this->sortResults($results, $params['sort']);
+
+        $tbCount = count(array_filter($results, fn($r) => ($r['pattern_type'] ?? '') === TripleBottomService::PATTERN_TRIPLE_BOTTOM));
+        $ihsCount = count(array_filter($results, fn($r) => ($r['pattern_type'] ?? '') === TripleBottomService::PATTERN_INVERSE_HS));
+        $bullTrapCount = count(array_filter($results, fn($r) => !empty($r['bull_trap_detected'])));
+        $safeBreakoutCount = count(array_filter($results, fn($r) => ($r['false_breakout_risk'] ?? '') === TripleBottomService::RISK_LOW && !empty($r['breakout'])));
         
         return $this->render('index', array_merge($params, [
             'results' => $results,
             'fromCache' => $fromCache,
             'timeframes' => TripleBottomService::getTimeframes(),
+            'patternTypes' => TripleBottomService::getPatternTypes(),
+            'falseBreakoutFilters' => TripleBottomService::getFalseBreakoutFilters(),
             'filterParams' => $this->filterParams($params),
             'stats' => $this->scanStats(),
             'lookbackDays' => $params['lookback'],
+            'tbCount' => $tbCount,
+            'ihsCount' => $ihsCount,
+            'bullTrapCount' => $bullTrapCount,
+            'safeBreakoutCount' => $safeBreakoutCount,
         ]));
     }
 
@@ -53,7 +64,8 @@ final class TripleBottomController extends Controller
                 $params['tolerance'],
                 $params['minSeparation'],
                 $params['maxSeparation'],
-                $params['necklineMinDepth']
+                $params['necklineMinDepth'],
+                $params['patternType']
             );
             [$candles] = $service->getAnalysisCandles($stock->id, $params['timeframe'], $params['lookback']);
         } catch (\InvalidArgumentException $e) {
@@ -65,6 +77,8 @@ final class TripleBottomController extends Controller
             'pattern' => $pattern,
             'candles' => $candles,
             'timeframes' => TripleBottomService::getTimeframes(),
+            'patternTypes' => TripleBottomService::getPatternTypes(),
+            'falseBreakoutFilters' => TripleBottomService::getFalseBreakoutFilters(),
             'filterParams' => $this->filterParams($params),
             'stats' => $this->scanStats(),
             'lookbackDays' => $params['lookback'],
@@ -87,6 +101,8 @@ final class TripleBottomController extends Controller
         $statusFilter = (string) $req->get('statusFilter', 'all');
         $minRr = (float) $req->get('minRr', 0.0);
         $volOnly = (bool) $req->get('volOnly', false);
+        $patternType = (string) $req->get('patternType', TripleBottomService::PATTERN_ALL);
+        $falseBreakoutFilter = (string) $req->get('falseBreakoutFilter', TripleBottomService::RISK_ALL);
         $sort = (string) $req->get('sort', 'confidence');
         if (!in_array($sort, self::SORTS, true)) {
             $sort = 'confidence';
@@ -105,6 +121,8 @@ final class TripleBottomController extends Controller
             'statusFilter' => $statusFilter,
             'minRr' => max(0.0, $minRr),
             'volOnly' => $volOnly,
+            'patternType' => $patternType,
+            'falseBreakoutFilter' => $falseBreakoutFilter,
             'sort' => $sort,
         ];
     }
@@ -123,13 +141,29 @@ final class TripleBottomController extends Controller
             'statusFilter' => $p['statusFilter'] !== 'all' ? $p['statusFilter'] : null,
             'minRr' => $p['minRr'] > 0 ? $p['minRr'] : null,
             'volOnly' => $p['volOnly'] ? '1' : null,
+            'patternType' => $p['patternType'] !== TripleBottomService::PATTERN_ALL ? $p['patternType'] : null,
+            'falseBreakoutFilter' => $p['falseBreakoutFilter'] !== TripleBottomService::RISK_ALL ? $p['falseBreakoutFilter'] : null,
         ];
     }
 
     private function cachedScan(array $p): array
     {
-        $args = [$p['timeframe'], $p['lookback'], $p['tolerance'], $p['minSeparation'], $p['maxSeparation'], $p['breakoutOnly'], $p['minConfidence'], $p['necklineMinDepth'], $p['statusFilter'], $p['minRr'], $p['volOnly']];
-        $key = 'triple-bottom:v1:' . md5(json_encode($args));
+        $args = [
+            $p['timeframe'],
+            $p['lookback'],
+            $p['tolerance'],
+            $p['minSeparation'],
+            $p['maxSeparation'],
+            $p['breakoutOnly'],
+            $p['minConfidence'],
+            $p['necklineMinDepth'],
+            $p['statusFilter'],
+            $p['minRr'],
+            $p['volOnly'],
+            $p['patternType'],
+            $p['falseBreakoutFilter']
+        ];
+        $key = 'triple-bottom:v2:' . md5(json_encode($args));
         $cached = Yii::$app->cache->get($key);
         if (is_array($cached)) {
             return [$cached, true];
@@ -147,7 +181,9 @@ final class TripleBottomController extends Controller
                 $p['necklineMinDepth'],
                 $p['statusFilter'],
                 $p['minRr'],
-                $p['volOnly']
+                $p['volOnly'],
+                $p['patternType'],
+                $p['falseBreakoutFilter']
             );
         } catch (\InvalidArgumentException $e) {
             Yii::$app->session->setFlash('warning', $e->getMessage());
