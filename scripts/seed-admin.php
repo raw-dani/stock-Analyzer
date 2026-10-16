@@ -1,10 +1,11 @@
 <?php
 
+require __DIR__ . '/../bootstrap-env.php';
 require __DIR__ . '/../vendor/autoload.php';
 require __DIR__ . '/../vendor/yiisoft/yii2/Yii.php';
 
-$config = require __DIR__ . '/../config/test.php';
-$app = new \yii\web\Application($config);
+$config = require __DIR__ . '/../config/console.php';
+$app = new \yii\console\Application($config);
 
 function seed(string $username, int $id, string $password, string $authKey, ?string $accessToken, string $role = 'user'): void
 {
@@ -20,21 +21,22 @@ function seed(string $username, int $id, string $password, string $authKey, ?str
     $user->setPassword($password);
     $user->auth_key = $authKey;
     $user->access_token = $accessToken;
-    $user->save(false);
-    echo "Seeded user {$username} (id={$user->id}, role={$user->role})\n";
+    if ($user->save(false)) {
+        echo "SUCCESS: Seeded user '{$username}' (id={$user->id}, role={$user->role})\n";
+    } else {
+        echo "ERROR: Failed to save user '{$username}'\n";
+    }
 }
 
-// Matches tests/unit/models/UserTest.php & LoginFormTest.php expectations
-seed('admin', 100, 'admin', 'test100key', '100-token', \app\models\User::ROLE_ADMIN);
-seed('demo', 101, 'demo', 'test101key', '101-token', \app\models\User::ROLE_USER);
+// Akun admin dan demo bawaan
+seed('admin', 100, 'Admin123!', 'admin_auth_key_100', '100-token', \app\models\User::ROLE_ADMIN);
+seed('demo', 101, 'demo', 'demo_auth_key_101', '101-token', \app\models\User::ROLE_USER);
 
-// verify
-verify('findIdentity(100)', \app\models\User::findIdentity(100)?->username === 'admin');
-verify('accessToken', \app\models\User::findIdentityByAccessToken('100-token')?->username === 'admin');
-verify('authKey', (\app\models\User::findIdentity(100))->validateAuthKey('test100key'));
-verify('demo login', (\app\models\User::findByUsername('demo'))->validatePassword('demo'));
-
-function verify(string $label, bool $cond): void
-{
-    echo ($cond ? 'OK  ' : 'FAIL') . " $label\n";
+echo "\n--- Verifikasi Akun ---\n";
+$admin = \app\models\User::findByUsername('admin');
+if ($admin) {
+    echo "Admin ditemukan: ID {$admin->id}, Role {$admin->role}, Status {$admin->status}\n";
+    echo "Verifikasi Password 'Admin123!': " . ($admin->validatePassword('Admin123!') ? 'VALID' : 'INVALID') . "\n";
+} else {
+    echo "ERROR: Admin tidak ditemukan di database!\n";
 }

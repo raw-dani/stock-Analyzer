@@ -57,16 +57,7 @@ $this->title = 'Login - Stock Analyzer';
                     </div>
 
                     <?php ActiveForm::end(); ?>
-
-                    <hr class="my-3">
-
-                    <div class="p-3 bg-light rounded-3 small border">
-                        <div class="fw-bold text-dark mb-1"><i class="bi bi-info-circle me-1 text-primary"></i> Akun Bawaan (Demo):</div>
-                        <ul class="list-unstyled mb-0 text-muted" style="font-size: 0.85rem;">
-                            <li>• <strong>Admin</strong>: username <code>admin</code> / password <code>admin</code> (Akses Penuh + Setting)</li>
-                            <li>• <strong>User</strong>: username <code>demo</code> / password <code>demo</code> (Portofolio Pribadi)</li>
-                        </ul>
-                    </div>
+                    
                 </div>
             </div>
         </div>
