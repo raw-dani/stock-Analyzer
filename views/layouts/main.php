@@ -150,33 +150,43 @@ if (!empty($systemItems)) {
 
 <main id="main" class="flex-shrink-0" role="main">
     <div class="container-fluid">
-        <div class="row">
-            <aside class="col-md-3 col-lg-2 d-none d-md-block pt-3 sidebar">
-                <nav class="nav flex-column gap-1">
-                    <?php foreach ($sideMenuGroups as $groupTitle => $items): ?>
-                        <div class="sidebar-heading"><?= Html::encode($groupTitle) ?></div>
-                        <?php foreach ($items as $item): ?>
-                            <?= Html::a(
-                                '<span class="d-flex align-items-center flex-grow-1">' . $item['label'] . '</span>' . (!empty($item['badge']) ? ' <span class="badge badge-core ms-auto">' . $item['badge'] . '</span>' : ''),
-                                $item['url'],
-                                [
-                                    'class' => 'nav-link' . (!empty($item['active']) ? ' active' : ''),
-                                ]
-                            ) ?>
-                        <?php endforeach; ?>
-                    <?php endforeach; ?>
-                </nav>
-                <?php if (!empty($this->params['breadcrumbs'])): ?>
-                    <div class="mt-4 small text-muted px-2 border-top pt-2">
-                        <?= Breadcrumbs::widget(['links' => $this->params['breadcrumbs']]) ?>
-                    </div>
-                <?php endif ?>
-            </aside>
-            <div class="col-md-9 col-lg-10 py-3">
+        <?php 
+        $isAuthPage = ($ctrlId === 'site' && in_array(Yii::$app->controller?->action?->id ?? '', ['login', 'register'], true));
+        ?>
+        <?php if ($isAuthPage): ?>
+            <div class="py-2">
                 <?= Alert::widget() ?>
                 <?= $content ?>
             </div>
-        </div>
+        <?php else: ?>
+            <div class="row">
+                <aside class="col-md-3 col-lg-2 d-none d-md-block pt-3 sidebar">
+                    <nav class="nav flex-column gap-1">
+                        <?php foreach ($sideMenuGroups as $groupTitle => $items): ?>
+                            <div class="sidebar-heading"><?= Html::encode($groupTitle) ?></div>
+                            <?php foreach ($items as $item): ?>
+                                <?= Html::a(
+                                    '<span class="d-flex align-items-center flex-grow-1">' . $item['label'] . '</span>' . (!empty($item['badge']) ? ' <span class="badge badge-core ms-auto">' . $item['badge'] . '</span>' : ''),
+                                    $item['url'],
+                                    [
+                                        'class' => 'nav-link' . (!empty($item['active']) ? ' active' : ''),
+                                    ]
+                                ) ?>
+                            <?php endforeach; ?>
+                        <?php endforeach; ?>
+                    </nav>
+                    <?php if (!empty($this->params['breadcrumbs'])): ?>
+                        <div class="mt-4 small text-muted px-2 border-top pt-2">
+                            <?= Breadcrumbs::widget(['links' => $this->params['breadcrumbs']]) ?>
+                        </div>
+                    <?php endif ?>
+                </aside>
+                <div class="col-md-9 col-lg-10 py-3">
+                    <?= Alert::widget() ?>
+                    <?= $content ?>
+                </div>
+            </div>
+        <?php endif; ?>
     </div>
 </main>
 
