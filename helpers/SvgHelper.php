@@ -52,7 +52,8 @@ class SvgHelper
 
         $innerContent = static::getIconContent($cleanName);
 
-        return Html::tag('svg', $innerContent, $attrs);
+        $svgTag = Html::tag('svg', $innerContent, $attrs);
+        return preg_replace('/\s+/', ' ', trim($svgTag));
     }
 
     /**
@@ -74,7 +75,8 @@ class SvgHelper
             if (is_file($filePath)) {
                 $svg = file_get_contents($filePath);
                 if (preg_match('/<svg[^>]*>(.*?)<\/svg>/is', $svg, $matches)) {
-                    return static::$cache[$name] = trim($matches[1]);
+                    $cleaned = preg_replace('/\s+/', ' ', trim($matches[1]));
+                    return static::$cache[$name] = $cleaned;
                 }
             }
         }

@@ -52,10 +52,10 @@ $this->params['breadcrumbs'][] = $this->title;
             </div>
         </div>
         <div class="card-body p-4">
-            <!-- Grid 3 Tombol Utama Perintah CLI -->
+            <!-- Grid 4 Tombol Utama Perintah CLI -->
             <div class="row g-3 mb-4">
                 <!-- 1. php yii market/refresh-stocklist -->
-                <div class="col-lg-4 col-md-6">
+                <div class="col-xl-3 col-md-6">
                     <div class="card h-100 border bg-light shadow-sm">
                         <div class="card-body d-flex flex-column p-3">
                             <div class="d-flex justify-content-between align-items-start mb-2">
@@ -83,7 +83,7 @@ $this->params['breadcrumbs'][] = $this->title;
                 </div>
 
                 <!-- 2. php yii data/refresh-all -->
-                <div class="col-lg-4 col-md-6">
+                <div class="col-xl-3 col-md-6">
                     <div class="card h-100 border bg-light shadow-sm">
                         <div class="card-body d-flex flex-column p-3">
                             <div class="d-flex justify-content-between align-items-start mb-2">
@@ -101,7 +101,7 @@ $this->params['breadcrumbs'][] = $this->title;
                             <div class="mb-2">
                                 <label class="form-label small text-muted fw-semibold mb-1" style="font-size:0.75rem;">Limit Saham:</label>
                                 <select class="form-select form-select-sm" id="limit-refresh-daily">
-                                    <option value="0" selected>Semua Saham Aktif (217 Saham)</option>
+                                    <option value="0" selected>Semua Saham Aktif</option>
                                     <option value="10">10 Saham Pertama (Tes Cepat)</option>
                                     <option value="25">25 Saham Pertama</option>
                                     <option value="50">50 Saham Pertama</option>
@@ -121,8 +121,36 @@ $this->params['breadcrumbs'][] = $this->title;
                     </div>
                 </div>
 
-                <!-- 3. php yii data/sync-intraday-all -->
-                <div class="col-lg-4 col-md-12">
+                <!-- 3. php yii data/analyze -->
+                <div class="col-xl-3 col-md-6">
+                    <div class="card h-100 border bg-light shadow-sm">
+                        <div class="card-body d-flex flex-column p-3">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="badge bg-info bg-opacity-10 text-info border border-info font-monospace" style="font-size:0.75rem;">
+                                    data/analyze
+                                </span>
+                                <span class="badge bg-info bg-opacity-10 text-info border border-info" style="font-size:0.68rem;">
+                                    Metode A &amp; Scoring
+                                </span>
+                            </div>
+                            <h6 class="fw-bold text-dark mb-1">📊 Analisis Volume &amp; Sinyal</h6>
+                            <p class="text-muted small flex-grow-1 mb-3" style="font-size:0.80rem;">
+                                Hitung transaksi Metode A (buyer vs seller), akumulasi mingguan, lonjakan RVOL, dan update scoring sinyal seluruh saham aktif.
+                            </p>
+                            <div class="pt-2 border-top">
+                                <button type="button" class="btn btn-info text-dark w-100 fw-bold btn-run-cmd shadow-sm"
+                                    data-cmd="data/analyze"
+                                    data-title="Analyze Weekly Volume &amp; Signals"
+                                    data-cli="php yii data/analyze">
+                                    <?= \app\helpers\SvgHelper::icon('play-circle-fill', ['class' => 'me-1']) ?> Jalankan Analisis &amp; Scoring
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. php yii data/sync-intraday-all -->
+                <div class="col-xl-3 col-md-6">
                     <div class="card h-100 border bg-light shadow-sm">
                         <div class="card-body d-flex flex-column p-3">
                             <div class="d-flex justify-content-between align-items-start mb-2">
@@ -140,7 +168,7 @@ $this->params['breadcrumbs'][] = $this->title;
                             <div class="mb-2">
                                 <label class="form-label small text-muted fw-semibold mb-1" style="font-size:0.75rem;">Limit Saham:</label>
                                 <select class="form-select form-select-sm" id="limit-sync-intraday">
-                                    <option value="0" selected>Semua Saham Aktif (217 Saham)</option>
+                                    <option value="0" selected>Semua Saham Aktif</option>
                                     <option value="10">10 Saham Pertama (Tes Cepat)</option>
                                     <option value="25">25 Saham Pertama</option>
                                     <option value="50">50 Saham Pertama</option>
@@ -171,13 +199,14 @@ $this->params['breadcrumbs'][] = $this->title;
                             Mengeksekusi secara otomatis dan berurutan: 
                             <strong>1. Refresh Stock List</strong> &rarr; 
                             <strong>2. Refresh Daily Data</strong> &rarr; 
-                            <strong>3. Sync Intraday Data</strong>
+                            <strong>3. Analisis Volume &amp; Scoring</strong> &rarr; 
+                            <strong>4. Sync Intraday Data</strong>
                         </div>
                     </div>
                 </div>
                 <div class="d-flex align-items-center gap-2 flex-wrap">
                     <select class="form-select form-select-sm" id="limit-sync-all" style="width: auto;">
-                        <option value="0" selected>Semua Saham (217)</option>
+                        <option value="0" selected>Semua Saham</option>
                         <option value="10">Limit 10 Saham</option>
                         <option value="25">Limit 25 Saham</option>
                         <option value="50">Limit 50 Saham</option>
@@ -186,7 +215,7 @@ $this->params['breadcrumbs'][] = $this->title;
                         data-cmd="all"
                         data-limit-id="limit-sync-all"
                         data-title="Rangkaian Sinkronisasi Lengkap (All-in-One)"
-                        data-cli="php yii market/refresh-stocklist && data/refresh-all && data/sync-intraday-all">
+                        data-cli="php yii market/refresh-stocklist && data/refresh-all && data/analyze && data/sync-intraday-all">
                         <?= \app\helpers\SvgHelper::icon('play-fill', ['class' => 'me-1']) ?> Eksekusi Semua Pipeline
                     </button>
                 </div>
@@ -379,7 +408,6 @@ $this->params['breadcrumbs'][] = $this->title;
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const modalEl = document.getElementById('modalCommandTerminal');
-    const modal = new bootstrap.Modal(modalEl);
     const terminalOutput = document.getElementById('terminal-output');
     const terminalTitle = document.getElementById('modalCommandTerminalTitle');
     const terminalBadge = document.getElementById('terminal-badge-cmd');
@@ -389,6 +417,13 @@ document.addEventListener('DOMContentLoaded', function () {
     const btnClose = document.getElementById('btn-close-terminal');
     const btnDismiss = document.getElementById('btn-modal-dismiss');
     const footerInfo = document.getElementById('terminal-footer-info');
+
+    function getModal() {
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            return bootstrap.Modal.getOrCreateInstance(modalEl);
+        }
+        return null;
+    }
 
     let currentEventSource = null;
     let timerInterval = null;
@@ -417,17 +452,17 @@ document.addEventListener('DOMContentLoaded', function () {
         if (running) {
             statusBadge.className = 'badge bg-warning text-dark px-2 py-1';
             statusText.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Menjalankan...';
-            footerInfo.innerHTML = '<?= \app\helpers\SvgHelper::icon('broadcast', ['class' => 'text-success me-1']) ?> Proses sedang berjalan di server...';
+            footerInfo.innerHTML = <?= json_encode(\app\helpers\SvgHelper::icon('broadcast', ['class' => 'text-success me-1'])) ?> + ' Proses sedang berjalan di server...';
         } else {
             clearInterval(timerInterval);
             if (success === true) {
                 statusBadge.className = 'badge bg-success px-2 py-1';
                 statusText.innerText = '✓ Selesai';
-                footerInfo.innerHTML = '<?= \app\helpers\SvgHelper::icon('check-circle-fill', ['class' => 'text-success me-1']) ?> ' + (message || 'Eksekusi selesai dengan sukses.');
+                footerInfo.innerHTML = <?= json_encode(\app\helpers\SvgHelper::icon('check-circle-fill', ['class' => 'text-success me-1'])) ?> + ' ' + (message || 'Eksekusi selesai dengan sukses.');
             } else {
                 statusBadge.className = 'badge bg-danger px-2 py-1';
                 statusText.innerText = '✗ Gagal';
-                footerInfo.innerHTML = '<?= \app\helpers\SvgHelper::icon('exclamation-triangle-fill', ['class' => 'text-danger me-1']) ?> ' + (message || 'Terdapat error atau proses terhenti.');
+                footerInfo.innerHTML = <?= json_encode(\app\helpers\SvgHelper::icon('exclamation-triangle-fill', ['class' => 'text-danger me-1'])) ?> + ' ' + (message || 'Terdapat error atau proses terhenti.');
             }
         }
     }
@@ -466,7 +501,10 @@ document.addEventListener('DOMContentLoaded', function () {
             }, 1000);
 
             setRunningState(true);
-            modal.show();
+            const modalInstance = getModal();
+            if (modalInstance) {
+                modalInstance.show();
+            }
 
             // Bangun URL streaming SSE
             const runUrl = <?= json_encode(Url::to(['settings/run-command'])) ?>;
@@ -536,7 +574,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const text = terminalOutput.innerText;
             navigator.clipboard.writeText(text).then(() => {
                 const orig = this.innerHTML;
-                this.innerHTML = '<?= \app\helpers\SvgHelper::icon('check-lg', ['class' => 'text-success me-1']) ?> Tersalin!';
+                this.innerHTML = <?= json_encode(\app\helpers\SvgHelper::icon('check-lg', ['class' => 'text-success me-1'])) ?> + ' Tersalin!';
                 setTimeout(() => { this.innerHTML = orig; }, 2000);
             }).catch(err => {
                 alert('Gagal menyalin: ' + err);
@@ -563,7 +601,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         const isSuccess = data.sync.last_success;
                         const badgeClass = isSuccess ? 'success' : 'danger';
                         el.innerHTML = '<span class="badge bg-' + badgeClass + ' bg-opacity-10 text-' + badgeClass + ' border border-' + badgeClass + ' px-2 py-1 small">' +
-                            '<?= \app\helpers\SvgHelper::icon('clock-history', ['class' => 'me-1']) ?> Terakhir: ' + (data.sync.last_title || '') + ' (' + data.sync.last_time + ')' +
+                            <?= json_encode(\app\helpers\SvgHelper::icon('clock-history', ['class' => 'me-1'])) ?> + ' Terakhir: ' + (data.sync.last_title || '') + ' (' + data.sync.last_time + ')' +
                             '</span>';
                     }
                 }
