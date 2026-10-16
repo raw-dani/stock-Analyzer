@@ -228,6 +228,8 @@ if (!empty($systemItems)) {
         Data: <?= $mkt['lastDataAt'] ? Yii::$app->formatter->asRelativeTime($mkt['lastDataAt']) : '—' ?>
         <span class="ms-2">•</span>
         Sinyal: <?= yii\helpers\Html::encode((string) ($mkt['lastSignalDate'] ?? '—')) ?>
+        <span class="ms-2">•</span>
+        <?= Html::a(\app\helpers\SvgHelper::icon('info-circle', ['class' => 'me-1']) . 'About', ['/site/about'], ['class' => 'text-decoration-none text-muted']) ?>
     </div>
 </footer>
 
