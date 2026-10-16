@@ -40,7 +40,7 @@ $staleDays = $dailyMax ? (int) floor((time() - strtotime($dailyMax . ' 23:59:00'
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h1 class="h3 mb-1 fw-bold text-dark">
-            <i class="bi bi-activity text-primary"></i> <?= Html::encode($this->title) ?>
+            <?= \app\helpers\SvgHelper::icon('activity', ['class' => 'text-primary']) ?> <?= Html::encode($this->title) ?>
         </h1>
         <p class="text-muted small mb-0">
             Sistem analisis RSI Multi-Strategi terintegrasi <strong>Konfirmasi Volume (RVOL)</strong>, <strong>Candlestick Reversal</strong>, dan <strong>Fibonacci Retracement</strong> untuk menentukan <strong>Waktu Beli (Entry)</strong> dan target keuntungan berjenjang <strong>TP1, TP2, TP3</strong> serta Stop Loss terukur.
@@ -71,7 +71,7 @@ $staleDays = $dailyMax ? (int) floor((time() - strtotime($dailyMax . ' 23:59:00'
 
 <?php if ($staleDays !== null && $staleDays >= 3): ?>
     <div class="alert alert-warning py-2 mb-3 d-flex align-items-center">
-        <i class="bi bi-exclamation-triangle-fill fs-5 me-2 text-warning"></i>
+        <?= \app\helpers\SvgHelper::icon('exclamation-triangle-fill', ['class' => 'fs-5 me-2 text-warning']) ?>
         <div>
             <strong>Peringatan Data Pasar:</strong> Data harian terakhir tanggal <strong><?= Html::encode((string) $dailyMax) ?></strong> (<?= $staleDays ?> hari lalu).
             Jalankan <code>php yii data/refresh-all</code> untuk mendapatkan harga terbaru.
@@ -85,7 +85,7 @@ $staleDays = $dailyMax ? (int) floor((time() - strtotime($dailyMax . ' 23:59:00'
         <div class="card border-0 shadow-sm bg-success bg-opacity-10 text-center h-100 py-2 border-start border-success border-4">
             <div class="card-body p-2">
                 <div class="text-success small fw-semibold text-uppercase">
-                    <i class="bi bi-cart-check-fill me-1"></i> Sinyal Waktu Beli
+                    <?= \app\helpers\SvgHelper::icon('cart-check-fill', ['class' => 'me-1']) ?> Sinyal Waktu Beli
                 </div>
                 <div class="h2 mb-0 fw-bold text-success"><?= $buyCount ?></div>
                 <div class="small text-success">Reversal Bounce / Bullish Div</div>
@@ -96,7 +96,7 @@ $staleDays = $dailyMax ? (int) floor((time() - strtotime($dailyMax . ' 23:59:00'
         <div class="card border-0 shadow-sm bg-danger bg-opacity-10 text-center h-100 py-2 border-start border-danger border-4">
             <div class="card-body p-2">
                 <div class="text-danger small fw-semibold text-uppercase">
-                    <i class="bi bi-box-arrow-right me-1"></i> Sinyal Waktu Jual / TP
+                    <?= \app\helpers\SvgHelper::icon('box-arrow-right', ['class' => 'me-1']) ?> Sinyal Waktu Jual / TP
                 </div>
                 <div class="h2 mb-0 fw-bold text-danger"><?= $sellCount ?></div>
                 <div class="small text-danger">Overbought Exit / Bearish Div</div>
@@ -107,7 +107,7 @@ $staleDays = $dailyMax ? (int) floor((time() - strtotime($dailyMax . ' 23:59:00'
         <div class="card border-0 shadow-sm bg-primary bg-opacity-10 text-center h-100 py-2 border-start border-primary border-4">
             <div class="card-body p-2">
                 <div class="text-primary small fw-semibold text-uppercase">
-                    <i class="bi bi-layers-fill me-1"></i> Konfirmasi Multi-Strategi
+                    <?= \app\helpers\SvgHelper::icon('layers-fill', ['class' => 'me-1']) ?> Konfirmasi Multi-Strategi
                 </div>
                 <div class="h2 mb-0 fw-bold text-primary"><?= $volumeSurgeCount + $candleReversalCount + $fibPocketCount ?></div>
                 <div class="small text-primary">Vol Surge (<?= $volumeSurgeCount ?>) • Candle (<?= $candleReversalCount ?>) • Fib (<?= $fibPocketCount ?>)</div>
@@ -118,7 +118,7 @@ $staleDays = $dailyMax ? (int) floor((time() - strtotime($dailyMax . ' 23:59:00'
         <div class="card border-0 shadow-sm bg-warning bg-opacity-10 text-center h-100 py-2 border-start border-warning border-4">
             <div class="card-body p-2">
                 <div class="text-warning-emphasis small fw-semibold text-uppercase">
-                    <i class="bi bi-eye-fill me-1"></i> Area Jenuh (Watchlist)
+                    <?= \app\helpers\SvgHelper::icon('eye-fill', ['class' => 'me-1']) ?> Area Jenuh (Watchlist)
                 </div>
                 <div class="h2 mb-0 fw-bold text-warning-emphasis"><?= $oversoldWatchCount + $overboughtWatchCount ?></div>
                 <div class="small text-muted">Oversold (<?= $oversoldWatchCount ?>) / Overbought (<?= $overboughtWatchCount ?>)</div>
@@ -138,7 +138,7 @@ $staleDays = $dailyMax ? (int) floor((time() - strtotime($dailyMax . ' 23:59:00'
             <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
                 <!-- Timeframe Pills -->
                 <div class="d-flex align-items-center gap-2">
-                    <span class="fw-bold small text-muted"><i class="bi bi-clock me-1"></i>Timeframe:</span>
+                    <span class="fw-bold small text-muted"><?= \app\helpers\SvgHelper::icon('clock', ['class' => 'me-1']) ?>Timeframe:</span>
                     <div class="btn-group btn-group-sm" role="group">
                         <?php foreach ([24 => '1D', 4 => '4H', 2 => '2H', 1 => '1H'] as $tfVal => $tfLabel): ?>
                             <button type="button" 
@@ -166,7 +166,7 @@ $staleDays = $dailyMax ? (int) floor((time() - strtotime($dailyMax . ' 23:59:00'
                     ]) ?>
 
                     <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#advancedParams" aria-expanded="false">
-                        <i class="bi bi-sliders"></i> Parameter
+                        <?= \app\helpers\SvgHelper::icon('sliders') ?> Parameter
                     </button>
                 </div>
             </div>
@@ -193,7 +193,7 @@ $staleDays = $dailyMax ? (int) floor((time() - strtotime($dailyMax . ' 23:59:00'
                     <button type="button" 
                             class="btn btn-sm <?= $active ? 'btn-primary active fw-bold' : $meta['class'] ?>"
                             onclick="document.getElementById('filter-status-input').value = '<?= $key ?>'; document.getElementById('rsi-filter-form').submit();">
-                        <i class="bi bi-<?= $meta['icon'] ?>"></i> <?= $meta['label'] ?>
+                        <?= \app\helpers\SvgHelper::icon($meta['icon']) ?> <?= $meta['label'] ?>
                     </button>
                 <?php endforeach; ?>
             </div>
@@ -222,7 +222,7 @@ $staleDays = $dailyMax ? (int) floor((time() - strtotime($dailyMax . ' 23:59:00'
                         <?= Html::input('number', 'maxRsi', $maxRsi, ['class' => 'form-control form-control-sm', 'min' => 20, 'max' => 70, 'step' => 5]) ?>
                     </div>
                     <div class="col-md-3">
-                        <?= Html::submitButton('<i class="bi bi-arrow-repeat"></i> Terapkan Pengaturan', ['class' => 'btn btn-primary btn-sm w-100']) ?>
+                        <?= Html::submitButton(\app\helpers\SvgHelper::icon('arrow-repeat') . ' Terapkan Pengaturan', ['class' => 'btn btn-primary btn-sm w-100']) ?>
                     </div>
                 </div>
             </div>
@@ -234,7 +234,7 @@ $staleDays = $dailyMax ? (int) floor((time() - strtotime($dailyMax . ' 23:59:00'
 <div class="card border-0 shadow-sm">
     <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
         <h5 class="mb-0 fw-bold text-dark">
-            <i class="bi bi-table text-primary me-1"></i> Rekomendasi Sinyal RSI &amp; Level Eksekusi
+            <?= \app\helpers\SvgHelper::icon('table', ['class' => 'text-primary me-1']) ?> Rekomendasi Sinyal RSI &amp; Level Eksekusi
             <span class="badge bg-secondary ms-1"><?= count($results) ?> Saham</span>
         </h5>
         <div class="small text-muted">
@@ -263,7 +263,7 @@ $staleDays = $dailyMax ? (int) floor((time() - strtotime($dailyMax . ' 23:59:00'
                 <?php if (empty($results)): ?>
                     <tr>
                         <td colspan="12" class="text-center py-5 text-muted">
-                            <i class="bi bi-search display-6 text-secondary d-block mb-2"></i>
+                            <?= \app\helpers\SvgHelper::icon('search', ['class' => 'display-6 text-secondary d-block mb-2']) ?>
                             <strong>Tidak ditemukan saham dengan kriteria filter saat ini.</strong>
                             <p class="small text-muted mb-0">Coba pilih tab filter "Semua" atau gunakan timeframe Daily.</p>
                         </td>
@@ -280,11 +280,20 @@ $staleDays = $dailyMax ? (int) floor((time() - strtotime($dailyMax . ' 23:59:00'
                         $isBuyAction = in_array($r['action'] ?? '', ['BUY_NOW', 'BUY_PULLBACK', 'MOMENTUM_BUY'], true);
                         $isSellAction = in_array($r['action'] ?? '', ['SELL_NOW', 'TAKE_PROFIT'], true);
                         ?>
-                        <tr class="<?= $isBuyAction ? 'table-success bg-opacity-10' : ($isSellAction ? 'table-danger bg-opacity-10' : '') ?>">
+                        <tr>
                             <td>
-                                <strong class="fs-6 text-primary"><?= Html::encode($r['symbol']) ?></strong>
+                                <div class="d-flex align-items-center gap-1">
+                                    <?php if ($isBuyAction): ?>
+                                        <span class="p-1 bg-success rounded-circle d-inline-block" title="Potensi Beli (Bullish Setup)" style="width: 8px; height: 8px;"></span>
+                                    <?php elseif ($isSellAction): ?>
+                                        <span class="p-1 bg-danger rounded-circle d-inline-block" title="Waspada / Exit (Bearish Setup)" style="width: 8px; height: 8px;"></span>
+                                    <?php else: ?>
+                                        <span class="p-1 bg-secondary bg-opacity-25 rounded-circle d-inline-block" title="Wait & See" style="width: 8px; height: 8px;"></span>
+                                    <?php endif; ?>
+                                    <strong class="fs-6 text-primary"><?= Html::encode($r['symbol']) ?></strong>
+                                </div>
                                 <?php if (!empty($r['approximated'])): ?>
-                                    <span class="badge bg-light text-muted border d-block" style="font-size: 0.65rem;">approx</span>
+                                    <span class="badge bg-light text-muted border d-block mt-1" style="font-size: 0.65rem;">approx</span>
                                 <?php endif; ?>
                             </td>
                             <td>
@@ -315,11 +324,11 @@ $staleDays = $dailyMax ? (int) floor((time() - strtotime($dailyMax . ' 23:59:00'
                             <td class="text-center">
                                 <?php if (!empty($r['is_above_ma50'])): ?>
                                     <span class="badge bg-success-subtle text-success border border-success" title="Harga di atas MA50 ($<?= number_format((float)($r['ma50'] ?? 0), 2) ?>)">
-                                        <i class="bi bi-arrow-up-circle"></i> Uptrend
+                                        <?= \app\helpers\SvgHelper::icon('arrow-up-circle') ?> Uptrend
                                     </span>
                                 <?php else: ?>
                                     <span class="badge bg-secondary-subtle text-secondary border" title="Harga di bawah MA50 ($<?= number_format((float)($r['ma50'] ?? 0), 2) ?>)">
-                                        <i class="bi bi-arrow-down-circle"></i> Downtrend
+                                        <?= \app\helpers\SvgHelper::icon('arrow-down-circle') ?> Downtrend
                                     </span>
                                 <?php endif; ?>
                             </td>
@@ -327,29 +336,29 @@ $staleDays = $dailyMax ? (int) floor((time() - strtotime($dailyMax . ' 23:59:00'
                                 <div class="d-flex flex-column gap-1 align-items-center">
                                     <?php if (!empty($r['divergence'])): ?>
                                         <span class="badge bg-primary text-white" title="Bullish Divergence: Peluang pembalikan naik">
-                                            <i class="bi bi-gem"></i> BULLISH DIV
+                                            <?= \app\helpers\SvgHelper::icon('gem') ?> BULLISH DIV
                                         </span>
                                     <?php elseif (!empty($r['bearish_divergence'])): ?>
                                         <span class="badge bg-danger text-white" title="Bearish Divergence: Waspada pembalikan turun">
-                                            <i class="bi bi-lightning-charge"></i> BEARISH DIV
+                                            <?= \app\helpers\SvgHelper::icon('lightning-charge') ?> BEARISH DIV
                                         </span>
                                     <?php endif; ?>
 
                                     <?php if (!empty($r['volume_spike'])): ?>
                                         <span class="badge bg-info text-dark" title="Lonjakan Volume RVOL <?= $r['rvol'] ?? 0 ?>x">
-                                            <i class="bi bi-bar-chart-fill"></i> RVOL <?= $r['rvol'] ?? 0 ?>x
+                                            <?= \app\helpers\SvgHelper::icon('bar-chart-fill') ?> RVOL <?= $r['rvol'] ?? 0 ?>x
                                         </span>
                                     <?php endif; ?>
 
                                     <?php if (!empty($r['candle_pattern'])): ?>
                                         <span class="badge <?= ($r['candle_signal'] ?? '') === 'BULLISH' ? 'bg-success-subtle text-success border border-success' : 'bg-danger-subtle text-danger border border-danger' ?>">
-                                            <i class="bi bi-reception-4"></i> <?= Html::encode($r['candle_pattern']) ?>
+                                            <?= \app\helpers\SvgHelper::icon('reception-4') ?> <?= Html::encode($r['candle_pattern']) ?>
                                         </span>
                                     <?php endif; ?>
 
                                     <?php if (!empty($r['is_golden_pocket'])): ?>
                                         <span class="badge bg-warning-subtle text-warning-emphasis border border-warning" title="Fibonacci Golden Pocket 50%-61.8%">
-                                            <i class="bi bi-bullseye"></i> Fib Golden Zone
+                                            <?= \app\helpers\SvgHelper::icon('bullseye') ?> Fib Golden Zone
                                         </span>
                                     <?php endif; ?>
 
@@ -393,7 +402,7 @@ $staleDays = $dailyMax ? (int) floor((time() - strtotime($dailyMax . ' 23:59:00'
                             </td>
                             <td class="text-center">
                                 <?= Html::a(
-                                    '<i class="bi bi-graph-up"></i> Detail',
+                                    \app\helpers\SvgHelper::icon('graph-up') . ' Detail',
                                     [
                                         '/rsi-double-bottom/detail',
                                         'symbol' => $r['symbol'],
@@ -420,13 +429,13 @@ $staleDays = $dailyMax ? (int) floor((time() - strtotime($dailyMax . ' 23:59:00'
 <div class="card border-0 shadow-sm mt-4">
     <div class="card-header bg-white py-3">
         <h6 class="mb-0 fw-bold text-dark">
-            <i class="bi bi-book-half text-primary me-1"></i> Pedoman Rekomendasi Waktu Beli &amp; Waktu Jual Berbasis RSI
+            <?= \app\helpers\SvgHelper::icon('book-half', ['class' => 'text-primary me-1']) ?> Pedoman Rekomendasi Waktu Beli &amp; Waktu Jual Berbasis RSI
         </h6>
     </div>
     <div class="card-body">
         <div class="row g-3">
             <div class="col-md-4">
-                <h6 class="fw-bold text-success"><i class="bi bi-cart-check"></i> 1. Kapan Waktu Beli Terbaik?</h6>
+                <h6 class="fw-bold text-success"><?= \app\helpers\SvgHelper::icon('cart-check') ?> 1. Kapan Waktu Beli Terbaik?</h6>
                 <ul class="small text-muted ps-3 mb-0">
                     <li><strong>Oversold Reversal (Cross 30 UP):</strong> RSI sempat berada di bawah 30 lalu memantul melintas ke atas level 30.</li>
                     <li><strong>Bullish Divergence:</strong> Harga saham membuat <em>Lower Low</em> tetapi RSI membentuk <em>Higher Low</em>.</li>
@@ -434,7 +443,7 @@ $staleDays = $dailyMax ? (int) floor((time() - strtotime($dailyMax . ' 23:59:00'
                 </ul>
             </div>
             <div class="col-md-4">
-                <h6 class="fw-bold text-danger"><i class="bi bi-box-arrow-right"></i> 2. Kapan Waktu Jual / TP Terbaik?</h6>
+                <h6 class="fw-bold text-danger"><?= \app\helpers\SvgHelper::icon('box-arrow-right') ?> 2. Kapan Waktu Jual / TP Terbaik?</h6>
                 <ul class="small text-muted ps-3 mb-0">
                     <li><strong>Overbought Exit (Cross 70 DOWN):</strong> RSI telah melampaui level 70 dan mulai melintas turun di bawah 70.</li>
                     <li><strong>Bearish Divergence:</strong> Harga menembus rekor harga baru (<em>Higher High</em>) tetapi RSI gagal naik (<em>Lower High</em>).</li>
@@ -442,7 +451,7 @@ $staleDays = $dailyMax ? (int) floor((time() - strtotime($dailyMax . ' 23:59:00'
                 </ul>
             </div>
             <div class="col-md-4">
-                <h6 class="fw-bold text-primary"><i class="bi bi-shield-check"></i> 3. Filter Trend &amp; Money Management</h6>
+                <h6 class="fw-bold text-primary"><?= \app\helpers\SvgHelper::icon('shield-check') ?> 3. Filter Trend &amp; Money Management</h6>
                 <ul class="small text-muted ps-3 mb-0">
                     <li><strong>Hindari Pisau Jatuh:</strong> Prioritaskan posisi Beli jika tren harga terkonfirmasi di atas MA50 atau terdapat Divergensi kuat.</li>
                     <li><strong>Stop Loss Terukur:</strong> Batasi risiko maksimal 2-3% di bawah Swing Low terdekat.</li>

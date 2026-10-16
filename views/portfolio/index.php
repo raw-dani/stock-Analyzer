@@ -28,9 +28,9 @@ $fmt = Yii::$app->formatter;
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
         <div>
             <h1 class="h3 fw-bold text-dark mb-1">
-                <i class="bi bi-briefcase-fill text-primary me-2"></i><?= Html::encode($this->title) ?>
+                <?= \app\helpers\SvgHelper::icon('briefcase-fill', ['class' => 'text-primary me-2']) ?><?= Html::encode($this->title) ?>
                 <span class="badge bg-primary-subtle text-primary border border-primary-subtle fs-6 align-middle ms-2">
-                    <i class="bi bi-person-fill me-1"></i><?= Html::encode(Yii::$app->user->identity->username ?? 'User') ?>
+                    <?= \app\helpers\SvgHelper::icon('person-fill', ['class' => 'me-1']) ?><?= Html::encode(Yii::$app->user->identity->username ?? 'User') ?>
                 </span>
             </h1>
             <p class="text-muted small mb-0">
@@ -39,10 +39,10 @@ $fmt = Yii::$app->formatter;
         </div>
         <div class="d-flex gap-2 flex-wrap">
             <a href="<?= Url::to(['/portfolio/refresh-prices']) ?>" class="btn btn-outline-success btn-sm px-3 shadow-sm fw-semibold" title="Ambil quote harga realtime terkini dari Yahoo Finance">
-                <i class="bi bi-arrow-repeat me-1"></i> Sinkronkan Harga Real-Time
+                <?= \app\helpers\SvgHelper::icon('arrow-repeat', ['class' => 'me-1']) ?> Sinkronkan Harga Real-Time
             </a>
             <button type="button" class="btn btn-primary btn-sm px-3 shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalAddPosition">
-                <i class="bi bi-plus-circle-fill me-1"></i> Tambah Saham yang Dibeli
+                <?= \app\helpers\SvgHelper::icon('plus-circle-fill', ['class' => 'me-1']) ?> Tambah Saham yang Dibeli
             </button>
         </div>
     </div>
@@ -82,7 +82,7 @@ $fmt = Yii::$app->formatter;
                     <div class="card-body p-3">
                         <div class="text-success small fw-semibold text-uppercase">Posisi Sedang Untung</div>
                         <div class="h3 mb-0 fw-bold text-success"><?= $profitCount ?> Saham</div>
-                        <div class="small text-muted mt-1"><i class="bi bi-graph-up-arrow text-success"></i> Monitor Target Jual</div>
+                        <div class="small text-muted mt-1"><?= \app\helpers\SvgHelper::icon('graph-up-arrow', ['class' => 'text-success']) ?> Monitor Target Jual</div>
                     </div>
                 </div>
             </a>
@@ -95,7 +95,7 @@ $fmt = Yii::$app->formatter;
                     <div class="card-body p-3">
                         <div class="text-danger small fw-semibold text-uppercase">Posisi Minus (Perlu Average)</div>
                         <div class="h3 mb-0 fw-bold text-danger"><?= $lossCount ?> Saham</div>
-                        <div class="small text-muted mt-1"><i class="bi bi-tools text-danger"></i> Hitung Averaging Down</div>
+                        <div class="small text-muted mt-1"><?= \app\helpers\SvgHelper::icon('tools', ['class' => 'text-danger']) ?> Hitung Averaging Down</div>
                     </div>
                 </div>
             </a>
@@ -147,11 +147,11 @@ $fmt = Yii::$app->formatter;
                         <?php if (empty($positions)): ?>
                             <tr>
                                 <td colspan="11" class="text-center py-5">
-                                    <div class="display-6 text-muted mb-2"><i class="bi bi-wallet2"></i></div>
+                                    <div class="display-6 text-muted mb-2"><?= \app\helpers\SvgHelper::icon('wallet2') ?></div>
                                     <h5 class="fw-bold text-secondary">Belum ada data saham di portofolio</h5>
                                     <p class="text-muted small mb-3">Tambahkan saham yang telah Anda beli untuk memantau status untung/rugi, target jual, dan simulasi averaging.</p>
                                     <button type="button" class="btn btn-primary btn-sm px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalAddPosition">
-                                        <i class="bi bi-plus-circle"></i> Tambah Saham Sekarang
+                                        <?= \app\helpers\SvgHelper::icon('plus-circle') ?> Tambah Saham Sekarang
                                     </button>
                                 </td>
                             </tr>
@@ -175,7 +175,7 @@ $fmt = Yii::$app->formatter;
                                             <?php $histCount = count($pos->getHistoriesList()); ?>
                                             <?php if ($histCount > 0): ?>
                                                 <a href="<?= Url::to(['/portfolio/detail', 'id' => $pos->id]) ?>#history-tab" class="badge bg-info bg-opacity-25 text-primary border border-primary border-opacity-25 text-decoration-none ms-1" style="font-size:0.65rem;" title="<?= $histCount ?>x riwayat averaging down telah diterapkan">
-                                                    <i class="bi bi-clock-history"></i> <?= $histCount ?>x Avg
+                                                    <?= \app\helpers\SvgHelper::icon('clock-history') ?> <?= $histCount ?>x Avg
                                                 </a>
                                             <?php endif; ?>
                                         </div>
@@ -224,7 +224,7 @@ $fmt = Yii::$app->formatter;
                                         </div>
                                         <div class="small text-muted mt-1" style="font-size: 0.70rem;">
                                             <?php if ($remainingPct <= 0): ?>
-                                                 <span class="text-success fw-bold"><i class="bi bi-check-all"></i> Target Tercapai! Siap Jual</span>
+                                                 <span class="text-success fw-bold"><?= \app\helpers\SvgHelper::icon('check-all') ?> Target Tercapai! Siap Jual</span>
                                             <?php else: ?>
                                                 <span>Kurang +<?= $remainingPct ?>% ke Target ($<?= number_format($pos->getRemainingToTargetAmount(), 2) ?>)</span>
                                             <?php endif; ?>
@@ -233,11 +233,11 @@ $fmt = Yii::$app->formatter;
                                     <td class="text-center">
                                         <?php if ($isProfit): ?>
                                             <span class="badge bg-success bg-opacity-25 text-success border border-success py-1 px-2">
-                                                <i class="bi bi-bullseye me-1"></i> Amankan Target
+                                                <?= \app\helpers\SvgHelper::icon('bullseye', ['class' => 'me-1']) ?> Amankan Target
                                             </span>
                                         <?php elseif ($pos->isLoss()): ?>
                                             <a href="<?= Url::to(['/portfolio/detail', 'id' => $pos->id]) ?>" class="badge bg-danger bg-opacity-25 text-danger border border-danger text-decoration-none py-1 px-2">
-                                                <i class="bi bi-calculator me-1"></i> Hitung Average
+                                                <?= \app\helpers\SvgHelper::icon('calculator', ['class' => 'me-1']) ?> Hitung Average
                                             </a>
                                         <?php else: ?>
                                             <span class="badge bg-secondary py-1 px-2">Impas</span>
@@ -245,8 +245,8 @@ $fmt = Yii::$app->formatter;
                                     </td>
                                     <td class="text-center">
                                         <div class="btn-group btn-group-sm">
-                                            <?= Html::a('<i class="bi bi-lightning-fill"></i> Strategi', ['/portfolio/detail', 'id' => $pos->id], ['class' => 'btn btn-primary btn-sm py-0 px-2 fw-semibold', 'title' => 'Buka Analisis Multi-Fitur & Simulasi Averaging']) ?>
-                                            <?= Html::a('<i class="bi bi-trash"></i>', ['/portfolio/delete', 'id' => $pos->id], [
+                                            <?= Html::a(\app\helpers\SvgHelper::icon('lightning-fill') . ' Strategi', ['/portfolio/detail', 'id' => $pos->id], ['class' => 'btn btn-primary btn-sm py-0 px-2 fw-semibold', 'title' => 'Buka Analisis Multi-Fitur & Simulasi Averaging']) ?>
+                                            <?= Html::a(\app\helpers\SvgHelper::icon('trash'), ['/portfolio/delete', 'id' => $pos->id], [
                                                 'class' => 'btn btn-outline-danger btn-sm py-0 px-1',
                                                 'title' => 'Hapus dari Portofolio',
                                                 'data' => [
@@ -273,7 +273,7 @@ $fmt = Yii::$app->formatter;
             <?php $form = ActiveForm::begin(['action' => ['/portfolio/create'], 'method' => 'post']); ?>
             <div class="modal-header bg-primary text-white py-3">
                 <h5 class="modal-title fw-bold" id="modalAddPositionLabel">
-                    <i class="bi bi-plus-circle-fill me-2"></i> Tambah Saham yang Sudah Dibeli
+                    <?= \app\helpers\SvgHelper::icon('plus-circle-fill', ['class' => 'me-2']) ?> Tambah Saham yang Sudah Dibeli
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>

@@ -33,7 +33,7 @@ $badgeAction = [
 <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
     <div>
         <h1 class="h3 mb-1 fw-bold text-dark">
-            <i class="bi bi-crosshair text-danger"></i> <?= Html::encode($this->title) ?>
+            <?= \app\helpers\SvgHelper::icon('crosshair', ['class' => 'text-danger']) ?> <?= Html::encode($this->title) ?>
         </h1>
         <p class="text-muted small mb-0">
             Sistem analisis <strong>Multi-Indikator &amp; Multi-Timeframe</strong>: Support/Resistance MA (SMA/EMA), RSI Oversold, MACD Momentum, dan Fibonacci Golden Pocket (61.8%) untuk akurasi posisi beli &amp; jual presisi.
@@ -50,7 +50,7 @@ $badgeAction = [
             <?php endforeach; ?>
         </div>
         <?= Html::a(
-            '<i class="bi bi-file-earmark-spreadsheet me-1"></i> Ekspor CSV',
+            \app\helpers\SvgHelper::icon('file-earmark-spreadsheet', ['class' => 'me-1']) . ' Ekspor CSV',
             Url::to(array_merge(['/strategy-confluence/export'], $currentGet)),
             ['class' => 'btn btn-sm btn-outline-success shadow-sm']
         ) ?>
@@ -64,7 +64,7 @@ $badgeAction = [
             <div class="card-body p-3">
                 <div class="text-muted small text-uppercase fw-semibold">Total Saham Dianalisis</div>
                 <div class="h3 fw-bold mb-0 text-dark"><?= number_format($stats['total']) ?></div>
-                <div class="small text-muted mt-1"><i class="bi bi-check2-circle text-primary"></i> Multi-Timeframe Scan</div>
+                <div class="small text-muted mt-1"><?= \app\helpers\SvgHelper::icon('check2-circle', ['class' => 'text-primary']) ?> Multi-Timeframe Scan</div>
             </div>
         </div>
     </div>
@@ -73,7 +73,7 @@ $badgeAction = [
             <div class="card-body p-3">
                 <div class="text-muted small text-uppercase fw-semibold">Strong Buy Confluence</div>
                 <div class="h3 fw-bold mb-0 text-success"><?= number_format($stats['strongBuyCount']) ?></div>
-                <div class="small text-success mt-1"><i class="bi bi-lightning-charge-fill"></i> Skor Konfluensi &ge; 75/100</div>
+                <div class="small text-success mt-1"><?= \app\helpers\SvgHelper::icon('lightning-charge-fill') ?> Skor Konfluensi &ge; 75/100</div>
             </div>
         </div>
     </div>
@@ -82,7 +82,7 @@ $badgeAction = [
             <div class="card-body p-3">
                 <div class="text-muted small text-uppercase fw-semibold">Fibonacci Golden Pocket</div>
                 <div class="h3 fw-bold mb-0 text-warning"><?= number_format($stats['goldenPocketCount']) ?></div>
-                <div class="small text-muted mt-1"><i class="bi bi-bullseye text-warning"></i> Area Retracement 50% - 61.8%</div>
+                <div class="small text-muted mt-1"><?= \app\helpers\SvgHelper::icon('bullseye', ['class' => 'text-warning']) ?> Area Retracement 50% - 61.8%</div>
             </div>
         </div>
     </div>
@@ -91,7 +91,7 @@ $badgeAction = [
             <div class="card-body p-3">
                 <div class="text-muted small text-uppercase fw-semibold">MACD Bullish Cross / RSI</div>
                 <div class="h3 fw-bold mb-0 text-info"><?= number_format($stats['macdCrossCount']) ?> / <?= number_format($stats['oversoldCount']) ?></div>
-                <div class="small text-muted mt-1"><i class="bi bi-graph-up-arrow text-info"></i> Golden Cross &amp; Oversold</div>
+                <div class="small text-muted mt-1"><?= \app\helpers\SvgHelper::icon('graph-up-arrow', ['class' => 'text-info']) ?> Golden Cross &amp; Oversold</div>
             </div>
         </div>
     </div>
@@ -102,7 +102,7 @@ $badgeAction = [
     <div class="card-body p-3">
         <!-- Preset Strategi Cepat -->
         <div class="d-flex flex-wrap align-items-center gap-2 mb-3 pb-3 border-bottom">
-            <span class="small fw-bold text-muted me-1"><i class="bi bi-sliders2 text-primary"></i> Preset Strategi Cepat:</span>
+            <span class="small fw-bold text-muted me-1"><?= \app\helpers\SvgHelper::icon('sliders2', ['class' => 'text-primary']) ?> Preset Strategi Cepat:</span>
             <?php foreach ($presets as $pKey => $pLabel): ?>
                 <?= Html::a(
                     Html::encode($pLabel),
@@ -163,8 +163,8 @@ $badgeAction = [
             </div>
 
             <div class="col-12 col-md-2 d-flex gap-2">
-                <button type="submit" class="btn btn-sm btn-primary flex-grow-1"><i class="bi bi-funnel"></i> Terapkan</button>
-                <a href="<?= Url::to(['/strategy-confluence/index']) ?>" class="btn btn-sm btn-outline-secondary" title="Reset"><i class="bi bi-arrow-counterclockwise"></i></a>
+                <button type="submit" class="btn btn-sm btn-primary flex-grow-1"><?= \app\helpers\SvgHelper::icon('funnel') ?> Terapkan</button>
+                <a href="<?= Url::to(['/strategy-confluence/index']) ?>" class="btn btn-sm btn-outline-secondary" title="Reset"><?= \app\helpers\SvgHelper::icon('arrow-counterclockwise') ?></a>
             </div>
         </form>
     </div>
@@ -174,7 +174,7 @@ $badgeAction = [
 <div class="card border-0 shadow-sm">
     <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
         <h5 class="mb-0 fw-bold text-dark">
-            <i class="bi bi-table text-primary me-1"></i> Daftar Sinyal &amp; Rencana Posisi Trading Confluence
+            <?= \app\helpers\SvgHelper::icon('table', ['class' => 'text-primary me-1']) ?> Daftar Sinyal &amp; Rencana Posisi Trading Confluence
             <span class="badge bg-light text-dark border ms-2"><?= count($results) ?> Simbol</span>
         </h5>
         <div class="small text-muted">
@@ -206,7 +206,7 @@ $badgeAction = [
                 <?php if (empty($results)): ?>
                     <tr>
                         <td colspan="13" class="text-center py-5 text-muted">
-                            <i class="bi bi-inbox fs-1 d-block mb-2 text-secondary opacity-50"></i>
+                            <?= \app\helpers\SvgHelper::icon('inbox', ['class' => 'fs-1 d-block mb-2 text-secondary opacity-50']) ?>
                             Tidak ada saham yang sesuai dengan kriteria filter confluence yang dipilih.
                         </td>
                     </tr>
@@ -283,11 +283,11 @@ $badgeAction = [
                                 </div>
                                 <?php if ($r['macd_cross'] === 'BULLISH_CROSS'): ?>
                                     <span class="badge bg-success-subtle text-success border border-success" style="font-size: 0.65rem;">
-                                        <i class="bi bi-arrow-up-circle-fill"></i> Bullish Cross
+                                        <?= \app\helpers\SvgHelper::icon('arrow-up-circle-fill') ?> Bullish Cross
                                     </span>
                                 <?php elseif ($r['macd_cross'] === 'BEARISH_CROSS'): ?>
                                     <span class="badge bg-danger-subtle text-danger border border-danger" style="font-size: 0.65rem;">
-                                        <i class="bi bi-arrow-down-circle-fill"></i> Bearish Cross
+                                        <?= \app\helpers\SvgHelper::icon('arrow-down-circle-fill') ?> Bearish Cross
                                     </span>
                                 <?php else: ?>
                                     <span class="small text-muted" style="font-size: 0.7rem;">Hist: <?= $r['macd_hist'] ?></span>
@@ -299,7 +299,7 @@ $badgeAction = [
                                 <div class="small fw-semibold text-dark"><?= $r['retrace_pct'] ?>%</div>
                                 <?php if ($r['in_golden_pocket']): ?>
                                     <span class="badge bg-warning text-dark shadow-sm" style="font-size: 0.65rem;">
-                                        <i class="bi bi-star-fill"></i> Golden Pocket
+                                        <?= \app\helpers\SvgHelper::icon('star-fill') ?> Golden Pocket
                                     </span>
                                 <?php else: ?>
                                     <span class="small text-muted" style="font-size: 0.7rem;">Swing: $<?= number_format($r['swing_low'], 2) ?></span>
@@ -335,7 +335,7 @@ $badgeAction = [
                             <!-- Aksi Buka Detail -->
                             <td class="text-center">
                                 <?= Html::a(
-                                    '<i class="bi bi-graph-up-arrow"></i> Detail',
+                                    \app\helpers\SvgHelper::icon('graph-up-arrow') . ' Detail',
                                     ['detail', 'symbol' => $r['symbol'], 'timeframe' => $params['timeframe']],
                                     ['class' => 'btn btn-sm btn-outline-primary shadow-sm text-nowrap']
                                 ) ?>

@@ -91,7 +91,7 @@ $markLines = [
                 <?= Html::encode($action) ?>
             </span>
             <span class="badge bg-primary fs-6 px-3 py-1 shadow-sm">
-                <i class="bi bi-stopwatch"></i> <?= Html::encode($timeframes[$params['timeframe']] ?? 'Daily') ?>
+                <?= \app\helpers\SvgHelper::icon('stopwatch') ?> <?= Html::encode($timeframes[$params['timeframe']] ?? 'Daily') ?>
             </span>
             <span class="badge bg-dark fs-6 px-3 py-1 shadow-sm">
                 <?= Html::encode($analysis['ma_type'] ?? 'SMA') ?>: <?= Html::encode($maPairs[$params['maPair']] ?? 'MA20 / MA50') ?>
@@ -101,7 +101,7 @@ $markLines = [
             </span>
             <?php if (!empty($analysis['candle_pattern'])): ?>
                 <span class="badge <?= ($analysis['candle_signal'] ?? '') === 'BULLISH' ? 'bg-success' : 'bg-danger' ?> fs-6 px-3 py-1 shadow-sm">
-                    <i class="bi bi-reception-4"></i> <?= Html::encode($analysis['candle_pattern']) ?>
+                    <?= \app\helpers\SvgHelper::icon('reception-4') ?> <?= Html::encode($analysis['candle_pattern']) ?>
                 </span>
             <?php endif; ?>
             <?php if (!empty($analysis['atr'])): ?>
@@ -138,17 +138,17 @@ $markLines = [
             <?php endforeach; ?>
         </div>
         <a href="<?= Url::to(['/moving-average/index', 'timeframe' => $params['timeframe'], 'maPair' => $params['maPair'], 'maType' => $params['maType'] ?? 'sma']) ?>" class="btn btn-outline-secondary btn-sm shadow-sm">
-            <i class="bi bi-arrow-left"></i> Kembali ke Scanner
+            <?= \app\helpers\SvgHelper::icon('arrow-left') ?> Kembali ke Scanner
         </a>
         <a href="<?= Url::to(['/stock/view', 'symbol' => $stock->symbol]) ?>" class="btn btn-outline-primary btn-sm shadow-sm">
-            <i class="bi bi-box-arrow-up-right"></i> Detail Saham
+            <?= \app\helpers\SvgHelper::icon('box-arrow-up-right') ?> Detail Saham
         </a>
     </div>
 </div>
 
 <?php if (!empty($analysis['is_fallback'])): ?>
     <div class="alert alert-warning py-2 px-3 small mb-3 shadow-sm d-flex align-items-center gap-2">
-        <i class="bi bi-exclamation-triangle-fill fs-5 text-warning"></i>
+        <?= \app\helpers\SvgHelper::icon('exclamation-triangle-fill', ['class' => 'fs-5 text-warning']) ?>
         <div>
             <strong>Catatan Data Timeframe:</strong> Data bar intraday (<?= Html::encode($timeframes[$params['timeframe']] ?? '') ?>) untuk saham <?= Html::encode($stock->symbol) ?> belum mencukupi untuk periode MA yang dipilih, sehingga sistem secara otomatis menggunakan data historis harian (*Daily Fallback*).
         </div>
@@ -181,7 +181,7 @@ $markLines = [
                     <?= Yii::$app->formatter->asCurrency($analysis['stop_loss']) ?>
                 </div>
                 <div class="small text-danger mt-1">
-                    <i class="bi bi-shield-x"></i> Maks Risiko: <strong>-<?= $analysis['stop_loss_pct'] ?>%</strong>
+                    <?= \app\helpers\SvgHelper::icon('shield-x') ?> Maks Risiko: <strong>-<?= $analysis['stop_loss_pct'] ?>%</strong>
                 </div>
             </div>
         </div>
@@ -196,7 +196,7 @@ $markLines = [
                     <?= Yii::$app->formatter->asCurrency($analysis['target_1']) ?>
                 </div>
                 <div class="small text-success mt-1">
-                    <i class="bi bi-graph-up-arrow"></i> Target: <strong>+<?= $analysis['target_1_pct'] ?>%</strong>
+                    <?= \app\helpers\SvgHelper::icon('graph-up-arrow') ?> Target: <strong>+<?= $analysis['target_1_pct'] ?>%</strong>
                 </div>
             </div>
         </div>
@@ -211,7 +211,7 @@ $markLines = [
                     <?= Yii::$app->formatter->asCurrency($analysis['target_2']) ?>
                 </div>
                 <div class="small text-success mt-1">
-                    <i class="bi bi-trophy"></i> Target: <strong>+<?= $analysis['target_2_pct'] ?>%</strong>
+                    <?= \app\helpers\SvgHelper::icon('trophy') ?> Target: <strong>+<?= $analysis['target_2_pct'] ?>%</strong>
                 </div>
             </div>
         </div>
@@ -226,7 +226,7 @@ $markLines = [
                     <?= !empty($analysis['target_3']) ? Yii::$app->formatter->asCurrency($analysis['target_3']) : '-' ?>
                 </div>
                 <div class="small text-success mt-1">
-                    <i class="bi bi-rocket-takeoff text-warning"></i> Target: <strong>+<?= $analysis['target_3_pct'] ?? '0' ?>%</strong>
+                    <?= \app\helpers\SvgHelper::icon('rocket-takeoff', ['class' => 'text-warning']) ?> Target: <strong>+<?= $analysis['target_3_pct'] ?? '0' ?>%</strong>
                 </div>
             </div>
         </div>
@@ -239,7 +239,7 @@ $markLines = [
         <div class="card border-0 shadow-sm h-100">
             <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
                 <h5 class="mb-0 fw-bold text-dark">
-                    <i class="bi bi-graph-up text-primary me-1"></i> Chart Candlestick &amp; Level MA
+                    <?= \app\helpers\SvgHelper::icon('graph-up', ['class' => 'text-primary me-1']) ?> Chart Candlestick &amp; Level MA
                 </h5>
                 <div class="d-flex align-items-center gap-2 small">
                     <span class="badge bg-warning text-dark"><span style="color:#f39c12;">■</span> MA<?= $analysis['fast_period'] ?> (<?= Yii::$app->formatter->asCurrency($analysis['fast_ma']) ?>)</span>
@@ -260,7 +260,7 @@ $markLines = [
         <div class="card border-0 shadow-sm mb-3">
             <div class="card-header bg-white py-3 border-bottom">
                 <h6 class="mb-0 fw-bold text-dark">
-                    <i class="bi bi-shield-check text-success me-1"></i> 5-Point Checklist Kualitas Sinyal
+                    <?= \app\helpers\SvgHelper::icon('shield-check', ['class' => 'text-success me-1']) ?> 5-Point Checklist Kualitas Sinyal
                 </h6>
             </div>
             <div class="card-body p-3">
@@ -277,9 +277,9 @@ $markLines = [
                             </div>
                             <span>
                                 <?php if ($item['pass']): ?>
-                                    <i class="bi bi-check-circle-fill text-success fs-5"></i>
+                                    <?= \app\helpers\SvgHelper::icon('check-circle-fill', ['class' => 'text-success fs-5']) ?>
                                 <?php else: ?>
-                                    <i class="bi bi-x-circle text-muted fs-5"></i>
+                                    <?= \app\helpers\SvgHelper::icon('x-circle', ['class' => 'text-muted fs-5']) ?>
                                 <?php endif; ?>
                             </span>
                         </li>
@@ -326,7 +326,7 @@ $markLines = [
         <div class="card border-0 shadow-sm bg-light">
             <div class="card-body p-3">
                 <h6 class="fw-bold text-dark mb-2">
-                    <i class="bi bi-lightbulb text-warning me-1"></i> Rekomendasi Eksekusi Trading
+                    <?= \app\helpers\SvgHelper::icon('lightbulb', ['class' => 'text-warning me-1']) ?> Rekomendasi Eksekusi Trading
                 </h6>
                 <p class="small text-muted mb-2">
                     <?= Html::encode($analysis['description']) ?>

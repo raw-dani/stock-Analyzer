@@ -42,21 +42,21 @@ $chartId = 'tb-chart';
         <span class="badge bg-light text-dark border"><?= Html::encode($stock->exchange ?? '-') ?></span>
         <?php if ($pattern !== null): ?>
             <?php if ($isIhs): ?>
-                <span class="badge" style="background-color: #6f42c1;"><i class="bi bi-person-arms-up"></i> Inverted Head &amp; Shoulders</span>
+                <span class="badge" style="background-color: #6f42c1;"><?= \app\helpers\SvgHelper::icon('person-arms-up') ?> Inverted Head &amp; Shoulders</span>
             <?php else: ?>
-                <span class="badge bg-primary"><i class="bi bi-triangle-half"></i> Triple Bottom</span>
+                <span class="badge bg-primary"><?= \app\helpers\SvgHelper::icon('triangle-half') ?> Triple Bottom</span>
             <?php endif; ?>
         <?php endif; ?>
     </div>
     <div class="d-flex gap-2">
-        <?= Html::a('<i class="bi bi-arrow-left"></i> Kembali ke Scanner', array_merge(['triple-bottom/index'], $filterParams), ['class' => 'btn btn-outline-secondary']) ?>
+        <?= Html::a(\app\helpers\SvgHelper::icon('arrow-left') . ' Kembali ke Scanner', array_merge(['triple-bottom/index'], $filterParams), ['class' => 'btn btn-outline-secondary']) ?>
     </div>
 </div>
 
 <!-- Form Parameter Deteksi Pola -->
 <div class="card mb-4 shadow-sm border-0">
     <div class="card-header bg-light py-2">
-        <strong class="small text-secondary"><i class="bi bi-sliders"></i> Parameter Deteksi Pola <?= Html::encode($patternTitle) ?></strong>
+        <strong class="small text-secondary"><?= \app\helpers\SvgHelper::icon('sliders') ?> Parameter Deteksi Pola <?= Html::encode($patternTitle) ?></strong>
     </div>
     <div class="card-body">
         <?= Html::beginForm(['triple-bottom/detail'], 'get', ['class' => 'row g-3 align-items-end']) ?>
@@ -82,7 +82,7 @@ $chartId = 'tb-chart';
                 <?= Html::input('number', 'necklineMinDepth', round($necklineMinDepth * 100, 1), ['class' => 'form-control form-control-sm', 'min' => 0, 'max' => 50, 'step' => 0.1]) ?>
             </div>
             <div class="col-12 text-end">
-                <?= Html::submitButton('<i class="bi bi-arrow-repeat"></i> Update Analisis', ['class' => 'btn btn-sm btn-primary px-3']) ?>
+                <?= Html::submitButton(\app\helpers\SvgHelper::icon('arrow-repeat') . ' Update Analisis', ['class' => 'btn btn-sm btn-primary px-3']) ?>
             </div>
         <?= Html::endForm() ?>
     </div>
@@ -90,7 +90,7 @@ $chartId = 'tb-chart';
 
 <?php if ($pattern === null): ?>
     <div class="alert alert-info shadow-sm">
-        <h5><i class="bi bi-info-circle-fill"></i> Pola Reversal Tidak Terdeteksi</h5>
+        <h5><?= \app\helpers\SvgHelper::icon('info-circle-fill') ?> Pola Reversal Tidak Terdeteksi</h5>
         <p class="mb-0">Tidak ditemukan pola Triple Bottom atau Inverted Head &amp; Shoulders yang memenuhi syarat untuk <?= Html::encode($stock->symbol) ?> dengan parameter saat ini.</p>
     </div>
 <?php else: ?>
@@ -100,7 +100,7 @@ $chartId = 'tb-chart';
 <!-- Chart Candlestick & Volume dengan Mark Points, Neckline & Targets -->
 <div class="card mt-4 shadow-sm border-0">
     <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
-        <h5 class="mb-0 fw-bold"><i class="bi bi-graph-up text-primary"></i> Grafik Pola <?= Html::encode($patternTitle) ?> &amp; Volume (<?= Html::encode($stock->symbol) ?>)</h5>
+        <h5 class="mb-0 fw-bold"><?= \app\helpers\SvgHelper::icon('graph-up', ['class' => 'text-primary']) ?> Grafik Pola <?= Html::encode($patternTitle) ?> &amp; Volume (<?= Html::encode($stock->symbol) ?>)</h5>
         <small class="text-muted">Candlestick + Volume Akumulasi Dual-Grid</small>
     </div>
     <div class="card-body">

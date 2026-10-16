@@ -72,7 +72,7 @@ $lossSwingPct = $currentPrice > 0 ? abs(($currentPrice - $stopLossSwing) / $curr
     <div class="col-lg-6">
         <div class="card shadow-sm h-100 border-0">
             <div class="card-header bg-white py-3 border-bottom">
-                <h5 class="mb-0 fw-bold"><i class="bi bi-layers-fill text-primary"></i> Struktur Harga &amp; Level Kunci</h5>
+                <h5 class="mb-0 fw-bold"><?= \app\helpers\SvgHelper::icon('layers-fill', ['class' => 'text-primary']) ?> Struktur Harga &amp; Level Kunci</h5>
             </div>
             <div class="card-body p-0">
                 <table class="table table-hover align-middle mb-0">
@@ -181,11 +181,11 @@ $lossSwingPct = $currentPrice > 0 ? abs(($currentPrice - $stopLossSwing) / $curr
         <!-- Rencana Aksi Langsung -->
         <div class="card shadow-sm border-0 mb-4">
             <div class="card-header bg-white py-3 border-bottom">
-                <h5 class="mb-0 fw-bold"><i class="bi bi-compass-fill text-success"></i> Rencana Eksekusi Trading</h5>
+                <h5 class="mb-0 fw-bold"><?= \app\helpers\SvgHelper::icon('compass-fill', ['class' => 'text-success']) ?> Rencana Eksekusi Trading</h5>
             </div>
             <div class="card-body">
                 <div class="alert <?= $tradeStatus === 'buy_zone' || $tradeStatus === 'retest' ? 'alert-success' : ($tradeStatus === 'overextended' ? 'alert-danger' : 'alert-warning') ?> mb-3">
-                    <h6 class="fw-bold mb-1"><i class="bi bi-arrow-right-circle-fill"></i> Instruksi Eksekusi:</h6>
+                    <h6 class="fw-bold mb-1"><?= \app\helpers\SvgHelper::icon('arrow-right-circle-fill') ?> Instruksi Eksekusi:</h6>
                     <?php if ($tradeStatus === 'buy_zone'): ?>
                         Saham berada di <strong>Golden Buy Zone</strong>. Anda dapat mengambil posisi beli saat ini di harga $<?= number_format($currentPrice, 2) ?> dengan target TP1 $<?= number_format($tp1, 2) ?> dan Stop Loss ketat di $<?= number_format($stopLossTight, 2) ?>.
                     <?php elseif ($tradeStatus === 'retest'): ?>
@@ -245,7 +245,7 @@ $lossSwingPct = $currentPrice > 0 ? abs(($currentPrice - $stopLossSwing) / $curr
         <!-- Kalkulator Manajemen Risiko & Ukuran Posisi (Position Sizing) -->
         <div class="card shadow-sm border-0">
             <div class="card-header bg-white py-3 border-bottom">
-                <h5 class="mb-0 fw-bold"><i class="bi bi-calculator text-primary"></i> Kalkulator Ukuran Posisi &amp; Risiko</h5>
+                <h5 class="mb-0 fw-bold"><?= \app\helpers\SvgHelper::icon('calculator', ['class' => 'text-primary']) ?> Kalkulator Ukuran Posisi &amp; Risiko</h5>
             </div>
             <div class="card-body">
                 <div class="row g-2 mb-3">

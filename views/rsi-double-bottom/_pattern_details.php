@@ -34,7 +34,7 @@ $slTightPct = $curPrice > 0 ? round((($curPrice - $slTight) / $curPrice) * 100, 
         <div class="card border-0 shadow-sm h-100">
             <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-bottom">
                 <h5 class="mb-0 fw-bold text-dark">
-                    <i class="bi bi-speedometer2 text-primary me-1"></i> Rekomendasi Eksekusi &amp; Level Kunci
+                    <?= \app\helpers\SvgHelper::icon('speedometer2', ['class' => 'text-primary me-1']) ?> Rekomendasi Eksekusi &amp; Level Kunci
                 </h5>
                 <span class="badge <?= $actionBadge ?> px-3 py-2 fs-6">
                     <?= Html::encode($actionLabel) ?>
@@ -43,7 +43,11 @@ $slTightPct = $curPrice > 0 ? round((($curPrice - $slTight) / $curPrice) * 100, 
             <div class="card-body">
                 <div class="alert <?= $isBuy ? 'alert-success' : ($isSell ? 'alert-danger' : 'alert-light border') ?> py-2 mb-3">
                     <strong class="d-block mb-1">
-                        <i class="bi <?= $isBuy ? 'bi-check-circle-fill text-success' : ($isSell ? 'bi-exclamation-triangle-fill text-danger' : 'bi-info-circle text-primary') ?>"></i>
+                        <?= $isBuy 
+                            ? \app\helpers\SvgHelper::icon('check-circle-fill', ['class' => 'text-success me-1']) 
+                            : ($isSell 
+                                ? \app\helpers\SvgHelper::icon('exclamation-triangle-fill', ['class' => 'text-danger me-1']) 
+                                : \app\helpers\SvgHelper::icon('info-circle', ['class' => 'text-primary me-1'])) ?>
                         Analisa Logika:
                     </strong>
                     <span class="small"><?= Html::encode($pattern['signal_reason'] ?? 'Menunggu formasi konfirmasi RSI.') ?></span>
@@ -52,41 +56,41 @@ $slTightPct = $curPrice > 0 ? round((($curPrice - $slTight) / $curPrice) * 100, 
                 <table class="table table-sm table-borderless align-middle mb-0">
                     <tbody>
                         <tr class="border-bottom">
-                            <td class="text-muted py-2"><i class="bi bi-star-fill text-warning me-1"></i> Confidence Score</td>
+                            <td class="text-muted py-2"><?= \app\helpers\SvgHelper::icon('star-fill', ['class' => 'text-warning me-1']) ?> Confidence Score</td>
                             <td class="text-end fw-bold fs-5 text-dark py-2"><?= $pattern['confidence'] ?? 50 ?>%</td>
                         </tr>
                         <tr class="border-bottom table-light">
-                            <td class="fw-bold text-dark py-2"><i class="bi bi-activity text-primary me-1"></i> Current RSI (14)</td>
+                            <td class="fw-bold text-dark py-2"><?= \app\helpers\SvgHelper::icon('activity', ['class' => 'text-primary me-1']) ?> Current RSI (14)</td>
                             <td class="text-end fw-bold py-2 <?= $curRsi <= 35 ? 'text-success' : ($curRsi >= 65 ? 'text-danger' : 'text-primary') ?>">
                                 <?= number_format($curRsi, 1) ?>
                                 <small class="text-muted fw-normal d-inline-block ms-1">(Kemarin: <?= number_format($prevRsi, 1) ?>)</small>
                             </td>
                         </tr>
                         <tr class="border-bottom">
-                            <td class="text-muted py-2"><i class="bi bi-compass text-info me-1"></i> Filter Tren (MA50)</td>
+                            <td class="text-muted py-2"><?= \app\helpers\SvgHelper::icon('compass', ['class' => 'text-info me-1']) ?> Filter Tren (MA50)</td>
                             <td class="text-end py-2">
                                 <?php if ($isAboveMa50): ?>
                                     <span class="badge bg-success-subtle text-success border border-success">
-                                        <i class="bi bi-arrow-up-circle"></i> Bullish (Di atas MA50: $<?= number_format((float)$ma50, 2) ?>)
+                                        <?= \app\helpers\SvgHelper::icon('arrow-up-circle') ?> Bullish (Di atas MA50: $<?= number_format((float)$ma50, 2) ?>)
                                     </span>
                                 <?php else: ?>
                                     <span class="badge bg-secondary-subtle text-secondary border">
-                                        <i class="bi bi-arrow-down-circle"></i> Bearish (Di bawah MA50: $<?= number_format((float)$ma50, 2) ?>)
+                                        <?= \app\helpers\SvgHelper::icon('arrow-down-circle') ?> Bearish (Di bawah MA50: $<?= number_format((float)$ma50, 2) ?>)
                                     </span>
                                 <?php endif; ?>
                             </td>
                         </tr>
                         <tr class="border-bottom">
-                            <td class="text-muted py-2"><i class="bi bi-bar-chart-fill text-primary me-1"></i> Konfirmasi Volume (RVOL)</td>
+                            <td class="text-muted py-2"><?= \app\helpers\SvgHelper::icon('bar-chart-fill', ['class' => 'text-primary me-1']) ?> Konfirmasi Volume (RVOL)</td>
                             <td class="text-end py-2">
                                 <?php $rvolVal = (float)($pattern['rvol'] ?? 1.0); ?>
                                 <?php if (!empty($pattern['volume_spike'])): ?>
                                     <span class="badge bg-info text-dark" title="Lonjakan Volume &gt;= 1.5x SMA20">
-                                        <i class="bi bi-lightning-fill"></i> RVOL <?= number_format($rvolVal, 2) ?>x (Surge)
+                                        <?= \app\helpers\SvgHelper::icon('lightning-fill') ?> RVOL <?= number_format($rvolVal, 2) ?>x (Surge)
                                     </span>
                                 <?php elseif (!empty($pattern['volume_supportive'])): ?>
                                     <span class="badge bg-success-subtle text-success border border-success">
-                                        <i class="bi bi-check-lg"></i> RVOL <?= number_format($rvolVal, 2) ?>x (Mendukung)
+                                        <?= \app\helpers\SvgHelper::icon('check-lg') ?> RVOL <?= number_format($rvolVal, 2) ?>x (Mendukung)
                                     </span>
                                 <?php else: ?>
                                     <span class="text-muted small">RVOL <?= number_format($rvolVal, 2) ?>x (Normal)</span>
@@ -94,7 +98,7 @@ $slTightPct = $curPrice > 0 ? round((($curPrice - $slTight) / $curPrice) * 100, 
                             </td>
                         </tr>
                         <tr class="border-bottom">
-                            <td class="text-muted py-2"><i class="bi bi-reception-4 text-purple me-1"></i> Pola Candlestick</td>
+                            <td class="text-muted py-2"><?= \app\helpers\SvgHelper::icon('reception-4', ['class' => 'text-purple me-1']) ?> Pola Candlestick</td>
                             <td class="text-end py-2">
                                 <?php if (!empty($pattern['candle_pattern'])): ?>
                                     <span class="badge <?= ($pattern['candle_signal'] ?? '') === 'BULLISH' ? 'bg-success text-white' : 'bg-danger text-white' ?>">
@@ -106,11 +110,11 @@ $slTightPct = $curPrice > 0 ? round((($curPrice - $slTight) / $curPrice) * 100, 
                             </td>
                         </tr>
                         <tr class="border-bottom">
-                            <td class="text-muted py-2"><i class="bi bi-bullseye text-warning me-1"></i> Fibonacci Retracement</td>
+                            <td class="text-muted py-2"><?= \app\helpers\SvgHelper::icon('bullseye', ['class' => 'text-warning me-1']) ?> Fibonacci Retracement</td>
                             <td class="text-end py-2">
                                 <?php if (!empty($pattern['is_golden_pocket'])): ?>
                                     <span class="badge bg-warning-subtle text-warning-emphasis border border-warning">
-                                        <i class="bi bi-star-fill"></i> Golden Pocket 50%-61.8% ($<?= number_format((float)($pattern['fib618'] ?? 0), 2) ?> - $<?= number_format((float)($pattern['fib50'] ?? 0), 2) ?>)
+                                        <?= \app\helpers\SvgHelper::icon('star-fill') ?> Golden Pocket 50%-61.8% ($<?= number_format((float)($pattern['fib618'] ?? 0), 2) ?> - $<?= number_format((float)($pattern['fib50'] ?? 0), 2) ?>)
                                     </span>
                                 <?php else: ?>
                                     <span class="text-muted small">Swing: $<?= number_format((float)($pattern['swing_low'] ?? 0), 2) ?> - $<?= number_format((float)($pattern['swing_high'] ?? 0), 2) ?></span>
@@ -118,19 +122,19 @@ $slTightPct = $curPrice > 0 ? round((($curPrice - $slTight) / $curPrice) * 100, 
                             </td>
                         </tr>
                         <tr class="border-bottom">
-                            <td class="text-muted py-2"><i class="bi bi-gem text-primary me-1"></i> Status Divergence</td>
+                            <td class="text-muted py-2"><?= \app\helpers\SvgHelper::icon('gem', ['class' => 'text-primary me-1']) ?> Status Divergence</td>
                             <td class="text-end py-2">
                                 <?php if (!empty($pattern['divergence'])): ?>
-                                    <span class="badge bg-success text-white"><i class="bi bi-check-lg"></i> BULLISH DIVERGENCE (Waktu Beli)</span>
+                                    <span class="badge bg-success text-white"><?= \app\helpers\SvgHelper::icon('check-lg') ?> BULLISH DIVERGENCE (Waktu Beli)</span>
                                 <?php elseif (!empty($pattern['bearish_divergence'])): ?>
-                                    <span class="badge bg-danger text-white"><i class="bi bi-exclamation-triangle"></i> BEARISH DIVERGENCE (Waktu Jual)</span>
+                                    <span class="badge bg-danger text-white"><?= \app\helpers\SvgHelper::icon('exclamation-triangle') ?> BEARISH DIVERGENCE (Waktu Jual)</span>
                                 <?php else: ?>
                                     <span class="badge bg-light text-muted border">Tidak Ada Divergensi</span>
                                 <?php endif; ?>
                             </td>
                         </tr>
                         <tr class="border-bottom">
-                            <td class="text-muted py-2"><i class="bi bi-shield-x text-danger me-1"></i> Batas Cut Loss (SL)</td>
+                            <td class="text-muted py-2"><?= \app\helpers\SvgHelper::icon('shield-x', ['class' => 'text-danger me-1']) ?> Batas Cut Loss (SL)</td>
                             <td class="text-end py-2">
                                 <span class="text-danger fw-bold fs-6">$<?= number_format($slSwing, 2) ?></span>
                                 <span class="badge bg-danger bg-opacity-10 text-danger border border-danger-subtle ms-1">-<?= number_format($slPct, 2) ?>%</span>
@@ -139,7 +143,7 @@ $slTightPct = $curPrice > 0 ? round((($curPrice - $slTight) / $curPrice) * 100, 
                         </tr>
                         <tr class="table-success bg-opacity-25 border-bottom">
                             <td class="fw-bold text-success py-2">
-                                <i class="bi bi-bullseye me-1"></i> Target Profit 1 (TP1 Konservatif)
+                                <?= \app\helpers\SvgHelper::icon('bullseye', ['class' => 'me-1']) ?> Target Profit 1 (TP1 Konservatif)
                             </td>
                             <td class="text-end py-2">
                                 <span class="fw-bold text-success fs-5">$<?= number_format($tp1, 2) ?></span>
@@ -151,7 +155,7 @@ $slTightPct = $curPrice > 0 ? round((($curPrice - $slTight) / $curPrice) * 100, 
                         </tr>
                         <tr class="border-bottom">
                             <td class="text-muted py-2">
-                                <i class="bi bi-graph-up-arrow text-primary me-1"></i> Target Profit 2 (TP2 Fibonacci Ext 1.272)
+                                <?= \app\helpers\SvgHelper::icon('graph-up-arrow', ['class' => 'text-primary me-1']) ?> Target Profit 2 (TP2 Fibonacci Ext 1.272)
                             </td>
                             <td class="text-end py-2">
                                 <span class="fw-semibold text-primary fs-6">$<?= number_format($tp2, 2) ?></span>
@@ -161,7 +165,7 @@ $slTightPct = $curPrice > 0 ? round((($curPrice - $slTight) / $curPrice) * 100, 
                         </tr>
                         <tr>
                             <td class="text-muted py-2">
-                                <i class="bi bi-trophy text-warning me-1"></i> Target Profit 3 (TP3 Golden Ext 1.618)
+                                <?= \app\helpers\SvgHelper::icon('trophy', ['class' => 'text-warning me-1']) ?> Target Profit 3 (TP3 Golden Ext 1.618)
                             </td>
                             <td class="text-end py-2">
                                 <span class="fw-semibold text-dark fs-6">$<?= number_format($tp3, 2) ?></span>
@@ -180,7 +184,7 @@ $slTightPct = $curPrice > 0 ? round((($curPrice - $slTight) / $curPrice) * 100, 
         <div class="card border-0 shadow-sm h-100">
             <div class="card-header bg-white py-3 border-bottom">
                 <h5 class="mb-0 fw-bold text-dark">
-                    <i class="bi bi-check2-all text-success me-1"></i> 6-Point Multi-Strategy Trading Checklist
+                    <?= \app\helpers\SvgHelper::icon('check2-all', ['class' => 'text-success me-1']) ?> 6-Point Multi-Strategy Trading Checklist
                 </h5>
             </div>
             <div class="card-body">
@@ -206,47 +210,59 @@ $slTightPct = $curPrice > 0 ? round((($curPrice - $slTight) / $curPrice) * 100, 
                             <strong>1. Area Masuk Diskon (Oversold / Reversal Zone):</strong>
                             <div class="text-muted">RSI berada di zona pantulan &lt; 40 (Current: <?= number_format($curRsi, 1) ?>)</div>
                         </div>
-                        <i class="bi <?= $cond1 ? 'bi-check-circle-fill text-success' : 'bi-x-circle-fill text-secondary' ?> fs-5"></i>
+                        <?= $cond1 
+                            ? \app\helpers\SvgHelper::icon('check-circle-fill', ['class' => 'text-success fs-5']) 
+                            : \app\helpers\SvgHelper::icon('x-circle-fill', ['class' => 'text-secondary fs-5']) ?>
                     </li>
                     <li class="list-group-item d-flex justify-content-between align-items-center px-0">
                         <div>
                             <strong>2. Konfirmasi Momentum Rebound RSI:</strong>
                             <div class="text-muted">RSI hari ini melengkung naik (<?= number_format($curRsi, 1) ?> &gt; <?= number_format($prevRsi, 1) ?>)</div>
                         </div>
-                        <i class="bi <?= $cond2 ? 'bi-check-circle-fill text-success' : 'bi-x-circle-fill text-danger' ?> fs-5"></i>
+                        <?= $cond2 
+                            ? \app\helpers\SvgHelper::icon('check-circle-fill', ['class' => 'text-success fs-5']) 
+                            : \app\helpers\SvgHelper::icon('x-circle-fill', ['class' => 'text-danger fs-5']) ?>
                     </li>
                     <li class="list-group-item d-flex justify-content-between align-items-center px-0">
                         <div>
                             <strong>3. Trend Bias Filter (MA50):</strong>
                             <div class="text-muted">Harga berada di atas MA50 (Bukan pisau jatuh liar)</div>
                         </div>
-                        <i class="bi <?= $cond3 ? 'bi-check-circle-fill text-success' : 'bi-dash-circle text-warning' ?> fs-5"></i>
+                        <?= $cond3 
+                            ? \app\helpers\SvgHelper::icon('check-circle-fill', ['class' => 'text-success fs-5']) 
+                            : \app\helpers\SvgHelper::icon('dash-circle', ['class' => 'text-warning fs-5']) ?>
                     </li>
                     <li class="list-group-item d-flex justify-content-between align-items-center px-0">
                         <div>
                             <strong>4. Katalis Reversal (Candle / Fib / Divergence):</strong>
                             <div class="text-muted">Terdapat Bullish Divergence, Reversal Candle (<?= Html::encode($pattern['candle_pattern'] ?? 'Tidak Ada') ?>), atau Fib Pocket</div>
                         </div>
-                        <i class="bi <?= $cond4 ? 'bi-check-circle-fill text-success' : 'bi-dash-circle text-muted' ?> fs-5"></i>
+                        <?= $cond4 
+                            ? \app\helpers\SvgHelper::icon('check-circle-fill', ['class' => 'text-success fs-5']) 
+                            : \app\helpers\SvgHelper::icon('dash-circle', ['class' => 'text-muted fs-5']) ?>
                     </li>
                     <li class="list-group-item d-flex justify-content-between align-items-center px-0">
                         <div>
                             <strong>5. Konfirmasi Volume Transaksi (RVOL &ge; 1.0x):</strong>
                             <div class="text-muted">Volume saat harga rebound mencukupi (RVOL: <?= number_format((float)($pattern['rvol'] ?? 1.0), 2) ?>x)</div>
                         </div>
-                        <i class="bi <?= $cond5 ? 'bi-check-circle-fill text-success' : 'bi-x-circle-fill text-secondary' ?> fs-5"></i>
+                        <?= $cond5 
+                            ? \app\helpers\SvgHelper::icon('check-circle-fill', ['class' => 'text-success fs-5']) 
+                            : \app\helpers\SvgHelper::icon('x-circle-fill', ['class' => 'text-secondary fs-5']) ?>
                     </li>
                     <li class="list-group-item d-flex justify-content-between align-items-center px-0">
                         <div>
                             <strong>6. Rasio Risk to Reward Memadai (&ge; 1:1.5):</strong>
                             <div class="text-muted">Potensi keuntungan TP1 jauh lebih besar dibanding batas risiko (R:R 1:<?= number_format((float)($riskReward ?? 0), 1) ?>)</div>
                         </div>
-                        <i class="bi <?= $cond6 ? 'bi-check-circle-fill text-success' : 'bi-x-circle-fill text-danger' ?> fs-5"></i>
+                        <?= $cond6 
+                            ? \app\helpers\SvgHelper::icon('check-circle-fill', ['class' => 'text-success fs-5']) 
+                            : \app\helpers\SvgHelper::icon('x-circle-fill', ['class' => 'text-danger fs-5']) ?>
                     </li>
                 </ul>
 
                 <div class="p-2 mt-3 bg-light rounded small">
-                    <strong class="d-block text-dark mb-1"><i class="bi bi-lightbulb-fill text-warning me-1"></i> Strategi Eksekusi Take Profit Bertahap:</strong>
+                    <strong class="d-block text-dark mb-1"><?= \app\helpers\SvgHelper::icon('lightbulb-fill', ['class' => 'text-warning me-1']) ?> Strategi Eksekusi Take Profit Bertahap:</strong>
                     <div class="text-muted">
                         • <strong>TP1 ($<?= number_format($tp1, 2) ?>):</strong> Jual 40%-50% porsi saham untuk amankan modal &amp; kunci cuan.<br>
                         • <strong>TP2 ($<?= number_format($tp2, 2) ?>):</strong> Jual 30% porsi tambahan dan naikkan Stop Loss ke Trailing Stop (Break Even).<br>
@@ -262,7 +278,7 @@ $slTightPct = $curPrice > 0 ? round((($curPrice - $slTight) / $curPrice) * 100, 
 <div class="card border-0 shadow-sm mb-4">
     <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
         <h5 class="mb-0 fw-bold text-dark">
-            <i class="bi bi-calculator text-primary me-1"></i> Kalkulator Ukuran Posisi &amp; Multi-Target TP (TP1 / TP2 / TP3)
+            <?= \app\helpers\SvgHelper::icon('calculator', ['class' => 'text-primary me-1']) ?> Kalkulator Ukuran Posisi &amp; Multi-Target TP (TP1 / TP2 / TP3)
         </h5>
         <span class="badge bg-light text-muted border">Kalkulasi Otomatis Sesuai Modal</span>
     </div>

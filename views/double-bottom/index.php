@@ -52,7 +52,7 @@ $sortLink = fn(string $key, string $label) => Html::a($label . ($sort === $key ?
 ?>
 <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
     <div>
-        <h1 class="h3 mb-0"><i class="bi bi-graph-up-arrow text-primary"></i> <?= Html::encode($this->title) ?></h1>
+        <h1 class="h3 mb-0"><?= \app\helpers\SvgHelper::icon('graph-up-arrow', ['class' => 'text-primary']) ?> <?= Html::encode($this->title) ?></h1>
         <small class="text-muted">Pindai pola pembalikan arah W dengan validasi volume, zona entri optimal, dan kalkulasi Risk/Reward</small>
     </div>
     <div class="d-flex gap-2 align-items-center">
@@ -64,7 +64,7 @@ $sortLink = fn(string $key, string $label) => Html::a($label . ($sort === $key ?
 <!-- Form Filter & Parameter -->
 <div class="card shadow-sm mb-4">
     <div class="card-header bg-light py-2">
-        <strong class="text-secondary"><i class="bi bi-funnel"></i> Parameter &amp; Filter Trading</strong>
+        <strong class="text-secondary"><?= \app\helpers\SvgHelper::icon('funnel') ?> Parameter &amp; Filter Trading</strong>
     </div>
     <div class="card-body">
         <?= Html::beginForm(['double-bottom/index'], 'get', ['class' => 'row g-3 align-items-end']) ?>
@@ -142,7 +142,7 @@ $sortLink = fn(string $key, string $label) => Html::a($label . ($sort === $key ?
                 </div>
             </div>
             <div class="col-md-4 col-12 text-end">
-                <?= Html::submitButton('<i class="bi bi-search"></i> Pindai Pasar', ['class' => 'btn btn-primary px-4 shadow-sm w-100']) ?>
+                <?= Html::submitButton(\app\helpers\SvgHelper::icon('search') . ' Pindai Pasar', ['class' => 'btn btn-primary px-4 shadow-sm w-100']) ?>
             </div>
         <?= Html::endForm() ?>
     </div>
@@ -227,7 +227,7 @@ $sortLink = fn(string $key, string $label) => Html::a($label . ($sort === $key ?
                 <?php if (empty($results)): ?>
                     <tr>
                         <td colspan="13" class="text-center text-muted py-5">
-                            <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                            <?= \app\helpers\SvgHelper::icon('inbox', ['class' => 'fs-2 d-block mb-2']) ?>
                             Tidak ada pola double bottom yang cocok dengan kriteria filter saat ini.<br>
                             <small>Coba longgarkan toleransi atau pilih timeframe lain.</small>
                         </td>
@@ -330,7 +330,7 @@ $sortLink = fn(string $key, string $label) => Html::a($label . ($sort === $key ?
                             <span class="<?= $cc ?> fw-bold fs-6"><?= $r['confidence'] ?>%</span>
                         </td>
                         <td class="text-end pe-3">
-                            <?= Html::a('<i class="bi bi-bar-chart-fill"></i> Detail', array_merge(['double-bottom/detail', 'symbol' => $r['symbol']], $filterParams), ['class' => 'btn btn-sm btn-primary shadow-sm']) ?>
+                            <?= Html::a(\app\helpers\SvgHelper::icon('bar-chart-fill') . ' Detail', array_merge(['double-bottom/detail', 'symbol' => $r['symbol']], $filterParams), ['class' => 'btn btn-sm btn-primary shadow-sm']) ?>
                         </td>
                     </tr>
                     <?php endforeach; ?>
@@ -344,26 +344,26 @@ $sortLink = fn(string $key, string $label) => Html::a($label . ($sort === $key ?
 <!-- Panduan Cara Menggunakan Informasi untuk Transaksi Saham yang Baik -->
 <div class="card shadow-sm mt-4 border-0">
     <div class="card-header bg-light">
-        <h5 class="mb-0 fw-bold"><i class="bi bi-lightbulb-fill text-warning"></i> Panduan Eksekusi Trading Double Bottom untuk Hasil Maksimal</h5>
+        <h5 class="mb-0 fw-bold"><?= \app\helpers\SvgHelper::icon('lightbulb-fill', ['class' => 'text-warning']) ?> Panduan Eksekusi Trading Double Bottom untuk Hasil Maksimal</h5>
     </div>
     <div class="card-body">
         <div class="row g-4">
             <div class="col-md-4">
-                <h6 class="fw-bold text-success"><i class="bi bi-check-circle-fill"></i> 1. Kapan Harus Masuk Posisi (Entry)?</h6>
+                <h6 class="fw-bold text-success"><?= \app\helpers\SvgHelper::icon('check-circle-fill') ?> 1. Kapan Harus Masuk Posisi (Entry)?</h6>
                 <ul class="small text-muted ps-3 mb-0">
                     <li><strong>Golden Buy Zone:</strong> Masuk saat harga berada di antara <code>Neckline</code> s/d <code>Neckline + 2.5%</code> sesaat setelah breakout terkonfirmasi.</li>
                     <li><strong>Retest Entry:</strong> Jika harga sudah terlanjur naik tinggi, JANGAN KEJAR! Tunggu harga kembali menguji neckline dengan volume mengecil.</li>
                 </ul>
             </div>
             <div class="col-md-4">
-                <h6 class="fw-bold text-danger"><i class="bi bi-shield-fill-x"></i> 2. Disiplin Stop Loss</h6>
+                <h6 class="fw-bold text-danger"><?= \app\helpers\SvgHelper::icon('shield-fill-x') ?> 2. Disiplin Stop Loss</h6>
                 <ul class="small text-muted ps-3 mb-0">
                     <li><strong>Tight Stop Loss (2% di bawah Neckline):</strong> Jika harga berbalik turun menembus ke bawah neckline, itu adalah <em>False Breakout</em>. Batasi risiko dan keluar dengan kerugian minimal.</li>
                     <li>Hindari membiarkan floating loss melewati level support Low 1 &amp; Low 2.</li>
                 </ul>
             </div>
             <div class="col-md-4">
-                <h6 class="fw-bold text-primary"><i class="bi bi-cash-stack"></i> 3. Ambil Keuntungan Bertahap (Scaling Out)</h6>
+                <h6 class="fw-bold text-primary"><?= \app\helpers\SvgHelper::icon('cash-stack') ?> 3. Ambil Keuntungan Bertahap (Scaling Out)</h6>
                 <ul class="small text-muted ps-3 mb-0">
                     <li><strong>TP1 (Conservative):</strong> Jual 50% lot saat mencapai TP1, lalu segera pindahkan Stop Loss ke titik impas (Breakeven) untuk <em>Free Trade</em>.</li>
                     <li><strong>TP2 (Full Measured Move):</strong> Likuidasi sisa posisi di target teknikal penuh.</li>

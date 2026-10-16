@@ -36,7 +36,7 @@ $this->params['breadcrumbs'][] = $this->title;
                     ]); ?>
 
                     <h5 class="fw-bold text-dark mb-3">
-                        <i class="bi bi-person-lines-fill text-primary me-2"></i>Informasi Pengguna
+                        <?= \app\helpers\SvgHelper::icon('person-lines-fill', ['class' => 'text-primary me-2']) ?>Informasi Pengguna
                     </h5>
 
                     <div class="row g-3 mb-4">
@@ -58,7 +58,7 @@ $this->params['breadcrumbs'][] = $this->title;
                     <hr class="my-4">
 
                     <h5 class="fw-bold text-dark mb-2">
-                        <i class="bi bi-shield-lock text-primary me-2"></i>Ubah Password
+                        <?= \app\helpers\SvgHelper::icon('shield-lock', ['class' => 'text-primary me-2']) ?>Ubah Password
                     </h5>
                     <p class="text-muted small mb-3">
                         Biarkan kolom password di bawah ini kosong jika Anda tidak ingin mengganti password Anda.
@@ -90,10 +90,10 @@ $this->params['breadcrumbs'][] = $this->title;
                     </div>
 
                     <div class="d-flex justify-content-between align-items-center pt-2 border-top">
-                        <?= Html::a('<i class="bi bi-arrow-left me-1"></i> Kembali ke Dashboard', ['/dashboard/index'], [
+                        <?= Html::a(\app\helpers\SvgHelper::icon('arrow-left', ['class' => 'me-1']) . ' Kembali ke Dashboard', ['/dashboard/index'], [
                             'class' => 'btn btn-outline-secondary',
                         ]) ?>
-                        <?= Html::submitButton('<i class="bi bi-check2-circle me-1"></i> Simpan Perubahan Profil', [
+                        <?= Html::submitButton(\app\helpers\SvgHelper::icon('check2-circle', ['class' => 'me-1']) . ' Simpan Perubahan Profil', [
                             'class' => 'btn btn-primary px-4 fw-bold shadow-sm',
                         ]) ?>
                     </div>

@@ -115,7 +115,7 @@ $markLines = [
             <?php endforeach; ?>
         </div>
         <a href="<?= Url::to(['index']) ?>" class="btn btn-sm btn-outline-secondary">
-            <i class="bi bi-arrow-left"></i> Kembali ke Scanner
+            <?= \app\helpers\SvgHelper::icon('arrow-left') ?> Kembali ke Scanner
         </a>
     </div>
 </div>
@@ -126,7 +126,7 @@ $markLines = [
         <div class="card border-0 shadow-sm mb-3">
             <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
                 <h5 class="mb-0 fw-bold text-dark">
-                    <i class="bi bi-graph-up text-primary me-1"></i> Multi-Indicator Technical Chart (Candles, MA, Fib, RSI &amp; MACD)
+                    <?= \app\helpers\SvgHelper::icon('graph-up', ['class' => 'text-primary me-1']) ?> Multi-Indicator Technical Chart (Candles, MA, Fib, RSI &amp; MACD)
                 </h5>
                 <small class="text-muted">Interaktif Zoom &amp; Pan</small>
             </div>
@@ -152,7 +152,7 @@ $markLines = [
                 <div class="card border-0 shadow-sm h-100 bg-white">
                     <div class="card-body p-3">
                         <div class="small text-muted text-uppercase fw-semibold mb-1">
-                            <i class="bi bi-shield-shaded text-primary"></i> Support &amp; MA
+                            <?= \app\helpers\SvgHelper::icon('shield-shaded', ['class' => 'text-primary']) ?> Support &amp; MA
                         </div>
                         <div class="h5 fw-bold mb-0 text-dark">$<?= number_format($analysis['support'], 2) ?></div>
                         <div class="small text-muted mt-1">
@@ -168,7 +168,7 @@ $markLines = [
                 <div class="card border-0 shadow-sm h-100 bg-white">
                     <div class="card-body p-3">
                         <div class="small text-muted text-uppercase fw-semibold mb-1">
-                            <i class="bi bi-activity text-info"></i> RSI (14)
+                            <?= \app\helpers\SvgHelper::icon('activity', ['class' => 'text-info']) ?> RSI (14)
                         </div>
                         <div class="h5 fw-bold mb-0 <?= $analysis['rsi'] <= 35 ? 'text-success' : ($analysis['rsi'] >= 70 ? 'text-danger' : 'text-primary') ?>">
                             <?= $analysis['rsi'] ?>
@@ -187,7 +187,7 @@ $markLines = [
                 <div class="card border-0 shadow-sm h-100 bg-white">
                     <div class="card-body p-3">
                         <div class="small text-muted text-uppercase fw-semibold mb-1">
-                            <i class="bi bi-soundwave text-warning"></i> MACD (12,26,9)
+                            <?= \app\helpers\SvgHelper::icon('soundwave', ['class' => 'text-warning']) ?> MACD (12,26,9)
                         </div>
                         <div class="h5 fw-bold mb-0 <?= $analysis['macd'] >= 0 ? 'text-success' : 'text-danger' ?>">
                             <?= $analysis['macd'] ?>
@@ -210,12 +210,12 @@ $markLines = [
                 <div class="card border-0 shadow-sm h-100 bg-white">
                     <div class="card-body p-3">
                         <div class="small text-muted text-uppercase fw-semibold mb-1">
-                            <i class="bi bi-bullseye text-danger"></i> Fibonacci 61.8%
+                            <?= \app\helpers\SvgHelper::icon('bullseye', ['class' => 'text-danger']) ?> Fibonacci 61.8%
                         </div>
                         <div class="h5 fw-bold mb-0 text-dark"><?= $analysis['retrace_pct'] ?>% Retrace</div>
                         <div class="small mt-1">
                             <?php if ($analysis['in_golden_pocket']): ?>
-                                <span class="badge bg-warning text-dark"><i class="bi bi-star-fill"></i> Golden Pocket</span>
+                                <span class="badge bg-warning text-dark"><?= \app\helpers\SvgHelper::icon('star-fill') ?> Golden Pocket</span>
                             <?php else: ?>
                                 <span class="text-muted">Swing High: $<?= number_format($analysis['swing_high'], 2) ?></span>
                             <?php endif; ?>
@@ -232,7 +232,7 @@ $markLines = [
         <div class="card border-0 shadow-sm mb-3">
             <div class="card-header bg-white py-3 border-bottom">
                 <h5 class="mb-0 fw-bold text-dark">
-                    <i class="bi bi-calculator text-success me-1"></i> Rencana Eksekusi Trading Presisi
+                    <?= \app\helpers\SvgHelper::icon('calculator', ['class' => 'text-success me-1']) ?> Rencana Eksekusi Trading Presisi
                 </h5>
             </div>
             <div class="card-body p-3">
@@ -279,12 +279,12 @@ $markLines = [
                 <!-- Checklist Konfluensi -->
                 <div class="border rounded p-3 bg-white">
                     <div class="small fw-bold text-dark text-uppercase mb-2">
-                        <i class="bi bi-check2-all text-primary"></i> Faktor Konfluensi Terkonfirmasi (<?= count($analysis['signals_list']) ?> Indikator)
+                        <?= \app\helpers\SvgHelper::icon('check2-all', ['class' => 'text-primary']) ?> Faktor Konfluensi Terkonfirmasi (<?= count($analysis['signals_list']) ?> Indikator)
                     </div>
                     <ul class="list-unstyled mb-0 small">
                         <?php foreach ($analysis['signals_list'] as $item): ?>
                             <li class="mb-2 d-flex align-items-start gap-2">
-                                <i class="bi bi-check-circle-fill text-success mt-1"></i>
+                                <?= \app\helpers\SvgHelper::icon('check-circle-fill', ['class' => 'text-success mt-1']) ?>
                                 <span><?= Html::encode($item) ?></span>
                             </li>
                         <?php endforeach; ?>
@@ -296,7 +296,7 @@ $markLines = [
         <!-- Tabel Level Fibonacci Lengkap -->
         <div class="card border-0 shadow-sm">
             <div class="card-header bg-white py-2 border-bottom">
-                <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-layers text-secondary me-1"></i> Level Fibonacci Retracement &amp; Ekstensi</h6>
+                <h6 class="mb-0 fw-bold text-dark"><?= \app\helpers\SvgHelper::icon('layers', ['class' => 'text-secondary me-1']) ?> Level Fibonacci Retracement &amp; Ekstensi</h6>
             </div>
             <div class="table-responsive">
                 <table class="table table-sm table-striped mb-0 small">

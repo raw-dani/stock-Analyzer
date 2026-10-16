@@ -62,7 +62,7 @@ $badgeAction = [
 <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
     <div>
         <h1 class="h3 mb-1 fw-bold text-dark">
-            <i class="bi bi-bar-chart-steps text-primary"></i> <?= Html::encode($this->title) ?>
+            <?= \app\helpers\SvgHelper::icon('bar-chart-steps', ['class' => 'text-primary']) ?> <?= Html::encode($this->title) ?>
         </h1>
         <p class="text-muted small mb-0">
             Analisa pola potensial (<strong>Hammer, Shooting Star, Engulfing, Doji, Marubozu</strong>) untuk menentukan waktu beli &amp; jual presisi dengan <strong>konfirmasi volume multi-timeframe</strong>.
@@ -93,7 +93,7 @@ $badgeAction = [
                 <div class="card-body p-2">
                     <div class="text-muted small fw-semibold text-uppercase">Total Saham</div>
                     <div class="h2 mb-0 fw-bold text-dark"><?= number_format((int) ($stats['total'] ?? 0)) ?></div>
-                    <div class="small text-muted" style="font-size: 0.72rem;"><i class="bi bi-arrow-counterclockwise"></i> Reset filter</div>
+                    <div class="small text-muted" style="font-size: 0.72rem;"><?= \app\helpers\SvgHelper::icon('arrow-counterclockwise') ?> Reset filter</div>
                 </div>
             </div>
         </a>
@@ -106,7 +106,7 @@ $badgeAction = [
                 <div class="card-body p-2">
                     <div class="text-success small fw-semibold text-uppercase">Waktu Beli (Buys)</div>
                     <div class="h2 mb-0 fw-bold text-success"><?= number_format((int) ($stats['buyCount'] ?? 0)) ?></div>
-                    <div class="small text-success" style="font-size: 0.72rem;"><i class="bi bi-cart-check"></i> Reversal &amp; Breakout</div>
+                    <div class="small text-success" style="font-size: 0.72rem;"><?= \app\helpers\SvgHelper::icon('cart-check') ?> Reversal &amp; Breakout</div>
                 </div>
             </div>
         </a>
@@ -119,7 +119,7 @@ $badgeAction = [
                 <div class="card-body p-2">
                     <div class="text-primary small fw-semibold text-uppercase">Volume Surge 🚀</div>
                     <div class="h2 mb-0 fw-bold text-primary"><?= number_format((int) ($stats['surgeCount'] ?? 0)) ?></div>
-                    <div class="small text-primary" style="font-size: 0.72rem;"><i class="bi bi-lightning-charge-fill"></i> RVOL &ge; 2.0x SMA20</div>
+                    <div class="small text-primary" style="font-size: 0.72rem;"><?= \app\helpers\SvgHelper::icon('lightning-charge-fill') ?> RVOL &ge; 2.0x SMA20</div>
                 </div>
             </div>
         </a>
@@ -132,7 +132,7 @@ $badgeAction = [
                 <div class="card-body p-2">
                     <div class="text-info-emphasis small fw-semibold text-uppercase">Volume Mendukung</div>
                     <div class="h2 mb-0 fw-bold text-dark"><?= number_format((int) ($stats['supportiveCount'] ?? 0)) ?></div>
-                    <div class="small text-info-emphasis" style="font-size: 0.72rem;"><i class="bi bi-check2-circle"></i> Akumulasi Positif</div>
+                    <div class="small text-info-emphasis" style="font-size: 0.72rem;"><?= \app\helpers\SvgHelper::icon('check2-circle') ?> Akumulasi Positif</div>
                 </div>
             </div>
         </a>
@@ -145,7 +145,7 @@ $badgeAction = [
                 <div class="card-body p-2">
                     <div class="text-warning-emphasis small fw-semibold text-uppercase">Hammer 🔨</div>
                     <div class="h2 mb-0 fw-bold text-dark"><?= number_format((int) ($stats['hammerCount'] ?? 0)) ?></div>
-                    <div class="small text-warning-emphasis" style="font-size: 0.72rem;"><i class="bi bi-shield-check"></i> Reversal at Dip</div>
+                    <div class="small text-warning-emphasis" style="font-size: 0.72rem;"><?= \app\helpers\SvgHelper::icon('shield-check') ?> Reversal at Dip</div>
                 </div>
             </div>
         </a>
@@ -158,7 +158,7 @@ $badgeAction = [
                 <div class="card-body p-2">
                     <div class="text-danger small fw-semibold text-uppercase">Alert Jual ⭐/🔴</div>
                     <div class="h2 mb-0 fw-bold text-danger"><?= number_format((int) ($stats['sellCount'] ?? 0)) ?></div>
-                    <div class="small text-danger" style="font-size: 0.72rem;"><i class="bi bi-exclamation-octagon"></i> Shooting Star / Exit</div>
+                    <div class="small text-danger" style="font-size: 0.72rem;"><?= \app\helpers\SvgHelper::icon('exclamation-octagon') ?> Shooting Star / Exit</div>
                 </div>
             </div>
         </a>
@@ -170,10 +170,10 @@ $badgeAction = [
     <div class="card-body p-3">
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
             <div class="d-flex flex-wrap align-items-center gap-2">
-                <span class="small fw-bold text-muted me-1"><i class="bi bi-lightning-fill text-warning"></i> Preset Cepat:</span>
+                <span class="small fw-bold text-muted me-1"><?= \app\helpers\SvgHelper::icon('lightning-fill', ['class' => 'text-warning']) ?> Preset Cepat:</span>
 
                 <?= Html::a(
-                    '<i class="bi bi-grid-fill"></i> Semua Sinyal',
+                    \app\helpers\SvgHelper::icon('grid-fill') . ' Semua Sinyal',
                     $filterWith(['preset' => '', 'pattern' => 'all', 'volume_filter' => 'all', 'action' => 'all']),
                     ['class' => 'btn btn-sm ' . (empty($params['preset']) && $params['pattern'] === 'all' && $params['volume_filter'] === 'all' && $params['action'] === 'all' ? 'btn-dark' : 'btn-outline-dark')]
                 ) ?>
@@ -224,24 +224,24 @@ $badgeAction = [
             <div class="d-flex align-items-center gap-2">
                 <div class="dropdown">
                     <button class="btn btn-sm btn-outline-secondary dropdown-toggle shadow-sm" type="button" data-bs-toggle="dropdown" id="btn-copy-dropdown">
-                        <i class="bi bi-clipboard"></i> Salin Simbol (<?= count($symbols) ?>)
+                        <?= \app\helpers\SvgHelper::icon('clipboard') ?> Salin Simbol (<?= count($symbols) ?>)
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end shadow">
                         <li>
                             <button class="dropdown-item small" type="button" onclick="copyToClipboard('<?= Html::encode($tvSymbolsStr) ?>', 'TradingView')">
-                                <i class="bi bi-tv me-1 text-primary"></i> Format TradingView (<?= count($tvSymbols) ?>)
+                                <?= \app\helpers\SvgHelper::icon('tv', ['class' => 'me-1 text-primary']) ?> Format TradingView (<?= count($tvSymbols) ?>)
                             </button>
                         </li>
                         <li>
                             <button class="dropdown-item small" type="button" onclick="copyToClipboard('<?= Html::encode($symbolsStr) ?>', 'Biasa')">
-                                <i class="bi bi-card-text me-1 text-success"></i> Format Simbol Biasa (<?= count($symbols) ?>)
+                                <?= \app\helpers\SvgHelper::icon('card-text', ['class' => 'me-1 text-success']) ?> Format Simbol Biasa (<?= count($symbols) ?>)
                             </button>
                         </li>
                     </ul>
                 </div>
 
                 <?= Html::a(
-                    '<i class="bi bi-download"></i> Ekspor CSV',
+                    \app\helpers\SvgHelper::icon('download') . ' Ekspor CSV',
                     Url::to(array_merge(['/candlestick/export'], $currentGet)),
                     ['class' => 'btn btn-sm btn-outline-primary shadow-sm', 'id' => 'btn-export-csv']
                 ) ?>
@@ -259,7 +259,7 @@ $badgeAction = [
             <div class="col-12 col-md-2">
                 <label class="form-label small fw-semibold mb-1">Cari Simbol Ticker</label>
                 <div class="input-group input-group-sm">
-                    <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                    <span class="input-group-text bg-white"><?= \app\helpers\SvgHelper::icon('search') ?></span>
                     <?= Html::textInput('symbol', $params['symbol'], [
                         'class' => 'form-control',
                         'placeholder' => 'Misal: AAPL, NVDA...',
@@ -326,10 +326,10 @@ $badgeAction = [
 
             <div class="col-6 col-md-1 d-flex gap-1">
                 <button type="submit" class="btn btn-sm btn-primary w-100 shadow-sm" id="btn-submit-filter">
-                    <i class="bi bi-funnel-fill"></i> Filter
+                    <?= \app\helpers\SvgHelper::icon('funnel-fill') ?> Filter
                 </button>
                 <a href="<?= Url::to(['/candlestick/index', 'timeframe' => $params['timeframe']]) ?>" class="btn btn-sm btn-outline-secondary" title="Reset Filter" id="btn-reset-filter">
-                    <i class="bi bi-arrow-counterclockwise"></i>
+                    <?= \app\helpers\SvgHelper::icon('arrow-counterclockwise') ?>
                 </a>
             </div>
         <?= Html::endForm() ?>
@@ -341,7 +341,7 @@ $badgeAction = [
     <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
         <div>
             <h5 class="mb-0 fw-bold text-dark">
-                <i class="bi bi-table text-primary me-1"></i> Hasil Analisa Pola &amp; Sinyal Trading (<?= count($results) ?> Saham)
+                <?= \app\helpers\SvgHelper::icon('table', ['class' => 'text-primary me-1']) ?> Hasil Analisa Pola &amp; Sinyal Trading (<?= count($results) ?> Saham)
             </h5>
             <small class="text-muted">
                 Peringkat diurutkan berdasarkan parameter pencarian aktif. Klik pada baris saham untuk membuka chart interaktif &amp; kalkulator trading plan.
@@ -370,11 +370,11 @@ $badgeAction = [
                     <tr>
                         <td colspan="8" class="text-center py-5">
                             <div class="text-muted">
-                                <i class="bi bi-search fs-1 d-block mb-2 text-secondary"></i>
+                                <?= \app\helpers\SvgHelper::icon('search', ['class' => 'fs-1 d-block mb-2 text-secondary']) ?>
                                 <strong>Tidak ditemukan pola candlestick yang cocok dengan filter saat ini.</strong>
                                 <p class="small mb-3">Coba ganti pilihan pola, pilih time frame lain (1D, 4H, 2H, 1H), atau reset filter.</p>
                                 <a href="<?= Url::to(['/candlestick/index', 'timeframe' => $params['timeframe']]) ?>" class="btn btn-sm btn-outline-primary">
-                                    <i class="bi bi-arrow-counterclockwise"></i> Reset Semua Filter
+                                    <?= \app\helpers\SvgHelper::icon('arrow-counterclockwise') ?> Reset Semua Filter
                                 </a>
                             </div>
                         </td>
@@ -422,7 +422,7 @@ $badgeAction = [
                                     <?= Html::encode($r['pattern_subtype']) ?>
                                 </div>
                                 <div class="text-muted" style="font-size: 0.68rem;">
-                                    <i class="bi bi-clock"></i> <?= Html::encode($r['bar_date']) ?>
+                                    <?= \app\helpers\SvgHelper::icon('clock') ?> <?= Html::encode($r['bar_date']) ?>
                                 </div>
                             </td>
 
@@ -430,11 +430,11 @@ $badgeAction = [
                             <td>
                                 <span class="badge bg-<?= $actionBadge ?> px-2 py-1 shadow-sm fs-7">
                                     <?php if (str_contains($action, 'BUY')): ?>
-                                        <i class="bi bi-check2-circle me-1"></i>
+                                        <?= \app\helpers\SvgHelper::icon('check2-circle', ['class' => 'me-1']) ?>
                                     <?php elseif (str_contains($action, 'SELL')): ?>
-                                        <i class="bi bi-exclamation-triangle me-1"></i>
+                                        <?= \app\helpers\SvgHelper::icon('exclamation-triangle', ['class' => 'me-1']) ?>
                                     <?php else: ?>
-                                        <i class="bi bi-eye me-1"></i>
+                                        <?= \app\helpers\SvgHelper::icon('eye', ['class' => 'me-1']) ?>
                                     <?php endif; ?>
                                     <?= Html::encode($action) ?>
                                 </span>
@@ -456,11 +456,11 @@ $badgeAction = [
                                 </div>
                                 <?php if ($r['price_change_pct'] >= 0): ?>
                                     <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25" style="font-size: 0.72rem;">
-                                        <i class="bi bi-arrow-up-short"></i> +<?= number_format((float) $r['price_change_pct'], 2) ?>%
+                                        <?= \app\helpers\SvgHelper::icon('arrow-up-short') ?> +<?= number_format((float) $r['price_change_pct'], 2) ?>%
                                     </span>
                                 <?php else: ?>
                                     <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25" style="font-size: 0.72rem;">
-                                        <i class="bi bi-arrow-down-short"></i> <?= number_format((float) $r['price_change_pct'], 2) ?>%
+                                        <?= \app\helpers\SvgHelper::icon('arrow-down-short') ?> <?= number_format((float) $r['price_change_pct'], 2) ?>%
                                     </span>
                                 <?php endif; ?>
                             </td>
@@ -478,16 +478,16 @@ $badgeAction = [
                                 <div class="small mt-1" style="font-size: 0.72rem;">
                                     <?php if ($volSupports): ?>
                                         <span class="text-success fw-semibold">
-                                            <i class="bi bi-check-circle-fill"></i> Mendukung Kenaikan Saham
+                                            <?= \app\helpers\SvgHelper::icon('check-circle-fill') ?> Mendukung Kenaikan Saham
                                         </span>
                                     <?php else: ?>
                                         <?php if (str_contains($action, 'SELL')): ?>
                                             <span class="text-danger fw-semibold">
-                                                <i class="bi bi-arrow-down-circle-fill"></i> Tekanan Distribusi Penjualan
+                                                <?= \app\helpers\SvgHelper::icon('arrow-down-circle-fill') ?> Tekanan Distribusi Penjualan
                                             </span>
                                         <?php else: ?>
                                             <span class="text-warning-emphasis fw-semibold">
-                                                <i class="bi bi-exclamation-triangle-fill"></i> Volume Tipis (Waspada Fakeout)
+                                                <?= \app\helpers\SvgHelper::icon('exclamation-triangle-fill') ?> Volume Tipis (Waspada Fakeout)
                                             </span>
                                         <?php endif; ?>
                                     <?php endif; ?>
@@ -539,7 +539,7 @@ $badgeAction = [
                             <td class="text-center">
                                 <div class="btn-group btn-group-sm">
                                     <?= Html::a(
-                                        '<i class="bi bi-graph-up me-1"></i> Detail',
+                                        \app\helpers\SvgHelper::icon('graph-up', ['class' => 'me-1']) . ' Detail',
                                         ['/candlestick/detail', 'symbol' => $r['symbol'], 'timeframe' => $params['timeframe']],
                                         ['class' => 'btn btn-sm btn-primary shadow-sm', 'title' => 'Buka Trading Plan & Chart ECharts']
                                     ) ?>
@@ -547,7 +547,7 @@ $badgeAction = [
                                        target="_blank"
                                        class="btn btn-sm btn-outline-secondary"
                                        title="Lihat di TradingView">
-                                        <i class="bi bi-tv"></i>
+                                        <?= \app\helpers\SvgHelper::icon('tv') ?>
                                     </a>
                                 </div>
                             </td>
@@ -563,7 +563,7 @@ $badgeAction = [
 <div class="card border-0 shadow-sm bg-light mb-4">
     <div class="card-body p-4">
         <h5 class="fw-bold text-dark mb-3">
-            <i class="bi bi-book-half text-primary me-2"></i> Panduan Edukasi: Pola Candlestick Potensial &amp; Konfirmasi Volume
+            <?= \app\helpers\SvgHelper::icon('book-half', ['class' => 'text-primary me-2']) ?> Panduan Edukasi: Pola Candlestick Potensial &amp; Konfirmasi Volume
         </h5>
         <div class="row g-4">
             <div class="col-md-6 col-lg-4">
@@ -657,7 +657,7 @@ $badgeAction = [
 <div class="modal fade" id="copySuccessModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-sm modal-dialog-centered">
         <div class="modal-content text-center p-3">
-            <div class="text-success mb-2"><i class="bi bi-check-circle-fill fs-1"></i></div>
+            <div class="text-success mb-2"><?= \app\helpers\SvgHelper::icon('check-circle-fill', ['class' => 'fs-1']) ?></div>
             <h6 class="fw-bold mb-1">Berhasil Disalin!</h6>
             <p class="small text-muted mb-0" id="copyModalMessage">Daftar simbol telah disalin ke clipboard.</p>
         </div>

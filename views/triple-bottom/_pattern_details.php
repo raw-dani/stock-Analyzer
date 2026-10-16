@@ -61,9 +61,9 @@ $mitigationStrategies = (array) ($pattern['mitigation_strategies'] ?? []);
             <div class="d-flex align-items-center gap-2 mb-1">
                 <span class="text-uppercase small fw-bold" style="letter-spacing: 0.05rem;">Sinyal Eksekusi <?= Html::encode($patternName) ?></span>
                 <?php if ($isIhs): ?>
-                    <span class="badge" style="background-color: rgba(255,255,255,0.3); font-size: 0.75rem;"><i class="bi bi-person-arms-up"></i> Inverse H&amp;S Reversal</span>
+                    <span class="badge" style="background-color: rgba(255,255,255,0.3); font-size: 0.75rem;"><?= \app\helpers\SvgHelper::icon('person-arms-up') ?> Inverse H&amp;S Reversal</span>
                 <?php else: ?>
-                    <span class="badge" style="background-color: rgba(255,255,255,0.3); font-size: 0.75rem;"><i class="bi bi-triangle-half"></i> Triple Bottom Reversal</span>
+                    <span class="badge" style="background-color: rgba(255,255,255,0.3); font-size: 0.75rem;"><?= \app\helpers\SvgHelper::icon('triangle-half') ?> Triple Bottom Reversal</span>
                 <?php endif; ?>
             </div>
             <h4 class="mb-0 fw-bold">
@@ -99,7 +99,7 @@ $mitigationStrategies = (array) ($pattern['mitigation_strategies'] ?? []);
 ?>">
     <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
         <h5 class="mb-0 fw-bold">
-            <i class="bi bi-shield-exclamation text-danger"></i> Deteksi &amp; Penanganan Risiko False Breakout (Bull Trap Protection)
+            <?= \app\helpers\SvgHelper::icon('shield-exclamation', ['class' => 'text-danger']) ?> Deteksi &amp; Penanganan Risiko False Breakout (Bull Trap Protection)
         </h5>
         <div class="d-flex align-items-center gap-2">
             <span class="small text-muted">Skor Risiko:</span>
@@ -111,7 +111,7 @@ $mitigationStrategies = (array) ($pattern['mitigation_strategies'] ?? []);
     <div class="card-body">
         <?php if ($isBullTrap): ?>
             <div class="alert alert-danger d-flex align-items-center mb-3">
-                <i class="bi bi-exclamation-octagon-fill fs-3 me-3 text-danger"></i>
+                <?= \app\helpers\SvgHelper::icon('exclamation-octagon-fill', ['class' => 'fs-3 me-3 text-danger']) ?>
                 <div>
                     <strong class="d-block">⚠️ PERINGATAN: TERDETEKSI BULL TRAP (FALSE BREAKOUT)!</strong>
                     Harga sempat menembus garis Neckline ($<?= number_format($neckline, 2) ?>), namun kehilangan tenaga beli dan ditutup kembali di bawah neckline. Segera terapkan protokol mitigasi di bawah!
@@ -119,21 +119,21 @@ $mitigationStrategies = (array) ($pattern['mitigation_strategies'] ?? []);
             </div>
         <?php elseif ($riskLevel === 'HIGH'): ?>
             <div class="alert alert-danger d-flex align-items-center mb-3">
-                <i class="bi bi-exclamation-triangle-fill fs-3 me-3 text-danger"></i>
+                <?= \app\helpers\SvgHelper::icon('exclamation-triangle-fill', ['class' => 'fs-3 me-3 text-danger']) ?>
                 <div>
                     <strong>🔴 RISIKO FALSE BREAKOUT TINGGI:</strong> Terdapat indikasi penolakan harga atau kelemahan volume di area resistance neckline. Jangan terburu-buru masuk.
                 </div>
             </div>
         <?php elseif ($riskLevel === 'MEDIUM'): ?>
             <div class="alert alert-warning d-flex align-items-center mb-3">
-                <i class="bi bi-info-circle-fill fs-3 me-3 text-warning"></i>
+                <?= \app\helpers\SvgHelper::icon('info-circle-fill', ['class' => 'fs-3 me-3 text-warning']) ?>
                 <div>
                     <strong>🟡 RISIKO SEDANG:</strong> Penembusan memerlukan konfirmasi lilin berikutnya atau retest ke garis Neckline sebelum menambah posisi penuh.
                 </div>
             </div>
         <?php else: ?>
             <div class="alert alert-success d-flex align-items-center mb-3">
-                <i class="bi bi-check-circle-fill fs-3 me-3 text-success"></i>
+                <?= \app\helpers\SvgHelper::icon('check-circle-fill', ['class' => 'fs-3 me-3 text-success']) ?>
                 <div>
                     <strong>🟢 RISIKO FALSE BREAKOUT RENDAH (BREAKOUT SOLID):</strong> Struktur harga stabil, penolakan atas rendah, dan volume mendukung momentum kelanjutan tren naik.
                 </div>
@@ -180,7 +180,7 @@ $mitigationStrategies = (array) ($pattern['mitigation_strategies'] ?? []);
         <div class="row g-3">
             <div class="col-md-6">
                 <div class="p-3 border rounded h-100 bg-white">
-                    <h6 class="fw-bold text-dark mb-2"><i class="bi bi-search text-danger"></i> Temuan Analisis Risiko:</h6>
+                    <h6 class="fw-bold text-dark mb-2"><?= \app\helpers\SvgHelper::icon('search', ['class' => 'text-danger']) ?> Temuan Analisis Risiko:</h6>
                     <ul class="mb-0 ps-3 small text-muted">
                         <?php foreach ($riskReasons as $reason): ?>
                             <li class="mb-1"><?= Html::encode($reason) ?></li>
@@ -190,7 +190,7 @@ $mitigationStrategies = (array) ($pattern['mitigation_strategies'] ?? []);
             </div>
             <div class="col-md-6">
                 <div class="p-3 border rounded h-100 bg-light">
-                    <h6 class="fw-bold text-success mb-2"><i class="bi bi-shield-check text-success"></i> Protokol &amp; Strategi Mitigasi Trader:</h6>
+                    <h6 class="fw-bold text-success mb-2"><?= \app\helpers\SvgHelper::icon('shield-check', ['class' => 'text-success']) ?> Protokol &amp; Strategi Mitigasi Trader:</h6>
                     <ul class="mb-0 ps-3 small text-dark">
                         <?php foreach ($mitigationStrategies as $strategy): ?>
                             <li class="mb-1"><strong><?= Html::encode($strategy) ?></strong></li>
@@ -207,7 +207,7 @@ $mitigationStrategies = (array) ($pattern['mitigation_strategies'] ?? []);
     <div class="col-lg-6">
         <div class="card shadow-sm h-100 border-0">
             <div class="card-header bg-white py-3 border-bottom">
-                <h5 class="mb-0 fw-bold"><i class="bi bi-layers-fill text-primary"></i> Level Kunci Trading &amp; Anatomi Pola</h5>
+                <h5 class="mb-0 fw-bold"><?= \app\helpers\SvgHelper::icon('layers-fill', ['class' => 'text-primary']) ?> Level Kunci Trading &amp; Anatomi Pola</h5>
             </div>
             <div class="card-body p-0">
                 <table class="table table-hover align-middle mb-0">
@@ -275,7 +275,7 @@ $mitigationStrategies = (array) ($pattern['mitigation_strategies'] ?? []);
                         <!-- Target Jual (Take Profit) -->
                         <tr class="table-success">
                             <td class="ps-3">
-                                <strong class="text-success"><i class="bi bi-bullseye"></i> Target Jual 1 (TP1 - Amankan 50%)</strong><br>
+                                <strong class="text-success"><?= \app\helpers\SvgHelper::icon('bullseye') ?> Target Jual 1 (TP1 - Amankan 50%)</strong><br>
                                 <small class="text-muted">Tutup 30-50% posisi &amp; pasang Trailing Stop</small>
                             </td>
                             <td class="text-end pe-3">
@@ -285,7 +285,7 @@ $mitigationStrategies = (array) ($pattern['mitigation_strategies'] ?? []);
                         </tr>
                         <tr class="table-success">
                             <td class="ps-3">
-                                <strong class="text-success"><i class="bi bi-flag-fill"></i> Target Jual 2 (TP2 - Target Pola 100%)</strong><br>
+                                <strong class="text-success"><?= \app\helpers\SvgHelper::icon('flag-fill') ?> Target Jual 2 (TP2 - Target Pola 100%)</strong><br>
                                 <small class="text-muted">Target Measured Move ($Neckline + <?= $isIhs ? 'Tinggi Kepala' : 'Tinggi Pola' ?>)</small>
                             </td>
                             <td class="text-end pe-3">
@@ -295,7 +295,7 @@ $mitigationStrategies = (array) ($pattern['mitigation_strategies'] ?? []);
                         </tr>
                         <tr>
                             <td class="ps-3">
-                                <strong><i class="bi bi-rocket-takeoff"></i> Target Jual 3 (TP3 - Extension 161.8%)</strong><br>
+                                <strong><?= \app\helpers\SvgHelper::icon('rocket-takeoff') ?> Target Jual 3 (TP3 - Extension 161.8%)</strong><br>
                                 <small class="text-muted">Fibonacci Extended Move bila momentum sangat kuat</small>
                             </td>
                             <td class="text-end pe-3">
@@ -306,7 +306,7 @@ $mitigationStrategies = (array) ($pattern['mitigation_strategies'] ?? []);
                         <!-- Batas Rugi (Stop Loss / Cut Loss) -->
                         <tr class="table-danger">
                             <td class="ps-3">
-                                <strong class="text-danger"><i class="bi bi-shield-x"></i> Cut Loss Ketat (Tight Stop Loss)</strong><br>
+                                <strong class="text-danger"><?= \app\helpers\SvgHelper::icon('shield-x') ?> Cut Loss Ketat (Tight Stop Loss)</strong><br>
                                 <small class="text-muted">2% di bawah Neckline (Batal bila false breakout)</small>
                             </td>
                             <td class="text-end pe-3">
@@ -316,7 +316,7 @@ $mitigationStrategies = (array) ($pattern['mitigation_strategies'] ?? []);
                         </tr>
                         <tr>
                             <td class="ps-3">
-                                <strong class="text-danger"><i class="bi bi-shield-slash"></i> <?= $isIhs ? 'Cut Loss Bahu Kanan (Swing SL)' : 'Cut Loss Swing (Wide Stop Loss)' ?></strong><br>
+                                <strong class="text-danger"><?= \app\helpers\SvgHelper::icon('shield-slash') ?> <?= $isIhs ? 'Cut Loss Bahu Kanan (Swing SL)' : 'Cut Loss Swing (Wide Stop Loss)' ?></strong><br>
                                 <small class="text-muted"><?= $isIhs ? '2% di bawah level Bahu Kanan' : '2% di bawah level terendah Bottom' ?></small>
                             </td>
                             <td class="text-end pe-3">
@@ -342,18 +342,18 @@ $mitigationStrategies = (array) ($pattern['mitigation_strategies'] ?? []);
         <!-- Rencana Aksi Langsung -->
         <div class="card shadow-sm border-0 mb-4">
             <div class="card-header bg-white py-3 border-bottom">
-                <h5 class="mb-0 fw-bold"><i class="bi bi-compass-fill text-success"></i> Rencana Eksekusi: Kapan Beli &amp; Jual?</h5>
+                <h5 class="mb-0 fw-bold"><?= \app\helpers\SvgHelper::icon('compass-fill', ['class' => 'text-success']) ?> Rencana Eksekusi: Kapan Beli &amp; Jual?</h5>
             </div>
             <div class="card-body">
                 <div class="alert <?= in_array($tradeStatus, ['buy_zone', 'retest', 'bottom3_bounce'], true) ? 'alert-success' : ($tradeStatus === 'overextended' ? 'alert-danger' : 'alert-warning') ?> mb-3">
-                    <h6 class="fw-bold mb-1"><i class="bi bi-clock-history"></i> Rekomendasi Waktu Eksekusi:</h6>
+                    <h6 class="fw-bold mb-1"><?= \app\helpers\SvgHelper::icon('clock-history') ?> Rekomendasi Waktu Eksekusi:</h6>
                     <p class="mb-0"><?= Html::encode($pattern['action_description']) ?></p>
                 </div>
 
                 <div class="row g-2 mb-3">
                     <div class="col-sm-6">
                         <div class="border rounded p-2 bg-light">
-                            <span class="small fw-bold text-success d-block"><i class="bi bi-cart-check-fill"></i> WAKTU BELI TERBAIK:</span>
+                            <span class="small fw-bold text-success d-block"><?= \app\helpers\SvgHelper::icon('cart-check-fill') ?> WAKTU BELI TERBAIK:</span>
                             <ul class="mb-0 ps-3 small text-muted">
                                 <li><strong>Breakout:</strong> Saat candle tembus $<?= number_format($neckline, 2) ?> dengan RVOL &gt; 1.3x.</li>
                                 <li><strong>Pullback:</strong> Saat harga uji ulang (retest) $<?= number_format($neckline, 2) ?> dan memantul.</li>
@@ -363,7 +363,7 @@ $mitigationStrategies = (array) ($pattern['mitigation_strategies'] ?? []);
                     </div>
                     <div class="col-sm-6">
                         <div class="border rounded p-2 bg-light">
-                            <span class="small fw-bold text-danger d-block"><i class="bi bi-cash-stack"></i> WAKTU JUAL TERBAIK:</span>
+                            <span class="small fw-bold text-danger d-block"><?= \app\helpers\SvgHelper::icon('cash-stack') ?> WAKTU JUAL TERBAIK:</span>
                             <ul class="mb-0 ps-3 small text-muted">
                                 <li><strong>TP Parsial:</strong> Jual 50% di $<?= number_format($tp1, 2) ?> (+<?= number_format($profitTp1Pct, 1) ?>%).</li>
                                 <li><strong>TP Penuh:</strong> Jual sisa di $<?= number_format($tp2, 2) ?> (+<?= number_format($profitTp2Pct, 1) ?>%).</li>
@@ -421,7 +421,7 @@ $mitigationStrategies = (array) ($pattern['mitigation_strategies'] ?? []);
         <!-- Kalkulator Manajemen Risiko (Position Sizing) -->
         <div class="card shadow-sm border-0">
             <div class="card-header bg-white py-3 border-bottom">
-                <h5 class="mb-0 fw-bold"><i class="bi bi-calculator text-primary"></i> Kalkulator Alokasi Modal &amp; Ukuran Lembar</h5>
+                <h5 class="mb-0 fw-bold"><?= \app\helpers\SvgHelper::icon('calculator', ['class' => 'text-primary']) ?> Kalkulator Alokasi Modal &amp; Ukuran Lembar</h5>
             </div>
             <div class="card-body">
                 <div class="row g-2 mb-3">

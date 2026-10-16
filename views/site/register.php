@@ -43,7 +43,7 @@ $this->title = 'Daftar Akun Baru - Stock Analyzer';
                     ])->label('Password') ?>
 
                     <div class="d-grid mt-4 mb-3">
-                        <?= Html::submitButton('<i class="bi bi-person-plus-fill me-1"></i> Daftar Sekarang', [
+                        <?= Html::submitButton(\app\helpers\SvgHelper::icon('person-plus-fill', ['class' => 'me-1']) . ' Daftar Sekarang', [
                             'class' => 'btn btn-success btn-lg fw-bold shadow-sm',
                             'name' => 'register-button'
                         ]) ?>

@@ -33,7 +33,7 @@ $dailyAdvRatio = $totalDaily > 0 ? round(($gainersCount / $totalDaily) * 100, 1)
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
         <div>
             <h1 class="h3 fw-bold text-dark mb-1">
-                <i class="bi bi-speedometer2 text-primary me-2"></i><?= Html::encode($this->title) ?>
+                <?= \app\helpers\SvgHelper::icon('speedometer2', ['class' => 'text-primary me-2']) ?><?= Html::encode($this->title) ?>
             </h1>
             <p class="text-muted small mb-0">
                 Pusat navigasi dan pemantauan menyeluruh: Volume Breakout Institusi, Pola Reversal (Double/Triple Bottom), Confluence Multi-Indikator, serta Portofolio Aktif Anda.
@@ -41,13 +41,13 @@ $dailyAdvRatio = $totalDaily > 0 ? round(($gainersCount / $totalDaily) * 100, 1)
         </div>
         <div class="d-flex gap-2 flex-wrap">
             <a href="<?= Url::to(['/strategy-confluence/index']) ?>" class="btn btn-outline-primary btn-sm px-3 shadow-sm fw-semibold">
-                <i class="bi bi-bullseye me-1"></i> Confluence Scanner (PRO)
+                <?= \app\helpers\SvgHelper::icon('bullseye', ['class' => 'me-1']) ?> Confluence Scanner (PRO)
             </a>
             <a href="<?= Url::to(['/portfolio/index']) ?>" class="btn btn-success btn-sm px-3 shadow-sm fw-bold">
-                <i class="bi bi-briefcase-fill me-1"></i> Buka Portofolio
+                <?= \app\helpers\SvgHelper::icon('briefcase-fill', ['class' => 'me-1']) ?> Buka Portofolio
             </a>
             <a href="<?= Url::to(['/scanner/index']) ?>" class="btn btn-primary btn-sm px-3 shadow-sm fw-semibold">
-                <i class="bi bi-search me-1"></i> Volume Scanner
+                <?= \app\helpers\SvgHelper::icon('search', ['class' => 'me-1']) ?> Volume Scanner
             </a>
         </div>
     </div>
@@ -56,42 +56,42 @@ $dailyAdvRatio = $totalDaily > 0 ? round(($gainersCount / $totalDaily) * 100, 1)
     <div class="row g-2 mb-4">
         <div class="col-6 col-md-4 col-xl-2">
             <a href="<?= Url::to(['/portfolio/index']) ?>" class="card text-decoration-none border-0 shadow-sm bg-white h-100 hover-card p-2 text-center">
-                <div class="text-success mb-1" style="font-size: 1.4rem;"><i class="bi bi-wallet2"></i></div>
+                <div class="text-success mb-1" style="font-size: 1.4rem;"><?= \app\helpers\SvgHelper::icon('wallet2') ?></div>
                 <div class="fw-bold text-dark small">Portofolio & DCA</div>
                 <div class="text-muted" style="font-size: 0.72rem;">Target Profit & Avg Down</div>
             </a>
         </div>
         <div class="col-6 col-md-4 col-xl-2">
             <a href="<?= Url::to(['/strategy-confluence/index']) ?>" class="card text-decoration-none border-0 shadow-sm bg-white h-100 hover-card p-2 text-center">
-                <div class="text-primary mb-1" style="font-size: 1.4rem;"><i class="bi bi-diagram-3-fill"></i></div>
+                <div class="text-primary mb-1" style="font-size: 1.4rem;"><?= \app\helpers\SvgHelper::icon('diagram-3-fill') ?></div>
                 <div class="fw-bold text-dark small">Confluence PRO</div>
                 <div class="text-muted" style="font-size: 0.72rem;">MA + RSI + MACD + Fibo</div>
             </a>
         </div>
         <div class="col-6 col-md-4 col-xl-2">
             <a href="<?= Url::to(['/double-bottom/index']) ?>" class="card text-decoration-none border-0 shadow-sm bg-white h-100 hover-card p-2 text-center">
-                <div class="text-info mb-1" style="font-size: 1.4rem;"><i class="bi bi-graph-down"></i></div>
+                <div class="text-info mb-1" style="font-size: 1.4rem;"><?= \app\helpers\SvgHelper::icon('graph-down') ?></div>
                 <div class="fw-bold text-dark small">Double Bottom</div>
                 <div class="text-muted" style="font-size: 0.72rem;">W-Formation Reversal</div>
             </a>
         </div>
         <div class="col-6 col-md-4 col-xl-2">
             <a href="<?= Url::to(['/triple-bottom/index']) ?>" class="card text-decoration-none border-0 shadow-sm bg-white h-100 hover-card p-2 text-center">
-                <div class="text-warning mb-1" style="font-size: 1.4rem;"><i class="bi bi-water"></i></div>
+                <div class="text-warning mb-1" style="font-size: 1.4rem;"><?= \app\helpers\SvgHelper::icon('water') ?></div>
                 <div class="fw-bold text-dark small">Triple Bottom</div>
                 <div class="text-muted" style="font-size: 0.72rem;">Kuat Menahan Support</div>
             </a>
         </div>
         <div class="col-6 col-md-4 col-xl-2">
             <a href="<?= Url::to(['/rsi-double-bottom/index']) ?>" class="card text-decoration-none border-0 shadow-sm bg-white h-100 hover-card p-2 text-center">
-                <div class="text-danger mb-1" style="font-size: 1.4rem;"><i class="bi bi-activity"></i></div>
+                <div class="text-danger mb-1" style="font-size: 1.4rem;"><?= \app\helpers\SvgHelper::icon('activity') ?></div>
                 <div class="fw-bold text-dark small">RSI & Momentum</div>
                 <div class="text-muted" style="font-size: 0.72rem;">Oversold & Divergensi</div>
             </a>
         </div>
         <div class="col-6 col-md-4 col-xl-2">
             <a href="<?= Url::to(['/candlestick/index']) ?>" class="card text-decoration-none border-0 shadow-sm bg-white h-100 hover-card p-2 text-center">
-                <div class="text-secondary mb-1" style="font-size: 1.4rem;"><i class="bi bi-bar-chart-steps"></i></div>
+                <div class="text-secondary mb-1" style="font-size: 1.4rem;"><?= \app\helpers\SvgHelper::icon('bar-chart-steps') ?></div>
                 <div class="fw-bold text-dark small">Candlestick Scanner</div>
                 <div class="text-muted" style="font-size: 0.72rem;">Hammer, Engulfing, Vol</div>
             </a>
@@ -106,7 +106,7 @@ $dailyAdvRatio = $totalDaily > 0 ? round(($gainersCount / $totalDaily) * 100, 1)
                 <div>
                     <span class="badge bg-white text-primary mb-2 fw-semibold">Portofolio Pengguna Aktif</span>
                     <h4 class="fw-bold mb-1">
-                        <i class="bi bi-person-circle me-1"></i> Halo, <?= Html::encode(Yii::$app->user->identity->username) ?>
+                        <?= \app\helpers\SvgHelper::icon('person-circle', ['class' => 'me-1']) ?> Halo, <?= Html::encode(Yii::$app->user->identity->username) ?>
                     </h4>
                     <p class="mb-0 text-white-50 small">
                         <?php if ($portfolioData['count'] > 0): ?>
@@ -140,7 +140,7 @@ $dailyAdvRatio = $totalDaily > 0 ? round(($gainersCount / $totalDaily) * 100, 1)
     <?php else: ?>
     <div class="alert alert-info border-0 shadow-sm d-flex justify-content-between align-items-center mb-4">
         <div>
-            <i class="bi bi-info-circle-fill me-2 fs-5 align-middle"></i>
+            <?= \app\helpers\SvgHelper::icon('info-circle-fill', ['class' => 'me-2 fs-5 align-middle']) ?>
             <strong>Kelola Portofolio Pribadi Anda:</strong> Masuk atau daftar akun untuk melacak saham yang Anda miliki, kalkulasi target jual +3%, dan simulasi Averaging Down.
         </div>
         <div class="d-flex gap-2">
@@ -242,7 +242,7 @@ $dailyAdvRatio = $totalDaily > 0 ? round(($gainersCount / $totalDaily) * 100, 1)
         <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
             <div>
                 <h5 class="fw-bold mb-0 text-dark">
-                    <i class="bi bi-stars text-warning me-2"></i>Pilihan Saham Potensial: Confluence Strategy (PRO)
+                    <?= \app\helpers\SvgHelper::icon('stars', ['class' => 'text-warning me-2']) ?>Pilihan Saham Potensial: Confluence Strategy (PRO)
                 </h5>
                 <span class="text-muted small">Peringkat keselarasan teknikal (Fibonacci Golden Pocket 61.8%, RSI, Moving Average & MACD)</span>
             </div>
@@ -302,7 +302,7 @@ $dailyAdvRatio = $totalDaily > 0 ? round(($gainersCount / $totalDaily) * 100, 1)
                             <td>
                                 <?php if (!empty($pick['in_golden_pocket'])): ?>
                                     <span class="badge bg-warning bg-opacity-25 text-warning-emphasis border border-warning-subtle">
-                                        <i class="bi bi-check-circle-fill me-1"></i> Area Golden Pocket
+                                        <?= \app\helpers\SvgHelper::icon('check-circle-fill', ['class' => 'me-1']) ?> Area Golden Pocket
                                     </span>
                                 <?php else: ?>
                                     <span class="text-muted small">-</span>
@@ -315,7 +315,7 @@ $dailyAdvRatio = $totalDaily > 0 ? round(($gainersCount / $totalDaily) * 100, 1)
                             </td>
                             <td class="text-end pe-3">
                                 <a href="<?= Url::to(['/strategy-confluence/detail', 'symbol' => $pick['symbol']]) ?>" class="btn btn-outline-primary btn-sm px-2 py-1">
-                                    <i class="bi bi-graph-up me-1"></i> Analisis
+                                    <?= \app\helpers\SvgHelper::icon('graph-up', ['class' => 'me-1']) ?> Analisis
                                 </a>
                             </td>
                         </tr>
@@ -334,7 +334,7 @@ $dailyAdvRatio = $totalDaily > 0 ? round(($gainersCount / $totalDaily) * 100, 1)
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
                     <h6 class="fw-bold mb-0 text-success">
-                        <i class="bi bi-arrow-up-right-circle-fill me-1"></i> Top Gainers Harian
+                        <?= \app\helpers\SvgHelper::icon('arrow-up-right-circle-fill', ['class' => 'me-1']) ?> Top Gainers Harian
                     </h6>
                     <span class="text-muted small"><?= Html::encode($lastDailyDate ?? '') ?></span>
                 </div>
@@ -370,7 +370,7 @@ $dailyAdvRatio = $totalDaily > 0 ? round(($gainersCount / $totalDaily) * 100, 1)
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
                     <h6 class="fw-bold mb-0 text-danger">
-                        <i class="bi bi-arrow-down-right-circle-fill me-1"></i> Top Decliners (Buy on Dip)
+                        <?= \app\helpers\SvgHelper::icon('arrow-down-right-circle-fill', ['class' => 'me-1']) ?> Top Decliners (Buy on Dip)
                     </h6>
                     <span class="badge bg-light text-muted border">Peluang Rebound</span>
                 </div>
@@ -406,7 +406,7 @@ $dailyAdvRatio = $totalDaily > 0 ? round(($gainersCount / $totalDaily) * 100, 1)
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
                     <h6 class="fw-bold mb-0 text-primary">
-                        <i class="bi bi-bar-chart-fill me-1"></i> Volume Leaders
+                        <?= \app\helpers\SvgHelper::icon('bar-chart-fill', ['class' => 'me-1']) ?> Volume Leaders
                     </h6>
                     <span class="text-muted small">Aktivitas Terbesar</span>
                 </div>
@@ -443,7 +443,7 @@ $dailyAdvRatio = $totalDaily > 0 ? round(($gainersCount / $totalDaily) * 100, 1)
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-header bg-white py-3 border-bottom">
                     <h6 class="card-title fw-bold text-success mb-0">
-                        <i class="bi bi-shield-fill-check me-1"></i> Akumulasi Volume Institusi
+                        <?= \app\helpers\SvgHelper::icon('shield-fill-check', ['class' => 'me-1']) ?> Akumulasi Volume Institusi
                     </h6>
                 </div>
                 <div class="card-body p-0">
@@ -478,7 +478,7 @@ $dailyAdvRatio = $totalDaily > 0 ? round(($gainersCount / $totalDaily) * 100, 1)
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-header bg-white py-3 border-bottom">
                     <h6 class="card-title fw-bold text-dark mb-0">
-                        <i class="bi bi-trophy-fill text-warning me-1"></i> Top Ranked (Volume Score)
+                        <?= \app\helpers\SvgHelper::icon('trophy-fill', ['class' => 'text-warning me-1']) ?> Top Ranked (Volume Score)
                     </h6>
                 </div>
                 <div class="card-body p-0">
@@ -513,7 +513,7 @@ $dailyAdvRatio = $totalDaily > 0 ? round(($gainersCount / $totalDaily) * 100, 1)
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-header bg-white py-3 border-bottom">
                     <h6 class="card-title fw-bold text-primary mb-0">
-                        <i class="bi bi-bell-fill text-info me-1"></i> Sinyal Buy Terkini
+                        <?= \app\helpers\SvgHelper::icon('bell-fill', ['class' => 'text-info me-1']) ?> Sinyal Buy Terkini
                     </h6>
                 </div>
                 <div class="card-body p-0">

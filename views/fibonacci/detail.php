@@ -135,10 +135,10 @@ $markLines = [
             <?php endforeach; ?>
         </div>
         <a href="<?= Url::to(['/fibonacci/index', 'timeframe' => $params['timeframe']]) ?>" class="btn btn-outline-secondary btn-sm shadow-sm">
-            <i class="bi bi-arrow-left"></i> Kembali ke Scanner
+            <?= \app\helpers\SvgHelper::icon('arrow-left') ?> Kembali ke Scanner
         </a>
         <a href="<?= Url::to(['/stock/view', 'symbol' => $stock->symbol]) ?>" class="btn btn-outline-primary btn-sm shadow-sm">
-            <i class="bi bi-box-arrow-up-right"></i> Detail Saham
+            <?= \app\helpers\SvgHelper::icon('box-arrow-up-right') ?> Detail Saham
         </a>
     </div>
 </div>
@@ -149,11 +149,11 @@ $markLines = [
         <div class="d-flex align-items-center gap-3">
             <div class="display-6 <?= ($action === 'BUY') ? 'text-success' : (($action === 'TAKE_PROFIT') ? 'text-warning-emphasis' : 'text-danger') ?>">
                 <?php if ($action === 'BUY'): ?>
-                    <i class="bi bi-bullseye"></i>
+                    <?= \app\helpers\SvgHelper::icon('bullseye') ?>
                 <?php elseif ($action === 'TAKE_PROFIT'): ?>
-                    <i class="bi bi-trophy-fill"></i>
+                    <?= \app\helpers\SvgHelper::icon('trophy-fill') ?>
                 <?php else: ?>
-                    <i class="bi bi-shield-x"></i>
+                    <?= \app\helpers\SvgHelper::icon('shield-x') ?>
                 <?php endif; ?>
             </div>
             <div>
@@ -202,7 +202,7 @@ $markLines = [
                     $<?= number_format($analysis['stop_loss'], 2) ?>
                 </div>
                 <div class="small text-danger mt-1" style="font-size: 0.72rem;">
-                    <i class="bi bi-shield-x"></i> Risiko: <strong>-<?= $analysis['stop_loss_pct'] ?>%</strong>
+                    <?= \app\helpers\SvgHelper::icon('shield-x') ?> Risiko: <strong>-<?= $analysis['stop_loss_pct'] ?>%</strong>
                 </div>
             </div>
         </div>
@@ -217,7 +217,7 @@ $markLines = [
                     $<?= number_format($analysis['target_1'], 2) ?>
                 </div>
                 <div class="small text-success mt-1" style="font-size: 0.72rem;">
-                    <i class="bi bi-graph-up-arrow"></i> Gain: <strong>+<?= $analysis['target_1_pct'] ?>%</strong>
+                    <?= \app\helpers\SvgHelper::icon('graph-up-arrow') ?> Gain: <strong>+<?= $analysis['target_1_pct'] ?>%</strong>
                 </div>
             </div>
         </div>
@@ -232,7 +232,7 @@ $markLines = [
                     $<?= number_format($analysis['target_2'], 2) ?>
                 </div>
                 <div class="small text-success mt-1" style="font-size: 0.72rem;">
-                    <i class="bi bi-trophy"></i> Gain: <strong>+<?= $analysis['target_2_pct'] ?>%</strong>
+                    <?= \app\helpers\SvgHelper::icon('trophy') ?> Gain: <strong>+<?= $analysis['target_2_pct'] ?>%</strong>
                 </div>
             </div>
         </div>
@@ -247,7 +247,7 @@ $markLines = [
                     $<?= number_format($analysis['target_3'], 2) ?>
                 </div>
                 <div class="small text-warning-emphasis mt-1" style="font-size: 0.72rem;">
-                    <i class="bi bi-star-fill"></i> Gain: <strong>+<?= $analysis['target_3_pct'] ?>%</strong>
+                    <?= \app\helpers\SvgHelper::icon('star-fill') ?> Gain: <strong>+<?= $analysis['target_3_pct'] ?>%</strong>
                 </div>
             </div>
         </div>
@@ -275,7 +275,7 @@ $markLines = [
         <div class="card border-0 shadow-sm h-100">
             <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <h5 class="mb-0 fw-bold text-dark">
-                    <i class="bi bi-graph-up text-primary me-1"></i> Chart Candlestick &amp; Level Fibonacci
+                    <?= \app\helpers\SvgHelper::icon('graph-up', ['class' => 'text-primary me-1']) ?> Chart Candlestick &amp; Level Fibonacci
                 </h5>
                 <div class="d-flex flex-wrap align-items-center gap-1 small">
                     <span class="badge" style="background-color: #2ecc71; color: #fff;">⭐ Golden Pocket 61.8%</span>
@@ -297,7 +297,7 @@ $markLines = [
         <div class="card border-0 shadow-sm mb-3">
             <div class="card-header bg-white py-2 border-bottom">
                 <h6 class="mb-0 fw-bold text-dark">
-                    <i class="bi bi-layers text-primary me-1"></i> Level Kunci Retracement &amp; Extension
+                    <?= \app\helpers\SvgHelper::icon('layers', ['class' => 'text-primary me-1']) ?> Level Kunci Retracement &amp; Extension
                 </h6>
             </div>
             <div class="card-body p-0">
@@ -366,7 +366,7 @@ $markLines = [
         <div class="card border-0 shadow-sm mb-3">
             <div class="card-header bg-white py-2 border-bottom">
                 <h6 class="mb-0 fw-bold text-dark">
-                    <i class="bi bi-shield-check text-success me-1"></i> 5-Point Checklist Fibonacci
+                    <?= \app\helpers\SvgHelper::icon('shield-check', ['class' => 'text-success me-1']) ?> 5-Point Checklist Fibonacci
                 </h6>
             </div>
             <div class="card-body p-3">
@@ -383,9 +383,9 @@ $markLines = [
                             </div>
                             <span>
                                 <?php if ($item['pass']): ?>
-                                    <i class="bi bi-check-circle-fill text-success fs-5"></i>
+                                    <?= \app\helpers\SvgHelper::icon('check-circle-fill', ['class' => 'text-success fs-5']) ?>
                                 <?php else: ?>
-                                    <i class="bi bi-x-circle text-muted fs-5"></i>
+                                    <?= \app\helpers\SvgHelper::icon('x-circle', ['class' => 'text-muted fs-5']) ?>
                                 <?php endif; ?>
                             </span>
                         </li>
@@ -398,7 +398,7 @@ $markLines = [
         <div class="card border-0 shadow-sm bg-light">
             <div class="card-body p-3">
                 <h6 class="fw-bold text-dark mb-2">
-                    <i class="bi bi-lightbulb text-warning me-1"></i> Panduan Eksekusi Trading
+                    <?= \app\helpers\SvgHelper::icon('lightbulb', ['class' => 'text-warning me-1']) ?> Panduan Eksekusi Trading
                 </h6>
                 <div class="small text-secondary">
                     <?php if ($action === 'BUY'): ?>

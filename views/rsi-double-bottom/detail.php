@@ -83,7 +83,7 @@ $ma50Series = $pattern['ma50_series'] ?? [];
             <?php endforeach; ?>
         </div>
         <?= Html::a(
-            '<i class="bi bi-arrow-left"></i> Kembali', 
+            \app\helpers\SvgHelper::icon('arrow-left') . ' Kembali', 
             [
                 '/rsi-double-bottom/index', 
                 'timeframe' => $timeframe, 
@@ -102,7 +102,7 @@ $ma50Series = $pattern['ma50_series'] ?? [];
 <!-- Parameter Tuning Form -->
 <div class="card border-0 shadow-sm mb-4">
     <div class="card-header bg-light py-2">
-        <strong class="small text-secondary"><i class="bi bi-sliders"></i> Parameter Analisis RSI</strong>
+        <strong class="small text-secondary"><?= \app\helpers\SvgHelper::icon('sliders') ?> Parameter Analisis RSI</strong>
     </div>
     <div class="card-body p-3">
         <?= Html::beginForm(['/rsi-double-bottom/detail'], 'get', ['class' => 'row g-2 align-items-end']) ?>
@@ -122,7 +122,7 @@ $ma50Series = $pattern['ma50_series'] ?? [];
                 <?= Html::input('number', 'lookback', $lookback, ['class' => 'form-control form-control-sm', 'min' => 20, 'max' => 300]) ?>
             </div>
             <div class="col-md-3 col-12 text-end">
-                <?= Html::submitButton('<i class="bi bi-arrow-repeat"></i> Perbarui Analisis', ['class' => 'btn btn-sm btn-primary w-100']) ?>
+                <?= Html::submitButton(\app\helpers\SvgHelper::icon('arrow-repeat') . ' Perbarui Analisis', ['class' => 'btn btn-sm btn-primary w-100']) ?>
             </div>
         <?= Html::endForm() ?>
     </div>
@@ -130,7 +130,7 @@ $ma50Series = $pattern['ma50_series'] ?? [];
 
 <?php if ($pattern === null): ?>
     <div class="alert alert-info shadow-sm py-4 text-center">
-        <i class="bi bi-info-circle display-6 d-block mb-2 text-info"></i>
+        <?= \app\helpers\SvgHelper::icon('info-circle', ['class' => 'display-6 d-block mb-2 text-info']) ?>
         <h5 class="fw-bold">Data Tidak Cukup untuk Analisis RSI</h5>
         <p class="text-muted mb-0">Jumlah candle yang tersedia kurang dari periode yang dibutuhkan.</p>
     </div>
@@ -142,7 +142,7 @@ $ma50Series = $pattern['ma50_series'] ?? [];
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
             <h5 class="mb-0 fw-bold text-dark">
-                <i class="bi bi-graph-up text-primary me-1"></i> Grafik Interaktif Harga (MA50) &amp; Osilator RSI(<?= $rsiPeriod ?>)
+                <?= \app\helpers\SvgHelper::icon('graph-up', ['class' => 'text-primary me-1']) ?> Grafik Interaktif Harga (MA50) &amp; Osilator RSI(<?= $rsiPeriod ?>)
             </h5>
             <small class="text-muted">Sinkronisasi Candlestick, Moving Average 50, dan Area Overbought/Oversold</small>
         </div>
@@ -355,7 +355,7 @@ JS
 <!-- Stock Information Card -->
 <div class="card border-0 shadow-sm mt-3">
     <div class="card-header bg-white py-3 border-bottom">
-        <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-building text-primary me-1"></i> Profil Saham <?= Html::encode($stock->symbol) ?></h6>
+        <h6 class="mb-0 fw-bold text-dark"><?= \app\helpers\SvgHelper::icon('building', ['class' => 'text-primary me-1']) ?> Profil Saham <?= Html::encode($stock->symbol) ?></h6>
     </div>
     <div class="card-body">
         <div class="row g-3">

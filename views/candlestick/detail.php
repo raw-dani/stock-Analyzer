@@ -102,11 +102,11 @@ $markPoints = [
             <span class="fs-4 fw-bold text-dark ms-1">$<?= number_format((float) $analysis['last_price'], 2) ?></span>
             <?php if ($analysis['price_change_pct'] >= 0): ?>
                 <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 fs-7">
-                    <i class="bi bi-arrow-up-short"></i> +<?= number_format((float) $analysis['price_change_pct'], 2) ?>%
+                    <?= \app\helpers\SvgHelper::icon('arrow-up-short') ?> +<?= number_format((float) $analysis['price_change_pct'], 2) ?>%
                 </span>
             <?php else: ?>
                 <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 fs-7">
-                    <i class="bi bi-arrow-down-short"></i> <?= number_format((float) $analysis['price_change_pct'], 2) ?>%
+                    <?= \app\helpers\SvgHelper::icon('arrow-down-short') ?> <?= number_format((float) $analysis['price_change_pct'], 2) ?>%
                 </span>
             <?php endif; ?>
             <span class="badge bg-light text-secondary border"><?= Html::encode($stock->exchange) ?></span>
@@ -140,10 +140,10 @@ $markPoints = [
         <a href="https://www.tradingview.com/chart/?symbol=<?= !empty($stock->exchange) ? urlencode($stock->exchange . ':' . $stock->symbol) : urlencode($stock->symbol) ?>"
            target="_blank"
            class="btn btn-sm btn-outline-dark shadow-sm">
-            <i class="bi bi-box-arrow-up-right me-1"></i> TradingView
+            <?= \app\helpers\SvgHelper::icon('box-arrow-up-right', ['class' => 'me-1']) ?> TradingView
         </a>
         <?= Html::a(
-            '<i class="bi bi-arrow-left"></i> Kembali ke Scanner',
+            \app\helpers\SvgHelper::icon('arrow-left') . ' Kembali ke Scanner',
             ['/candlestick/index', 'timeframe' => $params['timeframe']],
             ['class' => 'btn btn-sm btn-outline-secondary shadow-sm']
         ) ?>
@@ -191,7 +191,7 @@ $markPoints = [
                     $<?= number_format((float) $analysis['stop_loss'], 2) ?>
                 </div>
                 <div class="small text-danger mt-1" style="font-size: 0.72rem;">
-                    <i class="bi bi-shield-x"></i> Batas Risiko: <strong>-<?= $analysis['stop_loss_pct'] ?>%</strong>
+                    <?= \app\helpers\SvgHelper::icon('shield-x') ?> Batas Risiko: <strong>-<?= $analysis['stop_loss_pct'] ?>%</strong>
                 </div>
             </div>
         </div>
@@ -206,7 +206,7 @@ $markPoints = [
                     $<?= number_format((float) $analysis['target_1'], 2) ?>
                 </div>
                 <div class="small text-success mt-1" style="font-size: 0.72rem;">
-                    <i class="bi bi-graph-up-arrow"></i> Potensi Gain: <strong>+<?= $analysis['target_1_pct'] ?>%</strong>
+                    <?= \app\helpers\SvgHelper::icon('graph-up-arrow') ?> Potensi Gain: <strong>+<?= $analysis['target_1_pct'] ?>%</strong>
                 </div>
             </div>
         </div>
@@ -221,7 +221,7 @@ $markPoints = [
                     $<?= number_format((float) $analysis['target_2'], 2) ?>
                 </div>
                 <div class="small text-success mt-1" style="font-size: 0.72rem;">
-                    <i class="bi bi-trophy"></i> Potensi Gain: <strong>+<?= $analysis['target_2_pct'] ?>%</strong>
+                    <?= \app\helpers\SvgHelper::icon('trophy') ?> Potensi Gain: <strong>+<?= $analysis['target_2_pct'] ?>%</strong>
                 </div>
             </div>
         </div>
@@ -250,7 +250,7 @@ $markPoints = [
         <div class="card border-0 shadow-sm mb-3">
             <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <h5 class="mb-0 fw-bold text-dark">
-                    <i class="bi bi-graph-up text-primary me-1"></i> Chart Candlestick &amp; Volume Sub-chart
+                    <?= \app\helpers\SvgHelper::icon('graph-up', ['class' => 'text-primary me-1']) ?> Chart Candlestick &amp; Volume Sub-chart
                 </h5>
                 <div class="d-flex flex-wrap align-items-center gap-1 small">
                     <span class="badge bg-light text-dark border">Candle Hijau/Merah: OHLC</span>
@@ -269,13 +269,13 @@ $markPoints = [
         <div class="card border-0 shadow-sm">
             <div class="card-header bg-white py-3 border-bottom">
                 <h6 class="mb-0 fw-bold text-dark">
-                    <i class="bi bi-compass text-primary me-1"></i> Rekomendasi Waktu Transaksi &amp; Strategi Eksekusi
+                    <?= \app\helpers\SvgHelper::icon('compass', ['class' => 'text-primary me-1']) ?> Rekomendasi Waktu Transaksi &amp; Strategi Eksekusi
                 </h6>
             </div>
             <div class="card-body p-3">
                 <div class="alert alert-<?= $actionBadgeColor ?> bg-opacity-10 border-0 mb-3">
                     <h6 class="fw-bold mb-1">
-                        <i class="bi bi-info-circle-fill me-1"></i> Panduan Timing:
+                        <?= \app\helpers\SvgHelper::icon('info-circle-fill', ['class' => 'me-1']) ?> Panduan Timing:
                     </h6>
                     <p class="mb-0 small fw-medium">
                         <?= Html::encode($analysis['timing_advice']) ?>
@@ -286,7 +286,7 @@ $markPoints = [
                     <div class="col-md-6">
                         <div class="p-3 bg-light rounded border h-100">
                             <h6 class="fw-bold text-success mb-2">
-                                <i class="bi bi-box-arrow-in-down-right"></i> Langkah Waktu Beli (Entry Strategy):
+                                <?= \app\helpers\SvgHelper::icon('box-arrow-in-down-right') ?> Langkah Waktu Beli (Entry Strategy):
                             </h6>
                             <p class="mb-2 text-secondary">
                                 <?= Html::encode($analysis['entry_advice']) ?>
@@ -300,7 +300,7 @@ $markPoints = [
                     <div class="col-md-6">
                         <div class="p-3 bg-light rounded border h-100">
                             <h6 class="fw-bold text-danger mb-2">
-                                <i class="bi bi-box-arrow-up-right"></i> Langkah Waktu Jual (Exit &amp; Proteksi Modal):
+                                <?= \app\helpers\SvgHelper::icon('box-arrow-up-right') ?> Langkah Waktu Jual (Exit &amp; Proteksi Modal):
                             </h6>
                             <p class="mb-2 text-secondary">
                                 <?= Html::encode($analysis['exit_advice']) ?>
@@ -323,7 +323,7 @@ $markPoints = [
         <div class="card border-0 shadow-sm mb-3">
             <div class="card-header bg-white py-3 border-bottom">
                 <h6 class="mb-0 fw-bold text-dark">
-                    <i class="bi bi-activity text-primary me-1"></i> Analisa Konfirmasi Volume
+                    <?= \app\helpers\SvgHelper::icon('activity', ['class' => 'text-primary me-1']) ?> Analisa Konfirmasi Volume
                 </h6>
             </div>
             <div class="card-body p-3">
@@ -353,9 +353,9 @@ $markPoints = [
                 <div class="p-3 bg-light rounded border mb-3">
                     <div class="fw-bold small mb-1 <?= $analysis['volume_supports_bullish'] ? 'text-success' : 'text-danger' ?>">
                         <?php if ($analysis['volume_supports_bullish']): ?>
-                            <i class="bi bi-check-circle-fill"></i> Volume MENDUKUNG Kenaikan Saham
+                            <?= \app\helpers\SvgHelper::icon('check-circle-fill') ?> Volume MENDUKUNG Kenaikan Saham
                         <?php else: ?>
-                            <i class="bi bi-exclamation-triangle-fill"></i> Volume TIDAK CUKUP Mendukung
+                            <?= \app\helpers\SvgHelper::icon('exclamation-triangle-fill') ?> Volume TIDAK CUKUP Mendukung
                         <?php endif; ?>
                     </div>
                     <p class="small text-secondary mb-0" style="font-size: 0.78rem;">
@@ -384,7 +384,7 @@ $markPoints = [
         <div class="card border-0 shadow-sm mb-3">
             <div class="card-header bg-white py-3 border-bottom">
                 <h6 class="mb-0 fw-bold text-dark">
-                    <i class="bi bi-aspect-ratio text-primary me-1"></i> Anatomi Candlestick: <?= Html::encode($analysis['pattern_name']) ?>
+                    <?= \app\helpers\SvgHelper::icon('aspect-ratio', ['class' => 'text-primary me-1']) ?> Anatomi Candlestick: <?= Html::encode($analysis['pattern_name']) ?>
                 </h6>
             </div>
             <div class="card-body p-3">
@@ -433,7 +433,7 @@ $markPoints = [
         <div class="card border-0 shadow-sm mb-3">
             <div class="card-header bg-white py-3 border-bottom">
                 <h6 class="mb-0 fw-bold text-dark">
-                    <i class="bi bi-shield-check text-success me-1"></i> 5-Point Checklist Sinyal
+                    <?= \app\helpers\SvgHelper::icon('shield-check', ['class' => 'text-success me-1']) ?> 5-Point Checklist Sinyal
                 </h6>
             </div>
             <div class="card-body p-3">
@@ -450,9 +450,9 @@ $markPoints = [
                             </div>
                             <span>
                                 <?php if ($item['pass']): ?>
-                                    <i class="bi bi-check-circle-fill text-success fs-5"></i>
+                                    <?= \app\helpers\SvgHelper::icon('check-circle-fill', ['class' => 'text-success fs-5']) ?>
                                 <?php else: ?>
-                                    <i class="bi bi-x-circle text-muted fs-5"></i>
+                                    <?= \app\helpers\SvgHelper::icon('x-circle', ['class' => 'text-muted fs-5']) ?>
                                 <?php endif; ?>
                             </span>
                         </li>

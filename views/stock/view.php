@@ -21,7 +21,7 @@ $change = $priceStats['change'] ?? 0.0;
 $changePct = $priceStats['change_pct'] ?? 0.0;
 $isUp = $change >= 0;
 $changeClass = $isUp ? 'text-success' : 'text-danger';
-$changeIcon = $isUp ? 'bi-arrow-up' : 'bi-arrow-down';
+$changeIcon = $isUp ? 'arrow-up' : 'arrow-down';
 ?>
 
 <!-- Header Saham & Aksi Cepat -->
@@ -49,18 +49,18 @@ $changeIcon = $isUp ? 'bi-arrow-up' : 'bi-arrow-down';
     <!-- Hubungan Antar Modul (Cross-Module Fast Actions) -->
     <div class="d-flex flex-wrap align-items-center gap-2">
         <a href="<?= Url::to(['/moving-average/detail', 'symbol' => $stock->symbol]) ?>" class="btn btn-outline-primary btn-sm shadow-sm" title="Lihat Setup Moving Average & Level Stop Loss/TP">
-            <i class="bi bi-graph-up"></i> Trading Plan MA
+            <?= \app\helpers\SvgHelper::icon('graph-up') ?> Trading Plan MA
         </a>
         <a href="<?= Url::to(['/rsi-double-bottom/detail', 'symbol' => $stock->symbol]) ?>" class="btn btn-outline-info btn-sm shadow-sm" title="Lihat Analisis Pola RSI Double Bottom">
-            <i class="bi bi-activity"></i> Analisis RSI
+            <?= \app\helpers\SvgHelper::icon('activity') ?> Analisis RSI
         </a>
         <?php if (!Yii::$app->user->isGuest): ?>
             <a href="<?= Url::to(['/portfolio/index']) ?>" class="btn btn-outline-success btn-sm shadow-sm" title="Buka Portofolio">
-                <i class="bi bi-briefcase"></i> Portofolio
+                <?= \app\helpers\SvgHelper::icon('briefcase') ?> Portofolio
             </a>
         <?php endif; ?>
         <a href="<?= Url::to(['/scanner/index', 'symbol' => $stock->symbol]) ?>" class="btn btn-outline-secondary btn-sm shadow-sm">
-            <i class="bi bi-search"></i> Scanner
+            <?= \app\helpers\SvgHelper::icon('search') ?> Scanner
         </a>
     </div>
 </div>
@@ -75,7 +75,7 @@ $changeIcon = $isUp ? 'bi-arrow-up' : 'bi-arrow-down';
                     <?= Yii::$app->formatter->asCurrency($currentPrice) ?>
                 </div>
                 <div class="small <?= $changeClass ?> mt-1 fw-bold">
-                    <i class="bi <?= $changeIcon ?>"></i>
+                    <?= \app\helpers\SvgHelper::icon($changeIcon) ?>
                     <?= ($change >= 0 ? '+' : '') . number_format($change, 2) ?> (<?= ($changePct >= 0 ? '+' : '') . number_format($changePct, 2) ?>%)
                 </div>
             </div>
@@ -134,7 +134,7 @@ $changeIcon = $isUp ? 'bi-arrow-up' : 'bi-arrow-down';
 <?php if ($currentWeekly !== null): ?>
 <div class="card border-0 shadow-sm mb-4">
     <div class="card-header bg-white py-2 border-bottom d-flex justify-content-between align-items-center">
-        <strong class="small text-secondary"><i class="bi bi-calendar-week text-primary me-1"></i> Analisis Mingguan (Minggu Dimulai: <?= Html::encode($currentWeekly->week_start) ?>)</strong>
+        <strong class="small text-secondary"><?= \app\helpers\SvgHelper::icon('calendar-week', ['class' => 'text-primary me-1']) ?> Analisis Mingguan (Minggu Dimulai: <?= Html::encode($currentWeekly->week_start) ?>)</strong>
         <span class="badge bg-light text-dark border">Confidence Score: <?= $currentWeekly->score ?>%</span>
     </div>
     <div class="card-body p-3">
@@ -164,11 +164,11 @@ $changeIcon = $isUp ? 'bi-arrow-up' : 'bi-arrow-down';
         <?php if ($currentSignal !== null && count($currentSignal->getReasonList()) > 0): ?>
             <hr class="my-3">
             <div>
-                <div class="small fw-bold text-muted mb-2"><i class="bi bi-check2-circle text-success me-1"></i> Alasan &amp; Konfirmasi Sinyal:</div>
+                <div class="small fw-bold text-muted mb-2"><?= \app\helpers\SvgHelper::icon('check2-circle', ['class' => 'text-success me-1']) ?> Alasan &amp; Konfirmasi Sinyal:</div>
                 <div class="d-flex flex-wrap gap-2">
                     <?php foreach ($currentSignal->getReasonList() as $reason): ?>
                         <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 py-2 px-3 fw-normal small">
-                            <i class="bi bi-check-lg me-1"></i> <?= Html::encode($reason) ?>
+                            <?= \app\helpers\SvgHelper::icon('check-lg', ['class' => 'me-1']) ?> <?= Html::encode($reason) ?>
                         </span>
                     <?php endforeach; ?>
                 </div>
@@ -182,13 +182,13 @@ $changeIcon = $isUp ? 'bi-arrow-up' : 'bi-arrow-down';
 <div class="card border-0 shadow-sm mb-4">
     <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
         <h5 class="mb-0 fw-bold text-dark">
-            <i class="bi bi-graph-up text-primary me-1"></i> Grafik Harga &amp; Volume (Candlestick + MA20/MA50/MA200)
+            <?= \app\helpers\SvgHelper::icon('graph-up', ['class' => 'text-primary me-1']) ?> Grafik Harga &amp; Volume (Candlestick + MA20/MA50/MA200)
         </h5>
         <div class="d-flex align-items-center gap-2 small">
             <span class="badge bg-warning text-dark"><span style="color:#ff6600;">■</span> MA20</span>
             <span class="badge bg-primary text-white"><span style="color:#0066ff;">■</span> MA50</span>
             <span class="badge bg-secondary text-white"><span style="color:#9b59b6;">■</span> MA200</span>
-            <span class="text-muted ms-2" style="font-size:0.75rem;"><i class="bi bi-mouse"></i> Scroll untuk zoom</span>
+            <span class="text-muted ms-2" style="font-size:0.75rem;"><?= \app\helpers\SvgHelper::icon('mouse') ?> Scroll untuk zoom</span>
         </div>
     </div>
     <div class="card-body p-3">
@@ -344,7 +344,7 @@ $changeIcon = $isUp ? 'bi-arrow-up' : 'bi-arrow-down';
 <div class="card border-0 shadow-sm mb-4">
     <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
         <h5 class="mb-0 fw-bold text-dark">
-            <i class="bi bi-bar-chart-steps text-info me-1"></i> Tren Mingguan RVOL &amp; Tekanan Beli (Buying Pressure)
+            <?= \app\helpers\SvgHelper::icon('bar-chart-steps', ['class' => 'text-info me-1']) ?> Tren Mingguan RVOL &amp; Tekanan Beli (Buying Pressure)
         </h5>
     </div>
     <div class="card-body p-3">
@@ -411,7 +411,7 @@ $changeIcon = $isUp ? 'bi-arrow-up' : 'bi-arrow-down';
 <div class="card border-0 shadow-sm mb-4">
     <div class="card-header bg-white py-3 border-bottom">
         <h5 class="mb-0 fw-bold text-dark">
-            <i class="bi bi-clock-history text-secondary me-1"></i> Riwayat Analisis Mingguan
+            <?= \app\helpers\SvgHelper::icon('clock-history', ['class' => 'text-secondary me-1']) ?> Riwayat Analisis Mingguan
         </h5>
     </div>
     <div class="card-body p-0">

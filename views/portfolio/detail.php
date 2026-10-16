@@ -56,16 +56,16 @@ $fib = $signals['fibonacci'] ?? null;
         </div>
         <div class="d-flex gap-2 flex-wrap">
             <a href="<?= Url::to(['/portfolio/refresh-prices', 'id' => $position->id]) ?>" class="btn btn-outline-success btn-sm shadow-sm fw-semibold" title="Ambil quote harga realtime terbaru dari Yahoo Finance">
-                <i class="bi bi-arrow-repeat me-1"></i> Update Harga Real-Time
+                <?= \app\helpers\SvgHelper::icon('arrow-repeat', ['class' => 'me-1']) ?> Update Harga Real-Time
             </a>
             <button type="button" class="btn btn-outline-secondary btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#modalEditPosition">
-                <i class="bi bi-pencil-square"></i> Edit Posisi
+                <?= \app\helpers\SvgHelper::icon('pencil-square') ?> Edit Posisi
             </button>
             <a href="<?= Url::to(['/portfolio/index']) ?>" class="btn btn-outline-primary btn-sm shadow-sm">
-                <i class="bi bi-arrow-left"></i> Kembali ke Portofolio
+                <?= \app\helpers\SvgHelper::icon('arrow-left') ?> Kembali ke Portofolio
             </a>
             <a href="<?= Url::to(['/stock/view', 'symbol' => $stock->symbol]) ?>" class="btn btn-outline-dark btn-sm shadow-sm">
-                <i class="bi bi-box-arrow-up-right"></i> Fundamental Saham
+                <?= \app\helpers\SvgHelper::icon('box-arrow-up-right') ?> Fundamental Saham
             </a>
         </div>
     </div>
@@ -94,7 +94,7 @@ $fib = $signals['fibonacci'] ?? null;
                         <?php $quote = $position->getLiveQuoteDetails(); ?>
                         <?php if ($quote && !empty($quote['is_live'])): ?>
                             <span class="badge bg-success bg-opacity-25 text-success border border-success" style="font-size: 0.65rem;" title="Data real-time Yahoo Finance">
-                                <i class="bi bi-broadcast"></i> LIVE
+                                <?= \app\helpers\SvgHelper::icon('broadcast') ?> LIVE
                             </span>
                         <?php endif; ?>
                     </div>
@@ -146,22 +146,22 @@ $fib = $signals['fibonacci'] ?? null;
     <ul class="nav nav-tabs nav-fill mb-3 bg-white rounded-top shadow-sm border" id="portfolioTab" role="tablist">
         <li class="nav-item" role="presentation">
             <button class="nav-link <?= $isLoss ? 'active' : '' ?> fw-bold py-3 text-danger" id="averaging-tab" data-bs-toggle="tab" data-bs-target="#averaging-pane" type="button" role="tab">
-                <i class="bi bi-tools text-danger me-2"></i> 1. Strategi &amp; Kalkulator Average Down (Ketika Minus)
+                <?= \app\helpers\SvgHelper::icon('tools', ['class' => 'text-danger me-2']) ?> 1. Strategi &amp; Kalkulator Average Down (Ketika Minus)
             </button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link <?= !$isLoss ? 'active' : '' ?> fw-bold py-3 text-success" id="target-tab" data-bs-toggle="tab" data-bs-target="#target-pane" type="button" role="tab">
-                <i class="bi bi-bullseye text-success me-2"></i> 2. Target Untung &amp; Exit Plan (Jual Berapa?)
+                <?= \app\helpers\SvgHelper::icon('bullseye', ['class' => 'text-success me-2']) ?> 2. Target Untung &amp; Exit Plan (Jual Berapa?)
             </button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link fw-bold py-3 text-primary" id="analysis-tab" data-bs-toggle="tab" data-bs-target="#analysis-pane" type="button" role="tab">
-                <i class="bi bi-cpu-fill text-primary me-2"></i> 3. Pusat Analisis Multi-Fitur (Candle, RSI, MA, Fibo)
+                <?= \app\helpers\SvgHelper::icon('cpu-fill', ['class' => 'text-primary me-2']) ?> 3. Pusat Analisis Multi-Fitur (Candle, RSI, MA, Fibo)
             </button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link fw-bold py-3 text-secondary" id="history-tab" data-bs-toggle="tab" data-bs-target="#history-pane" type="button" role="tab">
-                <i class="bi bi-clock-history text-secondary me-2"></i> 4. Riwayat Skenario Diterapkan (<?= count($histories ?? []) ?>)
+                <?= \app\helpers\SvgHelper::icon('clock-history', ['class' => 'text-secondary me-2']) ?> 4. Riwayat Skenario Diterapkan (<?= count($histories ?? []) ?>)
             </button>
         </li>
     </ul>
@@ -173,7 +173,7 @@ $fib = $signals['fibonacci'] ?? null;
         <div class="tab-pane fade <?= $isLoss ? 'show active' : '' ?>" id="averaging-pane" role="tabpanel">
             <!-- Alert Penjelasan Konsep Average Down -->
             <div class="alert alert-info border-0 shadow-sm d-flex align-items-center gap-3 mb-4">
-                <div class="display-6 text-info"><i class="bi bi-lightbulb-fill"></i></div>
+                <div class="display-6 text-info"><?= \app\helpers\SvgHelper::icon('lightbulb-fill') ?></div>
                 <div>
                     <h5 class="alert-heading fw-bold mb-1">Bagaimana Strategi Average Down Bisa Mengubah Posisi Minus Jadi Untung Cepat?</h5>
                     <p class="mb-0 small text-secondary">
@@ -187,7 +187,7 @@ $fib = $signals['fibonacci'] ?? null;
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
                     <h5 class="mb-0 fw-bold text-dark">
-                        <i class="bi bi-table text-primary me-2"></i> Simulasi <?= count($dcaData['scenarios']) ?> Skenario Averaging Down
+                        <?= \app\helpers\SvgHelper::icon('table', ['class' => 'text-primary me-2']) ?> Simulasi <?= count($dcaData['scenarios']) ?> Skenario Averaging Down
                     </h5>
                     <span class="badge bg-light text-dark border">Target Untung: +<?= $targetPct ?>%</span>
                 </div>
@@ -270,7 +270,7 @@ $fib = $signals['fibonacci'] ?? null;
                                                 <input type="hidden" name="add_cost" value="<?= $sc['add_cost'] ?>">
                                                 <input type="hidden" name="notes" value="Eksekusi <?= Html::encode($sc['title']) ?> di harga $<?= $sc['add_price'] ?> (+<?= \app\models\PortfolioPosition::formatShares($sc['add_shares']) ?> lbr)">
                                                 <button type="submit" class="btn btn-outline-success btn-sm py-0 px-2 fw-semibold" onclick="return confirm('Terapkan harga rata-rata baru $<?= $sc['new_avg_price'] ?> dan total <?= \app\models\PortfolioPosition::formatShares($sc['new_total_shares']) ?> lembar ke posisi portofolio Anda?');">
-                                                    <i class="bi bi-check-lg"></i> Terapkan
+                                                    <?= \app\helpers\SvgHelper::icon('check-lg') ?> Terapkan
                                                 </button>
                                             <?php ActiveForm::end(); ?>
                                         </td>
@@ -288,19 +288,19 @@ $fib = $signals['fibonacci'] ?? null;
                     <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                         <div>
                             <h5 class="fw-bold text-dark mb-0">
-                                <i class="bi bi-calculator-fill text-primary me-2"></i> Kalkulator Averaging Interaktif Kustom
+                                <?= \app\helpers\SvgHelper::icon('calculator-fill', ['class' => 'text-primary me-2']) ?> Kalkulator Averaging Interaktif Kustom
                             </h5>
                             <div class="small text-muted">Simulasikan pembelian tambahan berdasarkan modal uang, lembar saham, atau target pantulan cepat</div>
                         </div>
                         <div class="btn-group btn-group-sm" role="group" id="calc-mode-group">
                             <input type="radio" class="btn-check" name="calc_mode" id="mode-shares" value="shares" checked autocomplete="off">
-                            <label class="btn btn-outline-primary" for="mode-shares"><i class="bi bi-pie-chart me-1"></i> Jumlah Lembar</label>
+                            <label class="btn btn-outline-primary" for="mode-shares"><?= \app\helpers\SvgHelper::icon('pie-chart', ['class' => 'me-1']) ?> Jumlah Lembar</label>
 
                             <input type="radio" class="btn-check" name="calc_mode" id="mode-budget" value="budget" autocomplete="off">
-                            <label class="btn btn-outline-primary" for="mode-budget"><i class="bi bi-cash me-1"></i> Budget Modal ($)</label>
+                            <label class="btn btn-outline-primary" for="mode-budget"><?= \app\helpers\SvgHelper::icon('cash', ['class' => 'me-1']) ?> Budget Modal ($)</label>
 
                             <input type="radio" class="btn-check" name="calc_mode" id="mode-rebound" value="rebound" autocomplete="off">
-                            <label class="btn btn-outline-primary" for="mode-rebound"><i class="bi bi-lightning-charge me-1"></i> Target Pantulan (%)</label>
+                            <label class="btn btn-outline-primary" for="mode-rebound"><?= \app\helpers\SvgHelper::icon('lightning-charge', ['class' => 'me-1']) ?> Target Pantulan (%)</label>
                         </div>
                     </div>
 
@@ -355,7 +355,7 @@ $fib = $signals['fibonacci'] ?? null;
 
                         <div class="col-md-3 col-6">
                             <button type="button" id="btn-calc-custom" class="btn btn-outline-primary w-100 fw-bold">
-                                <i class="bi bi-arrow-repeat"></i> Hitung Ulang
+                                <?= \app\helpers\SvgHelper::icon('arrow-repeat') ?> Hitung Ulang
                             </button>
                         </div>
                     </div>
@@ -389,7 +389,7 @@ $fib = $signals['fibonacci'] ?? null;
                     <!-- Tombol Terapkan Hasil Kustom ke Portofolio -->
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                         <div class="text-muted small" id="res-summary-note">
-                            <i class="bi bi-info-circle me-1"></i> Perhitungan di atas otomatis diperbarui secara live setiap ada input baru.
+                            <?= \app\helpers\SvgHelper::icon('info-circle', ['class' => 'me-1']) ?> Perhitungan di atas otomatis diperbarui secara live setiap ada input baru.
                         </div>
                         <?php $formApplyCustom = ActiveForm::begin([
                             'action' => ['/portfolio/apply-average', 'id' => $position->id],
@@ -404,7 +404,7 @@ $fib = $signals['fibonacci'] ?? null;
                             <input type="hidden" name="add_cost" id="custom-form-add-cost" value="">
                             <input type="hidden" name="notes" id="custom-form-notes" value="">
                             <button type="submit" class="btn btn-success fw-bold shadow-sm" id="btn-apply-custom" onclick="return confirm('Terapkan harga rata-rata baru ini ke posisi portofolio Anda?');" disabled>
-                                <i class="bi bi-check-circle-fill me-1"></i> Terapkan Hasil Kustom ke Portofolio
+                                <?= \app\helpers\SvgHelper::icon('check-circle-fill', ['class' => 'me-1']) ?> Terapkan Hasil Kustom ke Portofolio
                             </button>
                         <?php ActiveForm::end(); ?>
                     </div>
@@ -421,7 +421,7 @@ $fib = $signals['fibonacci'] ?? null;
                     <div class="card border-0 shadow-sm h-100">
                         <div class="card-header bg-white py-3 border-bottom">
                             <h5 class="mb-0 fw-bold text-success">
-                                <i class="bi bi-cash-stack me-2"></i> Rencana Penjualan Bertahap (Multi-Target TP)
+                                <?= \app\helpers\SvgHelper::icon('cash-stack', ['class' => 'me-2']) ?> Rencana Penjualan Bertahap (Multi-Target TP)
                             </h5>
                         </div>
                         <div class="card-body p-4">
@@ -449,7 +449,7 @@ $fib = $signals['fibonacci'] ?? null;
                                             <div class="h5 mb-0 fw-bold text-dark"><?= $fmt->asCurrency($tpPrice) ?></div>
                                             <div class="small text-muted">
                                                 <?php if ($isReached): ?>
-                                                    <span class="text-success fw-bold"><i class="bi bi-check-circle-fill"></i> Sudah Terlampaui!</span>
+                                                    <span class="text-success fw-bold"><?= \app\helpers\SvgHelper::icon('check-circle-fill') ?> Sudah Terlampaui!</span>
                                                 <?php else: ?>
                                                     <span>Kurang +<?= $needGain ?>% dari harga pasar saat ini</span>
                                                 <?php endif; ?>
@@ -464,7 +464,7 @@ $fib = $signals['fibonacci'] ?? null;
                             </ul>
 
                             <div class="p-3 bg-light rounded small text-secondary">
-                                <i class="bi bi-info-circle text-primary me-1"></i>
+                                <?= \app\helpers\SvgHelper::icon('info-circle', ['class' => 'text-primary me-1']) ?>
                                 <strong>Tips Eksekusi Jual Profesional:</strong> Jual 50% porsi saham Anda saat Target 1 (3%) tercapai untuk mengunci keuntungan pasti, lalu geser batas Stop Loss ke titik impas (Breakeven) untuk 50% sisanya.
                             </div>
                         </div>
@@ -475,7 +475,7 @@ $fib = $signals['fibonacci'] ?? null;
                     <div class="card border-0 shadow-sm h-100">
                         <div class="card-header bg-white py-3 border-bottom">
                             <h5 class="mb-0 fw-bold text-dark">
-                                <i class="bi bi-speedometer2 text-primary me-2"></i> Status Pencapaian Target Saat Ini
+                                <?= \app\helpers\SvgHelper::icon('speedometer2', ['class' => 'text-primary me-2']) ?> Status Pencapaian Target Saat Ini
                             </h5>
                         </div>
                         <div class="card-body p-4 text-center">
@@ -498,7 +498,7 @@ $fib = $signals['fibonacci'] ?? null;
                             </div>
 
                             <div class="card bg-light border-0 p-3 text-start small">
-                                <h6 class="fw-bold mb-2"><i class="bi bi-shield-check text-success me-1"></i> Rekomendasi Tindakan:</h6>
+                                <h6 class="fw-bold mb-2"><?= \app\helpers\SvgHelper::icon('shield-check', ['class' => 'text-success me-1']) ?> Rekomendasi Tindakan:</h6>
                                 <?php if ($isProfit && $currentPrice >= $targetPrice): ?>
                                     <p class="text-success fw-bold mb-1">🎉 TARGET PROFIT TELAH TERCAPAI!</p>
                                     <p class="text-muted mb-0">Harga saat ini (<?= $fmt->asCurrency($currentPrice) ?>) sudah menyentuh target <?= $targetPct ?>%. Sangat disarankan untuk segera merealisasikan keuntungan (Sell/Take Profit).</p>
@@ -536,7 +536,7 @@ $fib = $signals['fibonacci'] ?? null;
                     </p>
                     <?php if (!empty($multiAnalysis['best_support_price'])): ?>
                         <div class="small text-secondary">
-                            <i class="bi bi-geo-alt-fill text-danger me-1"></i> Area Support Beli Terbaik Berdasarkan Analisis: 
+                            <?= \app\helpers\SvgHelper::icon('geo-alt-fill', ['class' => 'text-danger me-1']) ?> Area Support Beli Terbaik Berdasarkan Analisis: 
                             <strong class="text-primary fs-6"><?= $fmt->asCurrency($multiAnalysis['best_support_price']) ?></strong>
                         </div>
                     <?php endif; ?>
@@ -705,14 +705,14 @@ $fib = $signals['fibonacci'] ?? null;
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
                     <h5 class="mb-0 fw-bold text-dark">
-                        <i class="bi bi-clock-history text-primary me-2"></i> Riwayat Eksekusi Averaging Down &amp; Perubahan Posisi
+                        <?= \app\helpers\SvgHelper::icon('clock-history', ['class' => 'text-primary me-2']) ?> Riwayat Eksekusi Averaging Down &amp; Perubahan Posisi
                     </h5>
                     <span class="badge bg-light text-dark border"><?= count($histories ?? []) ?> Catatan</span>
                 </div>
                 <div class="card-body p-0">
                     <?php if (empty($histories)): ?>
                         <div class="text-center py-5">
-                            <div class="display-6 text-muted mb-2"><i class="bi bi-journal-x"></i></div>
+                            <div class="display-6 text-muted mb-2"><?= \app\helpers\SvgHelper::icon('journal-x') ?></div>
                             <h6 class="fw-bold text-secondary">Belum ada riwayat skenario averaging down yang diterapkan</h6>
                             <p class="text-muted small mb-0">
                                 Saat Anda menekan tombol <strong>"Terapkan"</strong> pada salah satu skenario averaging down atau kalkulator kustom, rekam jejak eksekusi akan otomatis tersimpan di sini.
@@ -800,7 +800,7 @@ $fib = $signals['fibonacci'] ?? null;
             <?php $formEdit = ActiveForm::begin(['action' => ['/portfolio/update', 'id' => $position->id], 'method' => 'post']); ?>
             <div class="modal-header bg-dark text-white py-3">
                 <h5 class="modal-title fw-bold" id="modalEditPositionLabel">
-                    <i class="bi bi-pencil-square me-2"></i> Edit Posisi <?= Html::encode($stock->symbol) ?>
+                    <?= \app\helpers\SvgHelper::icon('pencil-square', ['class' => 'me-2']) ?> Edit Posisi <?= Html::encode($stock->symbol) ?>
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>

@@ -48,7 +48,7 @@ $sortLink = fn(string $key, string $label) => Html::a(
 <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
     <div>
         <h1 class="h3 mb-0">
-            <i class="bi bi-rocket-takeoff text-primary"></i> <?= Html::encode($this->title) ?>
+            <?= \app\helpers\SvgHelper::icon('rocket-takeoff', ['class' => 'text-primary']) ?> <?= Html::encode($this->title) ?>
         </h1>
         <small class="text-muted">
             Deteksi posisi Beli &amp; Jual ideal dengan <strong>Cup &amp; Handle, Bullish Rectangle, Bullish Pennant, Bullish Flag, dan Ascending Triangle</strong>
@@ -63,7 +63,7 @@ $sortLink = fn(string $key, string $label) => Html::a(
 <!-- Form Filter & Parameter -->
 <div class="card shadow-sm mb-4">
     <div class="card-header bg-light py-2">
-        <strong class="text-secondary"><i class="bi bi-funnel"></i> Parameter Filter &amp; Jenis Pola Bullish</strong>
+        <strong class="text-secondary"><?= \app\helpers\SvgHelper::icon('funnel') ?> Parameter Filter &amp; Jenis Pola Bullish</strong>
     </div>
     <div class="card-body">
         <?= Html::beginForm(['/bullish-pattern/index'], 'get', ['class' => 'row g-3 align-items-end']) ?>
@@ -122,8 +122,8 @@ $sortLink = fn(string $key, string $label) => Html::a(
                 </div>
             </div>
             <div class="col-md-2 col-12 d-flex justify-content-end gap-2">
-                <?= Html::submitButton('<i class="bi bi-search"></i> Pindai Saham', ['class' => 'btn btn-sm btn-primary px-3']) ?>
-                <?= Html::a('<i class="bi bi-x-circle"></i> Reset', ['/bullish-pattern/index'], ['class' => 'btn btn-sm btn-outline-secondary']) ?>
+                <?= Html::submitButton(\app\helpers\SvgHelper::icon('search') . ' Pindai Saham', ['class' => 'btn btn-sm btn-primary px-3']) ?>
+                <?= Html::a(\app\helpers\SvgHelper::icon('x-circle') . ' Reset', ['/bullish-pattern/index'], ['class' => 'btn btn-sm btn-outline-secondary']) ?>
             </div>
         <?= Html::endForm() ?>
     </div>
@@ -184,13 +184,13 @@ $sortLink = fn(string $key, string $label) => Html::a(
 <!-- Tabel Hasil Scanner -->
 <div class="card shadow-sm border-0">
     <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
-        <h5 class="mb-0 fw-bold"><i class="bi bi-table text-primary"></i> Daftar Saham dengan Pola Bullish Reversal &amp; Continuation</h5>
+        <h5 class="mb-0 fw-bold"><?= \app\helpers\SvgHelper::icon('table', ['class' => 'text-primary']) ?> Daftar Saham dengan Pola Bullish Reversal &amp; Continuation</h5>
         <span class="badge bg-secondary"><?= count($results) ?> hasil</span>
     </div>
     <div class="card-body p-0">
         <?php if (empty($results)): ?>
             <div class="p-4 text-center text-muted">
-                <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                <?= \app\helpers\SvgHelper::icon('inbox', ['class' => 'fs-1 d-block mb-2']) ?>
                 <p class="mb-0">Tidak ada saham yang memenuhi kriteria pola saat ini. Coba pilih filter "Semua 5 Pola Bullish", perkecil Min R:R, atau ubah timeframe.</p>
             </div>
         <?php else: ?>
@@ -234,7 +234,7 @@ $sortLink = fn(string $key, string $label) => Html::a(
                                     <strong><?= Html::encode($p['symbol']) ?></strong>
                                     <small class="text-muted d-block"><?= Html::encode($p['sector'] ?? '-') ?></small>
                                     <span class="badge text-white" style="background-color: <?= $badge['color'] ?>; font-size: 0.72rem;">
-                                        <i class="bi <?= $badge['icon'] ?>"></i> <?= Html::encode($badge['label']) ?>
+                                        <?= \app\helpers\SvgHelper::icon(str_replace('bi-', '', $badge['icon'])) ?> <?= Html::encode($badge['label']) ?>
                                     </span>
                                 </td>
                                 <td>
@@ -256,7 +256,7 @@ $sortLink = fn(string $key, string $label) => Html::a(
                                 </td>
                                 <td>
                                     <?php if ($isBullTrap): ?>
-                                        <span class="badge bg-danger text-white"><i class="bi bi-exclamation-octagon-fill"></i> Bull Trap</span>
+                                        <span class="badge bg-danger text-white"><?= \app\helpers\SvgHelper::icon('exclamation-octagon-fill') ?> Bull Trap</span>
                                         <small class="text-danger d-block" style="font-size: 0.7rem;">Anjlok kembali di bawah resist</small>
                                     <?php elseif ($risk === 'HIGH'): ?>
                                         <span class="badge bg-danger">🔴 Risiko Tinggi</span>
@@ -297,7 +297,7 @@ $sortLink = fn(string $key, string $label) => Html::a(
                                     </div>
                                 </td>
                                 <td class="text-center">
-                                    <?= Html::a('<i class="bi bi-graph-up"></i> Detail &amp; Chart', array_merge(['/bullish-pattern/detail', 'symbol' => $p['symbol']], $filterParams), ['class' => 'btn btn-sm btn-outline-primary']) ?>
+                                    <?= Html::a(\app\helpers\SvgHelper::icon('graph-up') . ' Detail &amp; Chart', array_merge(['/bullish-pattern/detail', 'symbol' => $p['symbol']], $filterParams), ['class' => 'btn btn-sm btn-outline-primary']) ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

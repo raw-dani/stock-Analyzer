@@ -53,7 +53,7 @@ $sortLink = fn(string $key, string $label) => Html::a($label . ($sort === $key ?
 ?>
 <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
     <div>
-        <h1 class="h3 mb-0"><i class="bi bi-graph-up text-primary"></i> <?= Html::encode($this->title) ?></h1>
+        <h1 class="h3 mb-0"><?= \app\helpers\SvgHelper::icon('graph-up', ['class' => 'text-primary']) ?> <?= Html::encode($this->title) ?></h1>
         <small class="text-muted">Deteksi pola 3 lembah (Triple Bottom &amp; Inverted H&amp;S) dengan timing presisi Beli/Jual dan proteksi risiko False Breakout (Bull Trap)</small>
     </div>
     <div class="d-flex gap-2 align-items-center">
@@ -65,7 +65,7 @@ $sortLink = fn(string $key, string $label) => Html::a($label . ($sort === $key ?
 <!-- Form Filter & Parameter -->
 <div class="card shadow-sm mb-4">
     <div class="card-header bg-light py-2">
-        <strong class="text-secondary"><i class="bi bi-funnel"></i> Parameter Scanner &amp; Filter Trading</strong>
+        <strong class="text-secondary"><?= \app\helpers\SvgHelper::icon('funnel') ?> Parameter Scanner &amp; Filter Trading</strong>
     </div>
     <div class="card-body">
         <?= Html::beginForm(['triple-bottom/index'], 'get', ['class' => 'row g-3 align-items-end']) ?>
@@ -135,8 +135,8 @@ $sortLink = fn(string $key, string $label) => Html::a($label . ($sort === $key ?
                 </div>
             </div>
             <div class="col-12 d-flex justify-content-end gap-2">
-                <?= Html::submitButton('<i class="bi bi-search"></i> Pindai Saham', ['class' => 'btn btn-sm btn-primary px-3']) ?>
-                <?= Html::a('<i class="bi bi-x-circle"></i> Reset', ['triple-bottom/index'], ['class' => 'btn btn-sm btn-outline-secondary']) ?>
+                <?= Html::submitButton(\app\helpers\SvgHelper::icon('search') . ' Pindai Saham', ['class' => 'btn btn-sm btn-primary px-3']) ?>
+                <?= Html::a(\app\helpers\SvgHelper::icon('x-circle') . ' Reset', ['triple-bottom/index'], ['class' => 'btn btn-sm btn-outline-secondary']) ?>
             </div>
         <?= Html::endForm() ?>
     </div>
@@ -194,13 +194,13 @@ $sortLink = fn(string $key, string $label) => Html::a($label . ($sort === $key ?
 <!-- Tabel Hasil Scanner -->
 <div class="card shadow-sm border-0">
     <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
-        <h5 class="mb-0 fw-bold"><i class="bi bi-table text-primary"></i> Daftar Saham dengan Pola Reversal (Triple Bottom &amp; Inverted H&amp;S)</h5>
+        <h5 class="mb-0 fw-bold"><?= \app\helpers\SvgHelper::icon('table', ['class' => 'text-primary']) ?> Daftar Saham dengan Pola Reversal (Triple Bottom &amp; Inverted H&amp;S)</h5>
         <span class="badge bg-secondary"><?= count($results) ?> hasil</span>
     </div>
     <div class="card-body p-0">
         <?php if (empty($results)): ?>
             <div class="p-4 text-center text-muted">
-                <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                <?= \app\helpers\SvgHelper::icon('inbox', ['class' => 'fs-1 d-block mb-2']) ?>
                 <p class="mb-0">Tidak ada saham yang memenuhi kriteria pola saat ini. Coba ubah filter jenis pola, perbesar toleransi (misal 4-5%), atau ubah timeframe.</p>
             </div>
         <?php else: ?>
@@ -244,9 +244,9 @@ $sortLink = fn(string $key, string $label) => Html::a($label . ($sort === $key ?
                                     <strong><?= Html::encode($p['symbol']) ?></strong>
                                     <small class="text-muted d-block"><?= Html::encode($p['sector'] ?? '-') ?></small>
                                     <?php if ($isIhs): ?>
-                                        <span class="badge" style="background-color: #6f42c1; font-size: 0.7rem;" title="Inverted Head and Shoulders"><i class="bi bi-person-arms-up"></i> Inverted H&amp;S</span>
+                                        <span class="badge" style="background-color: #6f42c1; font-size: 0.7rem;" title="Inverted Head and Shoulders"><?= \app\helpers\SvgHelper::icon('person-arms-up') ?> Inverted H&amp;S</span>
                                     <?php else: ?>
-                                        <span class="badge bg-primary" style="font-size: 0.7rem;" title="Triple Bottom (3 Troughs)"><i class="bi bi-triangle-half"></i> Triple Bottom</span>
+                                        <span class="badge bg-primary" style="font-size: 0.7rem;" title="Triple Bottom (3 Troughs)"><?= \app\helpers\SvgHelper::icon('triangle-half') ?> Triple Bottom</span>
                                     <?php endif; ?>
                                 </td>
                                 <td>
@@ -273,7 +273,7 @@ $sortLink = fn(string $key, string $label) => Html::a($label . ($sort === $key ?
                                 </td>
                                 <td>
                                     <?php if ($isBullTrap): ?>
-                                        <span class="badge bg-danger text-white"><i class="bi bi-exclamation-octagon-fill"></i> Bull Trap</span>
+                                        <span class="badge bg-danger text-white"><?= \app\helpers\SvgHelper::icon('exclamation-octagon-fill') ?> Bull Trap</span>
                                         <small class="text-danger d-block" style="font-size: 0.7rem;">Anjlok kembali di bawah neckline</small>
                                     <?php elseif ($risk === 'HIGH'): ?>
                                         <span class="badge bg-danger">🔴 Risiko Tinggi</span>
@@ -314,7 +314,7 @@ $sortLink = fn(string $key, string $label) => Html::a($label . ($sort === $key ?
                                     </div>
                                 </td>
                                 <td class="text-center">
-                                    <?= Html::a('<i class="bi bi-graph-up"></i> Detail &amp; Chart', array_merge(['triple-bottom/detail', 'symbol' => $p['symbol']], $filterParams), ['class' => 'btn btn-sm btn-outline-primary']) ?>
+                                    <?= Html::a(\app\helpers\SvgHelper::icon('graph-up') . ' Detail &amp; Chart', array_merge(['triple-bottom/detail', 'symbol' => $p['symbol']], $filterParams), ['class' => 'btn btn-sm btn-outline-primary']) ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

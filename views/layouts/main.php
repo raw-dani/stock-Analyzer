@@ -24,25 +24,25 @@ $isAdmin = $currentUser !== null && $currentUser->isAdmin();
 
 $systemItems = [];
 if ($isAdmin) {
-    $systemItems[] = ['label' => '⚙️ Settings', 'url' => ['/settings/index'], 'active' => $ctrlId === 'settings'];
-    $systemItems[] = ['label' => '👥 User Management', 'url' => ['/user/index'], 'active' => $ctrlId === 'user', 'badge' => 'Admin'];
+    $systemItems[] = ['label' => \app\helpers\SvgHelper::icon('gear', ['class' => 'me-2']) . 'Settings', 'url' => ['/settings/index'], 'active' => $ctrlId === 'settings'];
+    $systemItems[] = ['label' => \app\helpers\SvgHelper::icon('people', ['class' => 'me-2']) . 'User Management', 'url' => ['/user/index'], 'active' => $ctrlId === 'user', 'badge' => 'Admin'];
 }
 
 $sideMenuGroups = [
     'Overview' => [
-        ['label' => '📊 Dashboard', 'url' => ['/dashboard/index'], 'active' => $ctrlId === 'dashboard'],
-        ['label' => '💼 Portofolio & Averaging', 'url' => ['/portfolio/index'], 'active' => $ctrlId === 'portfolio', 'badge' => 'New'],
+        ['label' => \app\helpers\SvgHelper::icon('speedometer2', ['class' => 'me-2']) . 'Dashboard', 'url' => ['/dashboard/index'], 'active' => $ctrlId === 'dashboard'],
+        ['label' => \app\helpers\SvgHelper::icon('briefcase', ['class' => 'me-2']) . 'Portofolio & Averaging', 'url' => ['/portfolio/index'], 'active' => $ctrlId === 'portfolio', 'badge' => 'New'],
     ],
     'Scanners & Patterns' => [
-        ['label' => '🎯 Confluence Strategy', 'url' => ['/strategy-confluence/index'], 'active' => $ctrlId === 'strategy-confluence', 'badge' => 'PRO'],
-        ['label' => '🚀 Bullish Patterns', 'url' => ['/bullish-pattern/index'], 'active' => $ctrlId === 'bullish-pattern', 'badge' => 'New'],
-        ['label' => '📉 Double Bottom (Core)', 'url' => ['/double-bottom/index'], 'active' => $ctrlId === 'double-bottom', 'badge' => 'Core'],
-        ['label' => '📉 Triple Bottom Scanner', 'url' => ['/triple-bottom/index'], 'active' => $ctrlId === 'triple-bottom', 'badge' => 'New'],
-        ['label' => '📉 RSI Strategy & Signals', 'url' => ['/rsi-double-bottom/index'], 'active' => str_starts_with($ctrlId ?? '', 'rsi-double-bottom')],
-        ['label' => '🔍 Volume Scanner', 'url' => ['/scanner/index'], 'active' => $ctrlId === 'scanner'],
-        ['label' => '📈 Moving Average Signals', 'url' => ['/moving-average/index'], 'active' => $ctrlId === 'moving-average', 'badge' => 'New'],
-        ['label' => '🌀 Fibonacci Levels', 'url' => ['/fibonacci/index'], 'active' => $ctrlId === 'fibonacci', 'badge' => 'New'],
-        ['label' => '🕯️ Candlestick Scanner', 'url' => ['/candlestick/index'], 'active' => $ctrlId === 'candlestick', 'badge' => 'New'],
+        ['label' => \app\helpers\SvgHelper::icon('bullseye', ['class' => 'me-2']) . 'Confluence Strategy', 'url' => ['/strategy-confluence/index'], 'active' => $ctrlId === 'strategy-confluence', 'badge' => 'PRO'],
+        ['label' => \app\helpers\SvgHelper::icon('rocket-takeoff', ['class' => 'me-2']) . 'Bullish Patterns', 'url' => ['/bullish-pattern/index'], 'active' => $ctrlId === 'bullish-pattern', 'badge' => 'New'],
+        ['label' => \app\helpers\SvgHelper::icon('graph-down', ['class' => 'me-2']) . 'Double Bottom (Core)', 'url' => ['/double-bottom/index'], 'active' => $ctrlId === 'double-bottom', 'badge' => 'Core'],
+        ['label' => \app\helpers\SvgHelper::icon('triangle-half', ['class' => 'me-2']) . 'Triple Bottom Scanner', 'url' => ['/triple-bottom/index'], 'active' => $ctrlId === 'triple-bottom', 'badge' => 'New'],
+        ['label' => \app\helpers\SvgHelper::icon('activity', ['class' => 'me-2']) . 'RSI Strategy & Signals', 'url' => ['/rsi-double-bottom/index'], 'active' => str_starts_with($ctrlId ?? '', 'rsi-double-bottom')],
+        ['label' => \app\helpers\SvgHelper::icon('search', ['class' => 'me-2']) . 'Volume Scanner', 'url' => ['/scanner/index'], 'active' => $ctrlId === 'scanner'],
+        ['label' => \app\helpers\SvgHelper::icon('graph-up', ['class' => 'me-2']) . 'Moving Average Signals', 'url' => ['/moving-average/index'], 'active' => $ctrlId === 'moving-average', 'badge' => 'New'],
+        ['label' => \app\helpers\SvgHelper::icon('layers', ['class' => 'me-2']) . 'Fibonacci Levels', 'url' => ['/fibonacci/index'], 'active' => $ctrlId === 'fibonacci', 'badge' => 'New'],
+        ['label' => \app\helpers\SvgHelper::icon('bar-chart-line', ['class' => 'me-2']) . 'Candlestick Scanner', 'url' => ['/candlestick/index'], 'active' => $ctrlId === 'candlestick', 'badge' => 'New'],
     ],
 ];
 
@@ -60,7 +60,8 @@ if (!empty($systemItems)) {
     <style>
         body { padding-top: 58px; }
         .sidebar { height: calc(100vh - 58px); position: sticky; top: 58px; overflow-y: auto; border-right: 1px solid #dee2e6; background-color: #f8f9fa; }
-        .sidebar .nav-link { color: #495057; border-radius: .375rem; font-weight: 500; padding: .5rem .75rem; }
+        .sidebar .nav-link { color: #495057; border-radius: .375rem; font-weight: 500; padding: .5rem .75rem; display: flex; align-items: center; }
+        .sidebar .nav-link svg { flex-shrink: 0; }
         .sidebar .nav-link:hover { background: #e9ecef; color: #0d6efd; }
         .sidebar .nav-link.active { background: #0d6efd; color: #fff; }
         .sidebar-heading { font-size: .72rem; font-weight: 700; text-transform: uppercase; color: #6c757d; letter-spacing: .05rem; padding: .6rem .75rem .25rem; }
@@ -74,61 +75,63 @@ if (!empty($systemItems)) {
 <header id="header">
     <?php
     NavBar::begin([
-        'brandLabel' => '📈 Stock Volume Analyzer',
+        'brandLabel' => \app\helpers\SvgHelper::icon('graph-up-arrow', ['class' => 'me-2 text-primary']) . 'Stock Volume Analyzer',
         'brandUrl' => Yii::$app->homeUrl,
         'options' => ['class' => 'navbar-expand-lg navbar-dark bg-dark fixed-top shadow-sm']
     ]);
     
     // Top navigation with direct access to all main features
     $topNavItems = [
-        ['label' => '📊 Dashboard', 'url' => ['/dashboard/index'], 'active' => $ctrlId === 'dashboard'],
-        ['label' => '💼 Portofolio', 'url' => ['/portfolio/index'], 'active' => $ctrlId === 'portfolio'],
+        ['label' => \app\helpers\SvgHelper::icon('speedometer2', ['class' => 'me-1']) . ' Dashboard', 'url' => ['/dashboard/index'], 'active' => $ctrlId === 'dashboard', 'encode' => false],
+        ['label' => \app\helpers\SvgHelper::icon('briefcase', ['class' => 'me-1']) . ' Portofolio', 'url' => ['/portfolio/index'], 'active' => $ctrlId === 'portfolio', 'encode' => false],
         [
-            'label' => '📉 Scanners & Patterns',
+            'label' => \app\helpers\SvgHelper::icon('filter-square', ['class' => 'me-1']) . ' Scanners & Patterns',
+            'encode' => false,
             'active' => in_array($ctrlId, ['strategy-confluence', 'bullish-pattern', 'double-bottom', 'triple-bottom', 'rsi-double-bottom', 'scanner', 'moving-average', 'fibonacci', 'candlestick'], true),
             'items' => [
-                ['label' => '🎯 Confluence Strategy (PRO)', 'url' => ['/strategy-confluence/index']],
+                ['label' => \app\helpers\SvgHelper::icon('bullseye', ['class' => 'me-2 text-warning']) . 'Confluence Strategy (PRO)', 'url' => ['/strategy-confluence/index'], 'encode' => false],
                 '<div class="dropdown-divider"></div>',
-                ['label' => '🚀 Bullish Breakout Patterns', 'url' => ['/bullish-pattern/index']],
-                ['label' => '📉 Double Bottom Scanner (Core)', 'url' => ['/double-bottom/index']],
-                ['label' => '📉 Triple Bottom Scanner', 'url' => ['/triple-bottom/index']],
-                ['label' => '📉 RSI Strategy & Signals', 'url' => ['/rsi-double-bottom/index']],
+                ['label' => \app\helpers\SvgHelper::icon('rocket-takeoff', ['class' => 'me-2 text-success']) . 'Bullish Breakout Patterns', 'url' => ['/bullish-pattern/index'], 'encode' => false],
+                ['label' => \app\helpers\SvgHelper::icon('graph-down', ['class' => 'me-2 text-primary']) . 'Double Bottom Scanner (Core)', 'url' => ['/double-bottom/index'], 'encode' => false],
+                ['label' => \app\helpers\SvgHelper::icon('triangle-half', ['class' => 'me-2 text-info']) . 'Triple Bottom Scanner', 'url' => ['/triple-bottom/index'], 'encode' => false],
+                ['label' => \app\helpers\SvgHelper::icon('activity', ['class' => 'me-2 text-danger']) . 'RSI Strategy & Signals', 'url' => ['/rsi-double-bottom/index'], 'encode' => false],
                 '<div class="dropdown-divider"></div>',
-                ['label' => '🔍 Volume Scanner', 'url' => ['/scanner/index']],
-                ['label' => '📈 Moving Average Signals', 'url' => ['/moving-average/index']],
-                ['label' => '🌀 Fibonacci Levels', 'url' => ['/fibonacci/index']],
-                ['label' => '🕯️ Candlestick Scanner', 'url' => ['/candlestick/index']],
+                ['label' => \app\helpers\SvgHelper::icon('search', ['class' => 'me-2 text-primary']) . 'Volume Scanner', 'url' => ['/scanner/index'], 'encode' => false],
+                ['label' => \app\helpers\SvgHelper::icon('graph-up', ['class' => 'me-2 text-success']) . 'Moving Average Signals', 'url' => ['/moving-average/index'], 'encode' => false],
+                ['label' => \app\helpers\SvgHelper::icon('layers', ['class' => 'me-2 text-warning']) . 'Fibonacci Levels', 'url' => ['/fibonacci/index'], 'encode' => false],
+                ['label' => \app\helpers\SvgHelper::icon('bar-chart-line', ['class' => 'me-2 text-info']) . 'Candlestick Scanner', 'url' => ['/candlestick/index'], 'encode' => false],
             ],
         ],
     ];
 
     if ($isAdmin) {
         $topNavItems[] = [
-            'label' => '⚙️ Admin',
+            'label' => \app\helpers\SvgHelper::icon('gear', ['class' => 'me-1']) . ' Admin',
+            'encode' => false,
             'active' => in_array($ctrlId, ['settings', 'user'], true),
             'items' => [
-                ['label' => '⚙️ Settings', 'url' => ['/settings/index']],
-                ['label' => '👥 User Management', 'url' => ['/user/index']],
+                ['label' => \app\helpers\SvgHelper::icon('gear', ['class' => 'me-2 text-secondary']) . 'Settings', 'url' => ['/settings/index'], 'encode' => false],
+                ['label' => \app\helpers\SvgHelper::icon('people', ['class' => 'me-2 text-primary']) . 'User Management', 'url' => ['/user/index'], 'encode' => false],
             ],
         ];
     }
 
     if (Yii::$app->user->isGuest) {
-        $topNavItems[] = ['label' => '📝 Register', 'url' => ['/site/register']];
-        $topNavItems[] = ['label' => '🔑 Login', 'url' => ['/site/login']];
+        $topNavItems[] = ['label' => \app\helpers\SvgHelper::icon('pencil-square', ['class' => 'me-1']) . ' Register', 'url' => ['/site/register'], 'encode' => false];
+        $topNavItems[] = ['label' => \app\helpers\SvgHelper::icon('key', ['class' => 'me-1']) . ' Login', 'url' => ['/site/login'], 'encode' => false];
     } else {
         $roleBadge = $isAdmin ? ' <span class="badge bg-danger ms-1">Admin</span>' : ' <span class="badge bg-primary ms-1">User</span>';
         $topNavItems[] = [
-            'label' => '👤 ' . Html::encode($currentUser->username) . $roleBadge,
+            'label' => \app\helpers\SvgHelper::icon('person-circle', ['class' => 'me-1']) . ' ' . Html::encode($currentUser->username) . $roleBadge,
             'encode' => false,
             'items' => [
-                ['label' => '👤 Profil Saya & Ganti Password', 'url' => ['/site/profile']],
-                $isAdmin ? ['label' => '👥 User Management', 'url' => ['/user/index']] : '',
+                ['label' => \app\helpers\SvgHelper::icon('person-vcard', ['class' => 'me-2 text-primary']) . 'Profil Saya & Ganti Password', 'url' => ['/site/profile'], 'encode' => false],
+                $isAdmin ? ['label' => \app\helpers\SvgHelper::icon('people', ['class' => 'me-2 text-info']) . 'User Management', 'url' => ['/user/index'], 'encode' => false] : '',
                 '<div class="dropdown-divider"></div>',
                 '<li class="px-2">'
                     . Html::beginForm(['/site/logout'])
                     . Html::submitButton(
-                        '<i class="bi bi-box-arrow-right me-1 text-danger"></i> Keluar (Logout)',
+                        \app\helpers\SvgHelper::icon('box-arrow-right', ['class' => 'me-1 text-danger']) . ' Keluar (Logout)',
                         ['class' => 'dropdown-item text-danger rounded-2 py-1']
                     )
                     . Html::endForm()
@@ -154,7 +157,7 @@ if (!empty($systemItems)) {
                         <div class="sidebar-heading"><?= Html::encode($groupTitle) ?></div>
                         <?php foreach ($items as $item): ?>
                             <?= Html::a(
-                                $item['label'] . (!empty($item['badge']) ? ' <span class="badge badge-core float-end mt-1">' . $item['badge'] . '</span>' : ''),
+                                '<span class="d-flex align-items-center flex-grow-1">' . $item['label'] . '</span>' . (!empty($item['badge']) ? ' <span class="badge badge-core ms-auto">' . $item['badge'] . '</span>' : ''),
                                 $item['url'],
                                 [
                                     'class' => 'nav-link' . (!empty($item['active']) ? ' active' : ''),

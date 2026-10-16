@@ -37,14 +37,14 @@ $chartId = 'db-chart';
         <span class="badge bg-light text-dark border"><?= Html::encode($stock->exchange ?? '-') ?></span>
     </div>
     <div class="d-flex gap-2">
-        <?= Html::a('<i class="bi bi-arrow-left"></i> Kembali ke Scanner', array_merge(['double-bottom/index'], $filterParams), ['class' => 'btn btn-outline-secondary']) ?>
+        <?= Html::a(\app\helpers\SvgHelper::icon('arrow-left') . ' Kembali ke Scanner', array_merge(['double-bottom/index'], $filterParams), ['class' => 'btn btn-outline-secondary']) ?>
     </div>
 </div>
 
 <!-- Filter (mempertahankan state filter scanner) -->
 <div class="card mb-4 shadow-sm border-0">
     <div class="card-header bg-light py-2">
-        <strong class="small text-secondary"><i class="bi bi-sliders"></i> Parameter Deteksi Pola</strong>
+        <strong class="small text-secondary"><?= \app\helpers\SvgHelper::icon('sliders') ?> Parameter Deteksi Pola</strong>
     </div>
     <div class="card-body">
         <?= Html::beginForm(['double-bottom/detail'], 'get', ['class' => 'row g-3 align-items-end']) ?>
@@ -74,7 +74,7 @@ $chartId = 'db-chart';
                 <?= Html::input('number', 'necklineMinDepth', round($necklineMinDepth * 100, 1), ['class' => 'form-control form-control-sm', 'min' => 0, 'max' => 50, 'step' => 0.1]) ?>
             </div>
             <div class="col-12 text-end">
-                <?= Html::submitButton('<i class="bi bi-arrow-repeat"></i> Update Analisis', ['class' => 'btn btn-sm btn-primary px-3']) ?>
+                <?= Html::submitButton(\app\helpers\SvgHelper::icon('arrow-repeat') . ' Update Analisis', ['class' => 'btn btn-sm btn-primary px-3']) ?>
             </div>
         <?= Html::endForm() ?>
     </div>
@@ -82,7 +82,7 @@ $chartId = 'db-chart';
 
 <?php if ($pattern === null): ?>
     <div class="alert alert-info shadow-sm">
-        <h5><i class="bi bi-info-circle-fill"></i> Pola Double Bottom Tidak Terdeteksi</h5>
+        <h5><?= \app\helpers\SvgHelper::icon('info-circle-fill') ?> Pola Double Bottom Tidak Terdeteksi</h5>
         <p class="mb-0">Tidak ada pola double bottom yang memenuhi toleransi untuk <?= Html::encode($stock->symbol) ?> dengan pengaturan di atas.</p>
     </div>
 <?php else: ?>
@@ -92,7 +92,7 @@ $chartId = 'db-chart';
 <!-- Chart Candlestick & Volume Profesional Dual-Grid -->
 <div class="card mt-4 shadow-sm border-0">
     <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
-        <h5 class="mb-0 fw-bold"><i class="bi bi-graph-up text-primary"></i> Grafik Pola &amp; Konfirmasi Volume (<?= Html::encode($stock->symbol) ?>)</h5>
+        <h5 class="mb-0 fw-bold"><?= \app\helpers\SvgHelper::icon('graph-up', ['class' => 'text-primary']) ?> Grafik Pola &amp; Konfirmasi Volume (<?= Html::encode($stock->symbol) ?>)</h5>
         <small class="text-muted">Candlestick + Volume Akumulasi Dual-Grid</small>
     </div>
     <div class="card-body">

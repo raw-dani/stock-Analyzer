@@ -1,89 +1,385 @@
-main > .container,
-main > .container-fluid {
-    padding: 15px 15px 20px;
+/* ==========================================================================
+   STOCK ANALYZER — CLEAN MODERN FINTECH DESIGN SYSTEM
+   Font: Plus Jakarta Sans / Inter
+   Palette: Slate-50 Base, Crisp Pure White Cards, Emerald Gains, Rose Losses, Indigo Accents
+   ========================================================================== */
+
+:root {
+    --bs-font-sans-serif: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    --bs-body-font-family: var(--bs-font-sans-serif);
+    --bs-body-bg: #f8fafc;
+    --bs-body-color: #1e293b;
+    
+    /* Brand Color Accents */
+    --brand-primary: #4f46e5;       /* Indigo 600 */
+    --brand-primary-hover: #4338ca; /* Indigo 700 */
+    --brand-primary-subtle: #eef2ff;
+    --brand-emerald: #059669;       /* Emerald 600 - Fresh Profit */
+    --brand-emerald-hover: #047857;
+    --brand-emerald-subtle: #ecfdf5;
+    --brand-rose: #e11d48;          /* Rose 600 - Controlled Loss */
+    --brand-rose-subtle: #fff1f2;
+    --brand-amber: #d97706;         /* Amber 600 - Warning/Alert */
+    --brand-amber-subtle: #fffbeb;
+    --brand-cyan: #0891b2;          /* Cyan 600 - Volume/Tech */
+    --brand-cyan-subtle: #ecfeff;
+
+    /* Surface & Borders */
+    --surface-card: #ffffff;
+    --surface-sidebar: #fcfdfe;
+    --border-light: #e2e8f0;
+    --border-subtle: #f1f5f9;
+    
+    /* Shadows */
+    --shadow-soft: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+    --shadow-elevated: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+    --shadow-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.07), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
 }
 
-.footer {
-    background-color: #f5f5f5;
-    font-size: .9em;
-    height: 60px;
+body {
+    font-family: var(--bs-font-sans-serif);
+    background-color: var(--bs-body-bg);
+    color: var(--bs-body-color);
+    letter-spacing: -0.011em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
-.footer > .container {
-    padding-right: 15px;
-    padding-left: 15px;
+/* --------------------------------------------------------------------------
+   NAVBAR (GLASSMORPHISM & CLEAN MODERN TOPBAR)
+   -------------------------------------------------------------------------- */
+#header .navbar {
+    background: rgba(255, 255, 255, 0.92) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(226, 232, 240, 0.8) !important;
+    box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04) !important;
+    padding-top: 0.35rem;
+    padding-bottom: 0.35rem;
+    min-height: 52px;
+    transition: all 0.2s ease-in-out;
 }
 
-.not-set {
-    color: #c55;
-    font-style: italic;
+#header .navbar-brand {
+    color: #0f172a !important;
+    font-weight: 800;
+    font-size: 1.15rem;
+    letter-spacing: -0.025em;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
-/* add sorting icons to gridview sort links */
-a.asc:after, a.desc:after {
-    content: '';
-    left: 3px;
-    display: inline-block;
-    width: 0;
-    height: 0;
-    border: solid 5px transparent;
-    margin: 4px 4px 2px 4px;
-    background: transparent;
+#header .navbar-brand .brand-logo-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
+    border-radius: 8px;
+    color: #ffffff;
+    font-size: 1.1rem;
+    box-shadow: 0 2px 6px rgba(79, 70, 229, 0.3);
 }
 
-a.asc:after {
-    border-bottom: solid 7px #212529;
-    border-top-width: 0;
+#header .nav-link {
+    color: #475569 !important;
+    font-weight: 600;
+    font-size: 0.875rem;
+    padding: 0.45rem 0.85rem !important;
+    border-radius: 0.5rem;
+    transition: all 0.15s ease-in-out;
 }
 
-a.desc:after {
-    border-top: solid 7px #212529;
-    border-bottom-width: 0;
+#header .nav-link:hover {
+    color: #0f172a !important;
+    background-color: #f1f5f9;
 }
 
-.grid-view th {
+#header .nav-link.active {
+    color: var(--brand-primary) !important;
+    background-color: var(--brand-primary-subtle);
+    font-weight: 700;
+}
+
+/* Dropdown Menu styling */
+.dropdown-menu {
+    border: 1px solid var(--border-light);
+    border-radius: 0.75rem;
+    box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+    padding: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.dropdown-item {
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.85rem;
+    font-weight: 500;
+    color: #334155;
+    transition: all 0.12s;
+}
+
+.dropdown-item:hover, .dropdown-item:focus {
+    background-color: #f8fafc;
+    color: var(--brand-primary);
+}
+
+/* --------------------------------------------------------------------------
+   SIDEBAR (CLEAN, SPACIOUS, CALM)
+   -------------------------------------------------------------------------- */
+.sidebar {
+    height: calc(100vh - 60px);
+    position: sticky;
+    top: 56px;
+    overflow-y: auto;
+    border-right: 1px solid var(--border-light);
+    background-color: var(--surface-sidebar);
+    padding-top: 0.5rem;
+    padding-bottom: 2rem;
+}
+
+.sidebar .nav-link {
+    color: #64748b;
+    border-radius: 0.6rem;
+    font-weight: 600;
+    font-size: 0.84rem;
+    padding: 0.55rem 0.85rem;
+    margin-bottom: 0.15rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: all 0.15s ease-in-out;
+}
+
+.sidebar .nav-link:hover {
+    background-color: #f1f5f9;
+    color: #0f172a;
+    transform: translateX(2px);
+}
+
+.sidebar .nav-link.active {
+    background: linear-gradient(135deg, var(--brand-primary) 0%, #4338ca 100%);
+    color: #ffffff;
+    box-shadow: 0 4px 10px rgba(79, 70, 229, 0.25);
+    font-weight: 700;
+}
+
+.sidebar-heading {
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: #94a3b8;
+    letter-spacing: 0.06em;
+    padding: 0.85rem 0.85rem 0.35rem;
+}
+
+.badge-core {
+    background: linear-gradient(135deg, var(--brand-primary), #06b6d4);
+    color: #fff;
+    font-size: 0.625rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 9999px;
+    letter-spacing: 0.02em;
+}
+
+/* --------------------------------------------------------------------------
+   CARD & CONTAINER ELEVATION
+   -------------------------------------------------------------------------- */
+.card {
+    border: 1px solid var(--border-light) !important;
+    border-radius: 1rem !important;
+    background-color: var(--surface-card);
+    box-shadow: var(--shadow-soft) !important;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.card:hover.hover-card {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-hover) !important;
+}
+
+.card-header {
+    background-color: #ffffff !important;
+    border-bottom: 1px solid var(--border-light) !important;
+    padding: 1rem 1.25rem;
+    font-weight: 700;
+}
+
+/* --------------------------------------------------------------------------
+   FINANCIAL DATA METRICS (KPI CARDS)
+   -------------------------------------------------------------------------- */
+.kpi {
+    font-size: 1.75rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+}
+
+/* Soft accent containers */
+.bg-profit-soft {
+    background-color: var(--brand-emerald-subtle) !important;
+    color: var(--brand-emerald) !important;
+}
+
+.bg-loss-soft {
+    background-color: var(--brand-rose-subtle) !important;
+    color: var(--brand-rose) !important;
+}
+
+.bg-primary-soft {
+    background-color: var(--brand-primary-subtle) !important;
+    color: var(--brand-primary) !important;
+}
+
+.bg-warning-soft {
+    background-color: var(--brand-amber-subtle) !important;
+    color: var(--brand-amber) !important;
+}
+
+/* --------------------------------------------------------------------------
+   TABLES & GRIDVIEW (HIGH LEGIBILITY, CLEAN BORDERS)
+   -------------------------------------------------------------------------- */
+.table-responsive {
+    border-radius: 0.875rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.table {
+    margin-bottom: 0;
+    border-color: var(--border-light);
+    font-size: 0.85rem;
+}
+
+.table th {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #64748b;
+    background-color: #f8fafc;
+    border-bottom: 1px solid var(--border-light);
+    padding: 0.85rem 1rem;
     white-space: nowrap;
 }
 
-.hint-block {
-    display: block;
-    margin-top: 5px;
-    color: #999;
+.table td {
+    padding: 0.85rem 1rem;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--border-subtle);
+    color: #334155;
 }
 
-.error-summary {
-    color: #a94442;
-    background: #fdf7f7;
-    border-left: 3px solid #eed3d7;
-    padding: 10px 20px;
-    margin: 0 0 15px 0;
+.table-hover tbody tr:hover {
+    background-color: #f8fafc;
 }
 
-/* align the logout "link" (button in form) of the navbar */
-.nav li > form > button.logout {
-    padding-top: 7px;
-    color: rgba(255, 255, 255, 0.5);
-}
-
-@media(max-width:767px) {
-    .nav li > form > button.logout {
-        display:block;
-        text-align: left;
-        width: 100%;
-        padding: 10px 0;
-    }
-}
-
-.nav > li > form > button.logout:focus,
-.nav > li > form > button.logout:hover {
+/* Sort link styling */
+.grid-view th a {
+    color: #475569;
     text-decoration: none;
-    color: rgba(255, 255, 255, 0.75);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
 }
 
-.nav > li > form > button.logout:focus {
-    outline: none;
+.grid-view th a:hover {
+    color: var(--brand-primary);
 }
 
-.form-group {
-    margin-bottom: 1rem;
+/* --------------------------------------------------------------------------
+   BUTTONS & BADGES (CLEAN & CONFIDENT)
+   -------------------------------------------------------------------------- */
+.btn {
+    border-radius: 0.6rem;
+    font-weight: 600;
+    font-size: 0.84rem;
+    padding: 0.48rem 0.95rem;
+    transition: all 0.15s ease-in-out;
+}
+
+.btn-primary {
+    background-color: var(--brand-primary);
+    border-color: var(--brand-primary);
+    box-shadow: 0 1px 2px 0 rgba(79, 70, 229, 0.25);
+}
+
+.btn-primary:hover, .btn-primary:focus {
+    background-color: var(--brand-primary-hover);
+    border-color: var(--brand-primary-hover);
+    box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3);
+}
+
+.btn-success {
+    background-color: var(--brand-emerald);
+    border-color: var(--brand-emerald);
+    color: #fff;
+}
+
+.btn-success:hover, .btn-success:focus {
+    background-color: var(--brand-emerald-hover);
+    border-color: var(--brand-emerald-hover);
+}
+
+.badge {
+    font-weight: 700;
+    letter-spacing: 0.015em;
+    padding: 0.35em 0.65em;
+    border-radius: 0.45rem;
+}
+
+/* --------------------------------------------------------------------------
+   BOTTOM BAR NAVIGATION FOR MOBILE (THUMB-FRIENDLY TRADING)
+   -------------------------------------------------------------------------- */
+.mobile-bottom-nav {
+    display: none;
+}
+
+@media (max-width: 767.98px) {
+    body {
+        padding-bottom: 68px; /* space for bottom bar */
+    }
+
+    .mobile-bottom-nav {
+        display: flex;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 60px;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-top: 1px solid var(--border-light);
+        z-index: 1030;
+        justify-content: space-around;
+        align-items: center;
+        box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
+    }
+
+    .mobile-bottom-nav .nav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        color: #64748b;
+        font-size: 0.68rem;
+        font-weight: 600;
+        padding: 4px 8px;
+        border-radius: 8px;
+        flex: 1;
+        transition: color 0.15s;
+    }
+
+    .mobile-bottom-nav .nav-item i {
+        font-size: 1.25rem;
+        margin-bottom: 2px;
+    }
+
+    .mobile-bottom-nav .nav-item.active {
+        color: var(--brand-primary);
+    }
 }

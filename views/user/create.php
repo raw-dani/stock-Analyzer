@@ -17,7 +17,7 @@ $this->params['breadcrumbs'][] = $this->title;
             <div class="card border-0 shadow-sm rounded-3">
                 <div class="card-header bg-white py-3 border-bottom">
                     <h5 class="fw-bold mb-0 text-dark">
-                        <i class="bi bi-person-plus-fill text-primary me-2"></i><?= Html::encode($this->title) ?>
+                        <?= \app\helpers\SvgHelper::icon('person-plus-fill', ['class' => 'text-primary me-2']) ?><?= Html::encode($this->title) ?>
                     </h5>
                 </div>
                 <div class="card-body p-4">
@@ -58,10 +58,10 @@ $this->params['breadcrumbs'][] = $this->title;
                     </div>
 
                     <div class="d-flex justify-content-between align-items-center mt-4">
-                        <?= Html::a('<i class="bi bi-arrow-left me-1"></i> Batal', ['index'], [
+                        <?= Html::a(\app\helpers\SvgHelper::icon('arrow-left', ['class' => 'me-1']) . ' Batal', ['index'], [
                             'class' => 'btn btn-outline-secondary px-3',
                         ]) ?>
-                        <?= Html::submitButton('<i class="bi bi-check-circle me-1"></i> Simpan Pengguna', [
+                        <?= Html::submitButton(\app\helpers\SvgHelper::icon('check-circle', ['class' => 'me-1']) . ' Simpan Pengguna', [
                             'class' => 'btn btn-primary px-4 fw-bold shadow-sm',
                         ]) ?>
                     </div>

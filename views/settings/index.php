@@ -23,7 +23,7 @@ $this->params['breadcrumbs'][] = $this->title;
         </div>
         <div class="d-flex align-items-center gap-2">
             <span class="badge bg-light text-secondary border font-monospace small" title="PHP Binary yang digunakan untuk menjalankan console CLI">
-                <i class="bi bi-terminal me-1"></i> <?= Html::encode(basename($phpExecutable ?? 'php')) ?>
+                <?= \app\helpers\SvgHelper::icon('terminal', ['class' => 'me-1']) ?> <?= Html::encode(basename($phpExecutable ?? 'php')) ?>
             </span>
         </div>
     </div>
@@ -35,18 +35,18 @@ $this->params['breadcrumbs'][] = $this->title;
         <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
             <div>
                 <h5 class="mb-0 fw-bold text-dark">
-                    <i class="bi bi-cpu-fill text-primary me-2"></i> Eksekusi Sinkronisasi Data Pasar (CLI Pipeline)
+                    <?= \app\helpers\SvgHelper::icon('cpu-fill', ['class' => 'text-primary me-2']) ?> Eksekusi Sinkronisasi Data Pasar (CLI Pipeline)
                 </h5>
                 <div class="small text-muted">Jalankan perintah konsol database pasar langsung dari tombol web ini tanpa perlu membuka terminal manual</div>
             </div>
             <div id="sync-status-indicator">
                 <?php if (!empty($syncStatus['last_time'])): ?>
                     <span class="badge bg-<?= !empty($syncStatus['last_success']) ? 'success' : 'danger' ?> bg-opacity-10 text-<?= !empty($syncStatus['last_success']) ? 'success' : 'danger' ?> border border-<?= !empty($syncStatus['last_success']) ? 'success' : 'danger' ?> px-2 py-1 small">
-                        <i class="bi bi-clock-history me-1"></i> Terakhir: <?= Html::encode($syncStatus['last_title'] ?? '') ?> (<?= Yii::$app->formatter->asRelativeTime($syncStatus['last_time']) ?>)
+                        <?= \app\helpers\SvgHelper::icon('clock-history', ['class' => 'me-1']) ?> Terakhir: <?= Html::encode($syncStatus['last_title'] ?? '') ?> (<?= Yii::$app->formatter->asRelativeTime($syncStatus['last_time']) ?>)
                     </span>
                 <?php else: ?>
                     <span class="badge bg-light text-secondary border px-2 py-1 small">
-                        <i class="bi bi-info-circle me-1"></i> Siap Dijalankan
+                        <?= \app\helpers\SvgHelper::icon('info-circle', ['class' => 'me-1']) ?> Siap Dijalankan
                     </span>
                 <?php endif; ?>
             </div>
@@ -63,7 +63,7 @@ $this->params['breadcrumbs'][] = $this->title;
                                     market/refresh-stocklist
                                 </span>
                                 <span class="badge bg-info bg-opacity-10 text-info border border-info" style="font-size:0.68rem;">
-                                    <i class="bi bi-lightning-charge-fill"></i> Cepat (~1-2 dtk)
+                                    <?= \app\helpers\SvgHelper::icon('lightning-charge-fill') ?> Cepat (~1-2 dtk)
                                 </span>
                             </div>
                             <h6 class="fw-bold text-dark mb-1">📋 Refresh Stock List</h6>
@@ -75,7 +75,7 @@ $this->params['breadcrumbs'][] = $this->title;
                                     data-cmd="market/refresh-stocklist"
                                     data-title="Refresh Stock List"
                                     data-cli="php yii market/refresh-stocklist">
-                                    <i class="bi bi-play-circle-fill me-1"></i> Jalankan Stock List
+                                    <?= \app\helpers\SvgHelper::icon('play-circle-fill', ['class' => 'me-1']) ?> Jalankan Stock List
                                 </button>
                             </div>
                         </div>
@@ -114,7 +114,7 @@ $this->params['breadcrumbs'][] = $this->title;
                                     data-limit-id="limit-refresh-daily"
                                     data-title="Refresh Daily Data (All Stocks)"
                                     data-cli="php yii data/refresh-all">
-                                    <i class="bi bi-play-circle-fill me-1"></i> Jalankan Daily Refresh
+                                    <?= \app\helpers\SvgHelper::icon('play-circle-fill', ['class' => 'me-1']) ?> Jalankan Daily Refresh
                                 </button>
                             </div>
                         </div>
@@ -153,7 +153,7 @@ $this->params['breadcrumbs'][] = $this->title;
                                     data-limit-id="limit-sync-intraday"
                                     data-title="Sync Intraday 1H Data (All Stocks)"
                                     data-cli="php yii data/sync-intraday-all">
-                                    <i class="bi bi-play-circle-fill me-1"></i> Jalankan Intraday Sync
+                                    <?= \app\helpers\SvgHelper::icon('play-circle-fill', ['class' => 'me-1']) ?> Jalankan Intraday Sync
                                 </button>
                             </div>
                         </div>
@@ -164,7 +164,7 @@ $this->params['breadcrumbs'][] = $this->title;
             <!-- Master Action Banner: Jalankan Semua Pipeline Sekaligus -->
             <div class="p-3 bg-white rounded border shadow-sm d-flex justify-content-between align-items-center flex-wrap gap-3">
                 <div class="d-flex align-items-center gap-3">
-                    <div class="display-6 text-primary"><i class="bi bi-rocket-takeoff-fill"></i></div>
+                    <div class="display-6 text-primary"><?= \app\helpers\SvgHelper::icon('rocket-takeoff-fill') ?></div>
                     <div>
                         <h6 class="fw-bold text-dark mb-1">Jalankan Rangkaian Sinkronisasi Lengkap (All-in-One)</h6>
                         <div class="small text-muted">
@@ -187,7 +187,7 @@ $this->params['breadcrumbs'][] = $this->title;
                         data-limit-id="limit-sync-all"
                         data-title="Rangkaian Sinkronisasi Lengkap (All-in-One)"
                         data-cli="php yii market/refresh-stocklist && data/refresh-all && data/sync-intraday-all">
-                        <i class="bi bi-play-fill me-1"></i> Eksekusi Semua Pipeline
+                        <?= \app\helpers\SvgHelper::icon('play-fill', ['class' => 'me-1']) ?> Eksekusi Semua Pipeline
                     </button>
                 </div>
             </div>
@@ -312,7 +312,7 @@ $this->params['breadcrumbs'][] = $this->title;
 
             <div class="card border-0 shadow-sm bg-light">
                 <div class="card-body small">
-                    <h6 class="fw-bold mb-2"><i class="bi bi-lightbulb-fill text-warning me-1"></i> Tips Penggunaan CLI:</h6>
+                    <h6 class="fw-bold mb-2"><?= \app\helpers\SvgHelper::icon('lightbulb-fill', ['class' => 'text-warning me-1']) ?> Tips Penggunaan CLI:</h6>
                     <p class="text-secondary mb-1">
                         &bull; Jalankan <strong>Refresh Stock List</strong> sesekali atau jika ada simbol baru yang ditambahkan ke daftar provider.
                     </p>
@@ -355,14 +355,14 @@ $this->params['breadcrumbs'][] = $this->title;
             </div>
             <div class="modal-footer py-2 px-3 border-top border-dark d-flex justify-content-between align-items-center" style="background-color: #27272a;">
                 <div class="small text-muted font-monospace" id="terminal-footer-info" style="font-size:0.75rem;">
-                    <i class="bi bi-broadcast text-success me-1"></i> Streaming live console output
+                    <?= \app\helpers\SvgHelper::icon('broadcast', ['class' => 'text-success me-1']) ?> Streaming live console output
                 </div>
                 <div class="d-flex gap-2">
                     <button type="button" class="btn btn-outline-light btn-sm font-monospace" id="btn-copy-terminal" title="Salin seluruh isi log terminal">
-                        <i class="bi bi-clipboard me-1"></i> Salin Log
+                        <?= \app\helpers\SvgHelper::icon('clipboard', ['class' => 'me-1']) ?> Salin Log
                     </button>
                     <button type="button" class="btn btn-outline-secondary btn-sm font-monospace" id="btn-clear-terminal" title="Bersihkan tampilan terminal">
-                        <i class="bi bi-eraser me-1"></i> Bersihkan
+                        <?= \app\helpers\SvgHelper::icon('eraser', ['class' => 'me-1']) ?> Bersihkan
                     </button>
                     <button type="button" class="btn btn-secondary btn-sm fw-bold px-3" data-bs-dismiss="modal" id="btn-modal-dismiss" disabled>
                         Tutup
@@ -417,17 +417,17 @@ document.addEventListener('DOMContentLoaded', function () {
         if (running) {
             statusBadge.className = 'badge bg-warning text-dark px-2 py-1';
             statusText.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Menjalankan...';
-            footerInfo.innerHTML = '<i class="bi bi-broadcast text-success me-1"></i> Proses sedang berjalan di server...';
+            footerInfo.innerHTML = '<?= \app\helpers\SvgHelper::icon('broadcast', ['class' => 'text-success me-1']) ?> Proses sedang berjalan di server...';
         } else {
             clearInterval(timerInterval);
             if (success === true) {
                 statusBadge.className = 'badge bg-success px-2 py-1';
                 statusText.innerText = '✓ Selesai';
-                footerInfo.innerHTML = '<i class="bi bi-check-circle-fill text-success me-1"></i> ' + (message || 'Eksekusi selesai dengan sukses.');
+                footerInfo.innerHTML = '<?= \app\helpers\SvgHelper::icon('check-circle-fill', ['class' => 'text-success me-1']) ?> ' + (message || 'Eksekusi selesai dengan sukses.');
             } else {
                 statusBadge.className = 'badge bg-danger px-2 py-1';
                 statusText.innerText = '✗ Gagal';
-                footerInfo.innerHTML = '<i class="bi bi-exclamation-triangle-fill text-danger me-1"></i> ' + (message || 'Terdapat error atau proses terhenti.');
+                footerInfo.innerHTML = '<?= \app\helpers\SvgHelper::icon('exclamation-triangle-fill', ['class' => 'text-danger me-1']) ?> ' + (message || 'Terdapat error atau proses terhenti.');
             }
         }
     }
@@ -536,7 +536,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const text = terminalOutput.innerText;
             navigator.clipboard.writeText(text).then(() => {
                 const orig = this.innerHTML;
-                this.innerHTML = '<i class="bi bi-check-lg text-success me-1"></i> Tersalin!';
+                this.innerHTML = '<?= \app\helpers\SvgHelper::icon('check-lg', ['class' => 'text-success me-1']) ?> Tersalin!';
                 setTimeout(() => { this.innerHTML = orig; }, 2000);
             }).catch(err => {
                 alert('Gagal menyalin: ' + err);
@@ -563,7 +563,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         const isSuccess = data.sync.last_success;
                         const badgeClass = isSuccess ? 'success' : 'danger';
                         el.innerHTML = '<span class="badge bg-' + badgeClass + ' bg-opacity-10 text-' + badgeClass + ' border border-' + badgeClass + ' px-2 py-1 small">' +
-                            '<i class="bi bi-clock-history me-1"></i> Terakhir: ' + (data.sync.last_title || '') + ' (' + data.sync.last_time + ')' +
+                            '<?= \app\helpers\SvgHelper::icon('clock-history', ['class' => 'me-1']) ?> Terakhir: ' + (data.sync.last_title || '') + ' (' + data.sync.last_time + ')' +
                             '</span>';
                     }
                 }

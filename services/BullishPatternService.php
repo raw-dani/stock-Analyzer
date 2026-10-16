@@ -1252,12 +1252,12 @@ final class BullishPatternService
     public static function getPatternBadge(string $type): array
     {
         return match ($type) {
-            self::PATTERN_CUP_AND_HANDLE => ['label' => 'Cup & Handle', 'color' => '#fd7e14', 'class' => 'text-white', 'icon' => 'bi-cup-hot-fill'],
-            self::PATTERN_BULLISH_RECTANGLE => ['label' => 'Bullish Rectangle', 'color' => '#20c997', 'class' => 'text-white', 'icon' => 'bi-square-fill'],
-            self::PATTERN_BULLISH_PENNANT => ['label' => 'Bullish Pennant', 'color' => '#0dcaf0', 'class' => 'text-dark', 'icon' => 'bi-triangle-fill'],
-            self::PATTERN_BULLISH_FLAG => ['label' => 'Bullish Flag', 'color' => '#198754', 'class' => 'text-white', 'icon' => 'bi-flag-fill'],
-            self::PATTERN_ASCENDING_TRIANGLE => ['label' => 'Ascending Triangle', 'color' => '#6f42c1', 'class' => 'text-white', 'icon' => 'bi-triangle'],
-            default => ['label' => 'Bullish Pattern', 'color' => '#0d6efd', 'class' => 'text-white', 'icon' => 'bi-graph-up-arrow'],
+            self::PATTERN_CUP_AND_HANDLE => ['label' => 'Cup & Handle', 'color' => '#fd7e14', 'class' => 'text-white', 'icon' => 'cup-hot-fill'],
+            self::PATTERN_BULLISH_RECTANGLE => ['label' => 'Bullish Rectangle', 'color' => '#20c997', 'class' => 'text-white', 'icon' => 'square-fill'],
+            self::PATTERN_BULLISH_PENNANT => ['label' => 'Bullish Pennant', 'color' => '#0dcaf0', 'class' => 'text-dark', 'icon' => 'triangle-fill'],
+            self::PATTERN_BULLISH_FLAG => ['label' => 'Bullish Flag', 'color' => '#198754', 'class' => 'text-white', 'icon' => 'flag-fill'],
+            self::PATTERN_ASCENDING_TRIANGLE => ['label' => 'Ascending Triangle', 'color' => '#6f42c1', 'class' => 'text-white', 'icon' => 'triangle'],
+            default => ['label' => 'Bullish Pattern', 'color' => '#0d6efd', 'class' => 'text-white', 'icon' => 'graph-up-arrow'],
         };
     }
 

@@ -29,60 +29,60 @@ $isPresetMomentum = ($model->maxPrice == 20 && $model->minVolumeGrowth == 0.3);
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
             <div class="d-flex flex-wrap align-items-center gap-2">
                 <span class="small fw-bold text-muted me-1">
-                    <i class="bi bi-lightning-fill text-warning"></i> Preset Cepat (<?= $isDaily ? 'Day Trading' : 'Swing Weekly' ?>):
+                    <?= \app\helpers\SvgHelper::icon('lightning-fill', ['class' => 'text-warning']) ?> Preset Cepat (<?= $isDaily ? 'Day Trading' : 'Swing Weekly' ?>):
                 </span>
                 
                 <?php if ($isDaily): ?>
                     <?= Html::a(
-                        '<i class="bi bi-rocket-takeoff-fill"></i> Day Breakout (+2% & Acc ≥65%)',
+                        \app\helpers\SvgHelper::icon('rocket-takeoff-fill') . ' Day Breakout (+2% & Acc ≥65%)',
                         ['/scanner/index', 'mode' => 'daily', 'minChangePct' => '2.0', 'minBuyRatio' => '0.65'],
                         ['class' => 'btn btn-sm ' . ($isPresetDayBreakout ? 'btn-success shadow-sm' : 'btn-outline-success'), 'title' => 'Momentum kenaikan hari ini dengan dominasi akumulasi buy']
                     ) ?>
 
                     <?= Html::a(
-                        '<i class="bi bi-fire"></i> High Volume Surge (≥70% Buy)',
+                        \app\helpers\SvgHelper::icon('fire') . ' High Volume Surge (≥70% Buy)',
                         ['/scanner/index', 'mode' => 'daily', 'minBuyRatio' => '0.70', 'minVolume' => '500000'],
                         ['class' => 'btn btn-sm ' . ($isPresetDaySpike ? 'btn-primary shadow-sm' : 'btn-outline-primary'), 'title' => 'Tekanan beli kuat dengan likuiditas volume tinggi']
                     ) ?>
 
                     <?= Html::a(
-                        '<i class="bi bi-arrow-down-left-square"></i> Buy On Absorption (<$50)',
+                        \app\helpers\SvgHelper::icon('arrow-down-left-square') . ' Buy On Absorption (<$50)',
                         ['/scanner/index', 'mode' => 'daily', 'minBuyRatio' => '0.65', 'maxPrice' => '50'],
                         ['class' => 'btn btn-sm ' . ($isPresetDayAbsorption ? 'btn-info text-white shadow-sm' : 'btn-outline-info'), 'title' => 'Saham terjangkau dengan akumulasi buy dominan']
                     ) ?>
                 <?php else: ?>
                     <?= Html::a(
-                        '<i class="bi bi-buildings"></i> Akumulasi Institusi',
+                        \app\helpers\SvgHelper::icon('buildings') . ' Akumulasi Institusi',
                         ['/scanner/index', 'minBuyRatio' => '0.7', 'minScore' => '60', 'mode' => 'weekly'],
                         ['class' => 'btn btn-sm ' . ($isPresetInstAcc ? 'btn-primary shadow-sm' : 'btn-outline-primary'), 'title' => 'Buy Ratio ≥ 70%, Skor ≥ 60']
                     ) ?>
 
                     <?= Html::a(
-                        '<i class="bi bi-graph-up-arrow"></i> Volume Breakout',
+                        \app\helpers\SvgHelper::icon('graph-up-arrow') . ' Volume Breakout',
                         ['/scanner/index', 'minVolumeGrowth' => '0.5', 'minScore' => '65', 'mode' => 'weekly'],
                         ['class' => 'btn btn-sm ' . ($isPresetVolBreakout ? 'btn-success shadow-sm' : 'btn-outline-success'), 'title' => 'Vol Growth ≥ 50%, Skor ≥ 65']
                     ) ?>
 
                     <?= Html::a(
-                        '<i class="bi bi-gem"></i> Strong Buy Signal',
+                        \app\helpers\SvgHelper::icon('gem') . ' Strong Buy Signal',
                         ['/scanner/index', 'signal' => 'STRONG_BUY', 'mode' => 'weekly'],
                         ['class' => 'btn btn-sm ' . ($isPresetStrongBuy ? 'btn-info text-white shadow-sm' : 'btn-outline-info'), 'title' => 'Sinyal akumulasi terkuat']
                     ) ?>
 
                     <?= Html::a(
-                        '<i class="bi bi-fire"></i> Lonjakan RVOL (≥ 2.0x)',
+                        \app\helpers\SvgHelper::icon('fire') . ' Lonjakan RVOL (≥ 2.0x)',
                         ['/scanner/index', 'minRvol' => '2.0', 'minScore' => '50', 'mode' => 'weekly'],
                         ['class' => 'btn btn-sm ' . ($isPresetRvolSurge ? 'btn-danger shadow-sm' : 'btn-outline-danger'), 'title' => 'Volume 2x lipat rata-rata mingguan']
                     ) ?>
 
                     <?= Html::a(
-                        '<i class="bi bi-shield-check"></i> Large Cap Giants (>$10B)',
+                        \app\helpers\SvgHelper::icon('shield-check') . ' Large Cap Giants (>$10B)',
                         ['/scanner/index', 'minMarketCap' => '10000000000', 'minBuyRatio' => '0.55', 'mode' => 'weekly'],
                         ['class' => 'btn btn-sm ' . ($isPresetLargeCap ? 'btn-dark shadow-sm' : 'btn-outline-dark'), 'title' => 'Saham berkapitalisasi pasar raksasa']
                     ) ?>
 
                     <?= Html::a(
-                        '<i class="bi bi-rocket-takeoff"></i> Momentum Saham Murah (<$20)',
+                        \app\helpers\SvgHelper::icon('rocket-takeoff') . ' Momentum Saham Murah (<$20)',
                         ['/scanner/index', 'maxPrice' => '20', 'minVolumeGrowth' => '0.3', 'mode' => 'weekly'],
                         ['class' => 'btn btn-sm ' . ($isPresetMomentum ? 'btn-warning text-dark shadow-sm' : 'btn-outline-warning text-dark'), 'title' => 'Harga di bawah $20 dengan pertumbuhan volume']
                     ) ?>
@@ -90,7 +90,7 @@ $isPresetMomentum = ($model->maxPrice == 20 && $model->minVolumeGrowth == 0.3);
             </div>
 
             <div class="d-flex align-items-center gap-2">
-                <?= Html::a('<i class="bi bi-arrow-counterclockwise"></i> Reset Filter', ['/scanner/index', 'mode' => $model->mode], ['class' => 'btn btn-sm btn-outline-secondary']) ?>
+                <?= Html::a(\app\helpers\SvgHelper::icon('arrow-counterclockwise') . ' Reset Filter', ['/scanner/index', 'mode' => $model->mode], ['class' => 'btn btn-sm btn-outline-secondary']) ?>
             </div>
         </div>
     </div>
@@ -99,7 +99,7 @@ $isPresetMomentum = ($model->maxPrice == 20 && $model->minVolumeGrowth == 0.3);
 <!-- Detailed Filter Form -->
 <div class="card border-0 shadow-sm mb-4">
     <div class="card-header bg-white py-2 border-bottom d-flex justify-content-between align-items-center">
-        <strong class="small text-secondary"><i class="bi bi-funnel"></i> Kustomisasi Filter Scanner</strong>
+        <strong class="small text-secondary"><?= \app\helpers\SvgHelper::icon('funnel') ?> Kustomisasi Filter Scanner</strong>
         <span class="badge bg-light text-dark border">Mode: <?= strtoupper($model->mode ?? 'weekly') ?></span>
     </div>
     <div class="card-body p-3">
@@ -192,13 +192,13 @@ $isPresetMomentum = ($model->maxPrice == 20 && $model->minVolumeGrowth == 0.3);
             <!-- Tombol Aksi -->
             <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
                 <div class="small text-muted">
-                    <i class="bi bi-info-circle me-1"></i> Data diurutkan otomatis berdasarkan <strong>Skor Tertinggi</strong> &amp; <strong>Volume Akumulasi</strong>.
+                    <?= \app\helpers\SvgHelper::icon('info-circle', ['class' => 'me-1']) ?> Data diurutkan otomatis berdasarkan <strong>Skor Tertinggi</strong> &amp; <strong>Volume Akumulasi</strong>.
                 </div>
                 <div class="d-flex gap-2">
-                    <?= Html::a('<i class="bi bi-x-circle"></i> Reset', ['/scanner/index', 'mode' => $model->mode], ['class' => 'btn btn-outline-secondary btn-sm px-3']) ?>
-                    <?= Html::submitButton('<i class="bi bi-search"></i> Terapkan Filter', ['class' => 'btn btn-primary btn-sm px-4 fw-bold']) ?>
+                    <?= Html::a(\app\helpers\SvgHelper::icon('x-circle') . ' Reset', ['/scanner/index', 'mode' => $model->mode], ['class' => 'btn btn-outline-secondary btn-sm px-3']) ?>
+                    <?= Html::submitButton(\app\helpers\SvgHelper::icon('search') . ' Terapkan Filter', ['class' => 'btn btn-primary btn-sm px-4 fw-bold']) ?>
                     <button type="submit" class="btn btn-warning btn-sm px-3" id="btn-run-scan">
-                        <span class="btn-text"><i class="bi bi-arrow-clockwise"></i> Jalankan Scan Harian</span>
+                        <span class="btn-text"><?= \app\helpers\SvgHelper::icon('arrow-clockwise') ?> Jalankan Scan Harian</span>
                         <span class="scan-progress" style="display:none">
                             <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
                             Memproses...

@@ -46,7 +46,7 @@ $this->title = 'Login - Stock Analyzer';
                     </div>
 
                     <div class="d-grid mb-3">
-                        <?= Html::submitButton('<i class="bi bi-box-arrow-in-right me-1"></i> Masuk Sekarang', [
+                        <?= Html::submitButton(\app\helpers\SvgHelper::icon('box-arrow-in-right', ['class' => 'me-1']) . ' Masuk Sekarang', [
                             'class' => 'btn btn-primary btn-lg fw-bold shadow-sm',
                             'name' => 'login-button'
                         ]) ?>

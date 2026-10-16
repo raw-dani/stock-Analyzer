@@ -16,14 +16,14 @@ $this->params['breadcrumbs'][] = $this->title;
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
         <div>
             <h1 class="h3 fw-bold text-dark mb-1">
-                <i class="bi bi-people-fill text-primary me-2"></i><?= Html::encode($this->title) ?>
+                <?= \app\helpers\SvgHelper::icon('people-fill', ['class' => 'text-primary me-2']) ?><?= Html::encode($this->title) ?>
             </h1>
             <p class="text-muted small mb-0">
                 Kelola akun pengguna aplikasi, hak akses/role (Admin/User), status akun, dan tinjau portofolio masing-masing.
             </p>
         </div>
         <div>
-            <?= Html::a('<i class="bi bi-person-plus-fill me-1"></i> Tambah Pengguna', ['create'], [
+            <?= Html::a(\app\helpers\SvgHelper::icon('person-plus-fill', ['class' => 'me-1']) . ' Tambah Pengguna', ['create'], [
                 'class' => 'btn btn-primary btn-sm px-3 fw-bold shadow-sm',
             ]) ?>
         </div>
@@ -61,9 +61,9 @@ $this->params['breadcrumbs'][] = $this->title;
                         'format' => 'raw',
                         'value' => function (User $model) {
                             if ($model->isAdmin()) {
-                                return '<span class="badge bg-danger bg-opacity-10 text-danger border border-danger-subtle px-2 py-1"><i class="bi bi-shield-lock-fill me-1"></i> Admin</span>';
+                                return '<span class="badge bg-danger bg-opacity-10 text-danger border border-danger-subtle px-2 py-1">' . \app\helpers\SvgHelper::icon('shield-lock-fill', ['class' => 'me-1']) . ' Admin</span>';
                             }
-                            return '<span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle px-2 py-1"><i class="bi bi-person me-1"></i> User</span>';
+                            return '<span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle px-2 py-1">' . \app\helpers\SvgHelper::icon('person', ['class' => 'me-1']) . ' User</span>';
                         },
                     ],
                     [
@@ -73,7 +73,7 @@ $this->params['breadcrumbs'][] = $this->title;
                         'format' => 'raw',
                         'value' => function (User $model) {
                             $count = PortfolioPosition::find()->where(['user_id' => $model->id])->count();
-                            return '<span class="badge bg-light text-dark border px-2 py-1"><i class="bi bi-briefcase me-1"></i> ' . $count . ' Posisi</span>';
+                            return '<span class="badge bg-light text-dark border px-2 py-1">' . \app\helpers\SvgHelper::icon('briefcase', ['class' => 'me-1']) . ' ' . $count . ' Posisi</span>';
                         },
                     ],
                     [
@@ -84,9 +84,9 @@ $this->params['breadcrumbs'][] = $this->title;
                         'format' => 'raw',
                         'value' => function (User $model) {
                             if ($model->status === User::STATUS_ACTIVE) {
-                                return '<span class="badge bg-success bg-opacity-10 text-success border border-success-subtle px-2 py-1"><i class="bi bi-check-circle me-1"></i> Aktif</span>';
+                                return '<span class="badge bg-success bg-opacity-10 text-success border border-success-subtle px-2 py-1">' . \app\helpers\SvgHelper::icon('check-circle', ['class' => 'me-1']) . ' Aktif</span>';
                             }
-                            return '<span class="badge bg-secondary text-white px-2 py-1"><i class="bi bi-slash-circle me-1"></i> Nonaktif</span>';
+                            return '<span class="badge bg-secondary text-white px-2 py-1">' . \app\helpers\SvgHelper::icon('slash-circle', ['class' => 'me-1']) . ' Nonaktif</span>';
                         },
                     ],
                     [
@@ -105,34 +105,34 @@ $this->params['breadcrumbs'][] = $this->title;
                         'value' => function (User $model) {
                             $isCurrentUser = $model->id === (int) Yii::$app->user->id;
 
-                            $editBtn = Html::a('<i class="bi bi-pencil-square"></i>', ['update', 'id' => $model->id], [
+                            $editBtn = Html::a(\app\helpers\SvgHelper::icon('pencil-square'), ['update', 'id' => $model->id], [
                                 'class' => 'btn btn-outline-secondary btn-sm',
                                 'title' => 'Edit User',
                             ]);
 
                             $toggleRoleBtn = Html::a(
-                                $model->isAdmin() ? '<i class="bi bi-arrow-down-circle" title="Ubah ke User"></i>' : '<i class="bi bi-shield-check" title="Promote ke Admin"></i>',
+                                $model->isAdmin() ? \app\helpers\SvgHelper::icon('arrow-down-circle') : \app\helpers\SvgHelper::icon('shield-check'),
                                 ['toggle-role', 'id' => $model->id],
                                 [
                                     'class' => 'btn btn-outline-info btn-sm' . ($isCurrentUser ? ' disabled' : ''),
                                     'data-method' => 'post',
                                     'data-confirm' => "Ubah role pengguna '{$model->username}'?",
-                                    'title' => 'Ganti Role',
+                                    'title' => $model->isAdmin() ? 'Ubah ke User' : 'Promote ke Admin',
                                 ]
                             );
 
                             $toggleStatusBtn = Html::a(
-                                $model->status === User::STATUS_ACTIVE ? '<i class="bi bi-pause-circle" title="Nonaktifkan"></i>' : '<i class="bi bi-play-circle" title="Aktifkan"></i>',
+                                $model->status === User::STATUS_ACTIVE ? \app\helpers\SvgHelper::icon('pause-circle') : \app\helpers\SvgHelper::icon('play-circle'),
                                 ['toggle-status', 'id' => $model->id],
                                 [
                                     'class' => 'btn btn-outline-warning btn-sm' . ($isCurrentUser ? ' disabled' : ''),
                                     'data-method' => 'post',
                                     'data-confirm' => "Ubah status pengguna '{$model->username}'?",
-                                    'title' => 'Ubah Status',
+                                    'title' => $model->status === User::STATUS_ACTIVE ? 'Nonaktifkan' : 'Aktifkan',
                                 ]
                             );
 
-                            $deleteBtn = Html::a('<i class="bi bi-trash"></i>', ['delete', 'id' => $model->id], [
+                            $deleteBtn = Html::a(\app\helpers\SvgHelper::icon('trash'), ['delete', 'id' => $model->id], [
                                 'class' => 'btn btn-outline-danger btn-sm' . ($isCurrentUser ? ' disabled' : ''),
                                 'data-method' => 'post',
                                 'data-confirm' => "Apakah Anda yakin ingin menghapus user '{$model->username}' beserta seluruh portofolionya?",

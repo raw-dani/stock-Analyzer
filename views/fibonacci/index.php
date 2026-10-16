@@ -31,7 +31,7 @@ $badgeAction = [
 <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
     <div>
         <h1 class="h3 mb-1 fw-bold text-dark">
-            <i class="bi bi-bullseye text-primary"></i> <?= Html::encode($this->title) ?>
+            <?= \app\helpers\SvgHelper::icon('bullseye', ['class' => 'text-primary']) ?> <?= Html::encode($this->title) ?>
         </h1>
         <p class="text-muted small mb-0">
             Penentuan <strong>waktu beli terbaik</strong> (Golden Pocket 50% &ndash; 61.8%) &amp; <strong>waktu jual terbaik</strong> (Target Ekstensi 1.272 &amp; 1.618 atau Stop Loss) dengan konfirmasi volume.
@@ -61,7 +61,7 @@ $badgeAction = [
                 <div class="card-body p-2">
                     <div class="text-muted small fw-semibold text-uppercase">Total Saham Terfilter</div>
                     <div class="h2 mb-0 fw-bold text-dark"><?= number_format((int) ($stats['total'] ?? 0)) ?></div>
-                    <div class="small text-muted"><i class="bi bi-arrow-counterclockwise"></i> Klik untuk reset filter</div>
+                    <div class="small text-muted"><?= \app\helpers\SvgHelper::icon('arrow-counterclockwise') ?> Klik untuk reset filter</div>
                 </div>
             </div>
         </a>
@@ -72,7 +72,7 @@ $badgeAction = [
                 <div class="card-body p-2">
                     <div class="text-success small fw-semibold text-uppercase">⭐ Golden Pocket Buys</div>
                     <div class="h2 mb-0 fw-bold text-success"><?= number_format((int) ($stats['goldenPocketCount'] ?? 0)) ?></div>
-                    <div class="small text-success"><i class="bi bi-star-fill"></i> Waktu Beli Terbaik (50%-61.8%)</div>
+                    <div class="small text-success"><?= \app\helpers\SvgHelper::icon('star-fill') ?> Waktu Beli Terbaik (50%-61.8%)</div>
                 </div>
             </div>
         </a>
@@ -83,7 +83,7 @@ $badgeAction = [
                 <div class="card-body p-2">
                     <div class="text-warning-emphasis small fw-semibold text-uppercase">🎯 Target Ekstensi Tercapai</div>
                     <div class="h2 mb-0 fw-bold text-dark"><?= number_format((int) ($stats['targetReachedCount'] ?? 0)) ?></div>
-                    <div class="small text-warning-emphasis"><i class="bi bi-trophy-fill"></i> Waktu Jual TP (1.272 / 1.618)</div>
+                    <div class="small text-warning-emphasis"><?= \app\helpers\SvgHelper::icon('trophy-fill') ?> Waktu Jual TP (1.272 / 1.618)</div>
                 </div>
             </div>
         </a>
@@ -94,7 +94,7 @@ $badgeAction = [
                 <div class="card-body p-2">
                     <div class="text-danger small fw-semibold text-uppercase">⚠️ Alert Jual / Cut Loss</div>
                     <div class="h2 mb-0 fw-bold text-danger"><?= number_format((int) ($stats['breakdownCount'] ?? 0)) ?></div>
-                    <div class="small text-danger"><i class="bi bi-shield-x"></i> Breakdown Support (&lt; 78.6%)</div>
+                    <div class="small text-danger"><?= \app\helpers\SvgHelper::icon('shield-x') ?> Breakdown Support (&lt; 78.6%)</div>
                 </div>
             </div>
         </a>
@@ -106,40 +106,40 @@ $badgeAction = [
     <div class="card-body p-3">
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
             <div class="d-flex flex-wrap align-items-center gap-2">
-                <span class="small fw-bold text-muted me-1"><i class="bi bi-lightning-fill text-warning"></i> Preset Strategi Cepat:</span>
+                <span class="small fw-bold text-muted me-1"><?= \app\helpers\SvgHelper::icon('lightning-fill', ['class' => 'text-warning']) ?> Preset Strategi Cepat:</span>
                 
                 <?= Html::a(
-                    '<i class="bi bi-grid-fill"></i> Semua Sinyal',
+                    \app\helpers\SvgHelper::icon('grid-fill') . ' Semua Sinyal',
                     $filterWith(['strategy' => 'all']),
                     ['class' => 'btn btn-sm ' . ($params['strategy'] === 'all' ? 'btn-dark' : 'btn-outline-dark')]
                 ) ?>
 
                 <?= Html::a(
-                    '<i class="bi bi-star-fill text-warning"></i> Golden Pocket (50%-61.8%)',
+                    \app\helpers\SvgHelper::icon('star-fill', ['class' => 'text-warning']) . ' Golden Pocket (50%-61.8%)',
                     $filterWith(['strategy' => 'golden_pocket']),
                     ['class' => 'btn btn-sm ' . ($params['strategy'] === 'golden_pocket' ? 'btn-success text-white' : 'btn-outline-success')]
                 ) ?>
 
                 <?= Html::a(
-                    '<i class="bi bi-arrow-down-right"></i> Pullback 38.2% Dip',
+                    \app\helpers\SvgHelper::icon('arrow-down-right') . ' Pullback 38.2% Dip',
                     $filterWith(['strategy' => 'pullback_382']),
                     ['class' => 'btn btn-sm ' . ($params['strategy'] === 'pullback_382' ? 'btn-primary' : 'btn-outline-primary')]
                 ) ?>
 
                 <?= Html::a(
-                    '<i class="bi bi-rocket-takeoff"></i> Breakout Swing High',
+                    \app\helpers\SvgHelper::icon('rocket-takeoff') . ' Breakout Swing High',
                     $filterWith(['strategy' => 'breakout_high']),
                     ['class' => 'btn btn-sm ' . ($params['strategy'] === 'breakout_high' ? 'btn-info text-white' : 'btn-outline-info')]
                 ) ?>
 
                 <?= Html::a(
-                    '<i class="bi bi-cash-stack"></i> Waktu Jual / TP Tercapai',
+                    \app\helpers\SvgHelper::icon('cash-stack') . ' Waktu Jual / TP Tercapai',
                     $filterWith(['strategy' => 'target_reached']),
                     ['class' => 'btn btn-sm ' . ($params['strategy'] === 'target_reached' ? 'btn-warning text-dark' : 'btn-outline-warning text-dark')]
                 ) ?>
 
                 <?= Html::a(
-                    '<i class="bi bi-shield-slash"></i> Alert Jual / Breakdown',
+                    \app\helpers\SvgHelper::icon('shield-slash') . ' Alert Jual / Breakdown',
                     $filterWith(['strategy' => 'breakdown']),
                     ['class' => 'btn btn-sm ' . ($params['strategy'] === 'breakdown' ? 'btn-danger' : 'btn-outline-danger')]
                 ) ?>
@@ -148,24 +148,24 @@ $badgeAction = [
             <div class="d-flex align-items-center gap-2">
                 <div class="dropdown">
                     <button class="btn btn-sm btn-outline-secondary dropdown-toggle shadow-sm" type="button" data-bs-toggle="dropdown">
-                        <i class="bi bi-clipboard"></i> Salin Simbol (<?= count($symbols) ?>)
+                        <?= \app\helpers\SvgHelper::icon('clipboard') ?> Salin Simbol (<?= count($symbols) ?>)
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end shadow">
                         <li>
                             <button class="dropdown-item small" type="button" onclick="copyToClipboard('<?= Html::encode($tvSymbolsStr) ?>', 'TradingView')">
-                                <i class="bi bi-tv me-1 text-primary"></i> Format TradingView (<?= count($tvSymbols) ?>)
+                                <?= \app\helpers\SvgHelper::icon('tv', ['class' => 'me-1 text-primary']) ?> Format TradingView (<?= count($tvSymbols) ?>)
                             </button>
                         </li>
                         <li>
                             <button class="dropdown-item small" type="button" onclick="copyToClipboard('<?= Html::encode($symbolsStr) ?>', 'Biasa')">
-                                <i class="bi bi-card-text me-1 text-success"></i> Format Simbol Biasa (<?= count($symbols) ?>)
+                                <?= \app\helpers\SvgHelper::icon('card-text', ['class' => 'me-1 text-success']) ?> Format Simbol Biasa (<?= count($symbols) ?>)
                             </button>
                         </li>
                     </ul>
                 </div>
 
                 <?= Html::a(
-                    '<i class="bi bi-download"></i> Ekspor CSV',
+                    \app\helpers\SvgHelper::icon('download') . ' Ekspor CSV',
                     Url::to(array_merge(['/fibonacci/export'], $currentGet)),
                     ['class' => 'btn btn-sm btn-outline-primary shadow-sm']
                 ) ?>
@@ -182,7 +182,7 @@ $badgeAction = [
             <div class="col-12 col-md-3">
                 <label class="form-label small fw-semibold text-muted mb-1">Cari Simbol Saham</label>
                 <div class="input-group input-group-sm">
-                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <span class="input-group-text"><?= \app\helpers\SvgHelper::icon('search') ?></span>
                     <?= Html::textInput('symbol', $params['symbol'] ?? '', [
                         'class' => 'form-control',
                         'placeholder' => 'Contoh: NVDA, AAPL, BBCA',
@@ -235,7 +235,7 @@ $badgeAction = [
             </div>
 
             <div class="col-12 col-md-1 d-flex gap-1">
-                <?= Html::submitButton('<i class="bi bi-funnel-fill"></i> Filter', ['class' => 'btn btn-sm btn-primary w-100']) ?>
+                <?= Html::submitButton(\app\helpers\SvgHelper::icon('funnel-fill') . ' Filter', ['class' => 'btn btn-sm btn-primary w-100']) ?>
             </div>
 
         <?= Html::endForm() ?>
@@ -249,7 +249,7 @@ $badgeAction = [
     </div>
     <div style="max-width: 280px;" class="w-100">
         <div class="input-group input-group-sm">
-            <span class="input-group-text bg-white"><i class="bi bi-filter"></i></span>
+            <span class="input-group-text bg-white"><?= \app\helpers\SvgHelper::icon('filter') ?></span>
             <input type="text" id="tableSearchInput" class="form-control" placeholder="Ketik untuk filter cepat di tabel...">
         </div>
     </div>
@@ -279,7 +279,7 @@ $badgeAction = [
                 <?php if (empty($results)): ?>
                     <tr>
                         <td colspan="12" class="text-center py-5 text-muted">
-                            <i class="bi bi-inbox fs-1 d-block mb-2 text-secondary"></i>
+                            <?= \app\helpers\SvgHelper::icon('inbox', ['class' => 'fs-1 d-block mb-2 text-secondary']) ?>
                             <strong>Tidak ditemukan saham yang cocok dengan kriteria filter Fibonacci saat ini.</strong>
                             <p class="small text-muted mb-0">Coba ubah opsi strategi ke <em>"Semua Sinyal"</em> atau pilih timeframe lainnya.</p>
                         </td>
@@ -290,14 +290,28 @@ $badgeAction = [
                         $act = $r['action'];
                         $actBadge = $badgeAction[$act] ?? 'secondary';
                         $isGolden = ($r['signal'] === \app\services\FibonacciService::SIGNAL_GOLDEN_POCKET);
+                        $isBuy = ($act === 'BUY');
+                        $isSell = ($act === 'SELL');
+                        $isTp = ($act === 'TAKE_PROFIT');
                         ?>
-                        <tr class="<?= $isGolden ? 'table-success bg-opacity-25' : '' ?>" data-symbol="<?= Html::encode($r['symbol']) ?>">
+                        <tr data-symbol="<?= Html::encode($r['symbol']) ?>">
                             <td class="fw-bold">
-                                <?= Html::a(
-                                    Html::encode($r['symbol']),
-                                    ['/fibonacci/detail', 'symbol' => $r['symbol'], 'timeframe' => $params['timeframe']],
-                                    ['class' => 'text-decoration-none text-primary fs-6']
-                                ) ?>
+                                <div class="d-flex align-items-center gap-1">
+                                    <?php if ($isBuy || $isGolden): ?>
+                                        <span class="p-1 bg-success rounded-circle d-inline-block" title="<?= $isGolden ? 'Golden Pocket / Potensi Beli' : 'Potensi Beli' ?>" style="width: 8px; height: 8px;"></span>
+                                    <?php elseif ($isSell): ?>
+                                        <span class="p-1 bg-danger rounded-circle d-inline-block" title="Bearish Breakdown / Exit" style="width: 8px; height: 8px;"></span>
+                                    <?php elseif ($isTp): ?>
+                                        <span class="p-1 bg-warning rounded-circle d-inline-block" title="Take Profit" style="width: 8px; height: 8px;"></span>
+                                    <?php else: ?>
+                                        <span class="p-1 bg-secondary bg-opacity-25 rounded-circle d-inline-block" title="Wait & See" style="width: 8px; height: 8px;"></span>
+                                    <?php endif; ?>
+                                    <?= Html::a(
+                                        Html::encode($r['symbol']),
+                                        ['/fibonacci/detail', 'symbol' => $r['symbol'], 'timeframe' => $params['timeframe']],
+                                        ['class' => 'text-decoration-none text-primary fs-6']
+                                    ) ?>
+                                </div>
                                 <span class="d-block small text-muted text-truncate" style="max-width: 140px;" title="<?= Html::encode($r['name']) ?>">
                                     <?= Html::encode($r['name']) ?>
                                 </span>
@@ -383,7 +397,7 @@ $badgeAction = [
                             </td>
                             <td class="text-center text-nowrap">
                                 <?= Html::a(
-                                    '<i class="bi bi-compass"></i> Trading Plan',
+                                    \app\helpers\SvgHelper::icon('compass') . ' Trading Plan',
                                     ['/fibonacci/detail', 'symbol' => $r['symbol'], 'timeframe' => $params['timeframe']],
                                     ['class' => 'btn btn-sm btn-outline-primary shadow-sm']
                                 ) ?>
@@ -401,7 +415,7 @@ $badgeAction = [
     <div id="copyToast" class="toast align-items-center text-white bg-dark border-0 shadow-lg" role="alert" aria-live="assertive" aria-atomic="true">
         <div class="d-flex">
             <div class="toast-body small" id="copyToastMsg">
-                <i class="bi bi-check2-circle text-success me-1"></i> Simbol disalin ke clipboard!
+                <?= \app\helpers\SvgHelper::icon('check2-circle', ['class' => 'text-success me-1']) ?> Simbol disalin ke clipboard!
             </div>
             <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
         </div>
@@ -447,7 +461,7 @@ function copyToClipboard(text, label) {
     navigator.clipboard.writeText(text).then(function() {
         const msgEl = document.getElementById('copyToastMsg');
         if (msgEl) {
-            msgEl.innerHTML = '<i class="bi bi-check2-circle text-success me-1"></i> Berhasil menyalin ' + label + ' ke clipboard!';
+            msgEl.innerHTML = '<?= \app\helpers\SvgHelper::icon('check2-circle', ['class' => 'text-success me-1']) ?> Berhasil menyalin ' + label + ' ke clipboard!';
         }
         const toastEl = document.getElementById('copyToast');
         if (toastEl && window.bootstrap) {

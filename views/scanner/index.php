@@ -113,9 +113,9 @@ $weeklyColumns = [
             if ($m->rvol === null) return '-';
             $val = round((float) $m->rvol, 1);
             if ($val >= 2.0) {
-                return '<span class="badge bg-danger text-white px-2 py-1 shadow-sm" title="Lonjakan Volume Kuat ≥2.0x"><i class="bi bi-fire"></i> ' . $val . 'x</span>';
+                return '<span class="badge bg-danger text-white px-2 py-1 shadow-sm" title="Lonjakan Volume Kuat ≥2.0x">' . \app\helpers\SvgHelper::icon('fire') . ' ' . $val . 'x</span>';
             } elseif ($val >= 1.5) {
-                return '<span class="badge bg-warning text-dark px-2 py-1 shadow-sm" title="Volume Meningkat ≥1.5x"><i class="bi bi-lightning-fill"></i> ' . $val . 'x</span>';
+                return '<span class="badge bg-warning text-dark px-2 py-1 shadow-sm" title="Volume Meningkat ≥1.5x">' . \app\helpers\SvgHelper::icon('lightning-fill') . ' ' . $val . 'x</span>';
             } elseif ($val >= 1.0) {
                 return '<span class="badge bg-primary px-2 py-1">' . $val . 'x</span>';
             }
@@ -171,7 +171,7 @@ $weeklyColumns = [
                 . Html::a('TB', ['/triple-bottom/detail', 'symbol' => $sym], ['class' => 'btn btn-outline-success py-0 px-2', 'title' => 'Cek Pola Triple Bottom'])
                 . Html::a('RSI', ['/rsi-double-bottom/detail', 'symbol' => $sym], ['class' => 'btn btn-outline-info py-0 px-2', 'title' => 'Cek Pola RSI Double Bottom'])
                 . Html::a('MA', ['/moving-average/detail', 'symbol' => $sym], ['class' => 'btn btn-outline-warning text-dark py-0 px-2', 'title' => 'Cek Moving Average'])
-                . Html::a('<i class="bi bi-box-arrow-up-right"></i>', ['/stock/view', 'symbol' => $sym], ['class' => 'btn btn-outline-secondary py-0 px-1', 'title' => 'Detail Saham'])
+                . Html::a(\app\helpers\SvgHelper::icon('box-arrow-up-right'), ['/stock/view', 'symbol' => $sym], ['class' => 'btn btn-outline-secondary py-0 px-1', 'title' => 'Detail Saham'])
                 . '</div>';
         },
         'format' => 'raw',
@@ -231,7 +231,7 @@ $dailyColumns = [
             $diff = (float) $m->close - (float) $m->open;
             $pct = round(($diff / (float) $m->open) * 100, 2);
             $badgeClass = $pct > 0 ? 'text-success fw-bold' : ($pct < 0 ? 'text-danger fw-bold' : 'text-muted');
-            $icon = $pct > 0 ? '<i class="bi bi-caret-up-fill"></i> +' : ($pct < 0 ? '<i class="bi bi-caret-down-fill"></i> ' : '');
+            $icon = $pct > 0 ? \app\helpers\SvgHelper::icon('caret-up-fill') . ' +' : ($pct < 0 ? \app\helpers\SvgHelper::icon('caret-down-fill') . ' ' : '');
             return '<span class="' . $badgeClass . '">' . $icon . $pct . '%</span>';
         },
         'format' => 'raw',
@@ -275,13 +275,13 @@ $dailyColumns = [
             $gainPct = !empty($m->open) && $m->open > 0 ? (($m->close - $m->open) / $m->open) * 100 : 0;
 
             if ($gainPct >= 2.0 && $ratio >= 0.65) {
-                return '<span class="badge bg-success text-white shadow-sm" title="Momentum breakout kuat dengan akumulasi dominan"><i class="bi bi-rocket-takeoff-fill"></i> BREAKOUT</span>';
+                return '<span class="badge bg-success text-white shadow-sm" title="Momentum breakout kuat dengan akumulasi dominan">' . \app\helpers\SvgHelper::icon('rocket-takeoff-fill') . ' BREAKOUT</span>';
             } elseif ($ratio >= 0.70) {
-                return '<span class="badge bg-primary text-white shadow-sm" title="Tekanan beli tinggi"><i class="bi bi-buildings"></i> AKUMULASI</span>';
+                return '<span class="badge bg-primary text-white shadow-sm" title="Tekanan beli tinggi">' . \app\helpers\SvgHelper::icon('buildings') . ' AKUMULASI</span>';
             } elseif ($gainPct >= 3.0) {
-                return '<span class="badge bg-warning text-dark shadow-sm" title="Kenaikan harga tajam"><i class="bi bi-lightning-fill"></i> MOMENTUM</span>';
+                return '<span class="badge bg-warning text-dark shadow-sm" title="Kenaikan harga tajam">' . \app\helpers\SvgHelper::icon('lightning-fill') . ' MOMENTUM</span>';
             } elseif ($gainPct <= -1.0 && $ratio >= 0.60) {
-                return '<span class="badge bg-info text-white shadow-sm" title="Harga turun namun volume beli terserap (Buy on weakness)"><i class="bi bi-arrow-down-left-square"></i> ABSORPTION</span>';
+                return '<span class="badge bg-info text-white shadow-sm" title="Harga turun namun volume beli terserap (Buy on weakness)">' . \app\helpers\SvgHelper::icon('arrow-down-left-square') . ' ABSORPTION</span>';
             }
             return '<span class="badge bg-light text-muted border">NETRAL</span>';
         },
@@ -307,7 +307,7 @@ $dailyColumns = [
                 . Html::a('TB', ['/triple-bottom/detail', 'symbol' => $sym], ['class' => 'btn btn-outline-success py-0 px-2', 'title' => 'Cek Pola Triple Bottom'])
                 . Html::a('RSI', ['/rsi-double-bottom/detail', 'symbol' => $sym], ['class' => 'btn btn-outline-info py-0 px-2', 'title' => 'Cek Pola RSI Double Bottom'])
                 . Html::a('MA', ['/moving-average/detail', 'symbol' => $sym], ['class' => 'btn btn-outline-warning text-dark py-0 px-2', 'title' => 'Cek Posisi Beli/Jual Moving Average'])
-                . Html::a('<i class="bi bi-box-arrow-up-right"></i>', ['/stock/view', 'symbol' => $sym], ['class' => 'btn btn-outline-secondary py-0 px-1', 'title' => 'Detail Saham'])
+                . Html::a(\app\helpers\SvgHelper::icon('box-arrow-up-right'), ['/stock/view', 'symbol' => $sym], ['class' => 'btn btn-outline-secondary py-0 px-1', 'title' => 'Detail Saham'])
                 . '</div>';
         },
         'format' => 'raw',
@@ -318,35 +318,35 @@ $dailyColumns = [
 <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
     <div>
         <h1 class="h3 mb-1 fw-bold text-dark">
-            <i class="bi bi-funnel-fill text-primary"></i> Stock Scanner
+            <?= \app\helpers\SvgHelper::icon('funnel-fill', ['class' => 'text-primary']) ?> Stock Scanner
             <span class="text-muted fs-6 fw-normal ms-2">| Volume &amp; Accumulation</span>
         </h1>
         <p class="text-muted small mb-0">Deteksi aliran dana institusi / bandar melalui analisis rasio volume beli vs jual, lonjakan RVOL, dan scoring komposit.</p>
     </div>
     <div class="d-flex align-items-center gap-2">
         <div class="btn-group btn-group-sm shadow-sm" role="group">
-            <?= Html::a('<i class="bi bi-calendar3-week me-1"></i> Mode Weekly', $filterWith(['mode' => 'weekly']), [
+            <?= Html::a(\app\helpers\SvgHelper::icon('calendar3-week', ['class' => 'me-1']) . ' Mode Weekly', $filterWith(['mode' => 'weekly']), [
                 'class' => 'btn ' . (!$isDaily ? 'btn-primary fw-bold' : 'btn-outline-primary'),
             ]) ?>
-            <?= Html::a('<i class="bi bi-calendar-day me-1"></i> Mode Daily', $filterWith(['mode' => 'daily']), [
+            <?= Html::a(\app\helpers\SvgHelper::icon('calendar-day', ['class' => 'me-1']) . ' Mode Daily', $filterWith(['mode' => 'daily']), [
                 'class' => 'btn ' . ($isDaily ? 'btn-info text-white fw-bold' : 'btn-outline-info'),
             ]) ?>
         </div>
         <a href="<?= Url::to(array_merge(['scanner/run-scan'], $currentGet)) ?>" class="btn btn-warning btn-sm fw-bold px-3 shadow-sm">
-            <i class="bi bi-arrow-clockwise"></i> <?= $isDaily ? 'Refresh Scan Harian' : 'Refresh Analisis Mingguan' ?>
+            <?= \app\helpers\SvgHelper::icon('arrow-clockwise') ?> <?= $isDaily ? 'Refresh Scan Harian' : 'Refresh Analisis Mingguan' ?>
         </a>
     </div>
 </div>
 
 <?php foreach ((array) Yii::$app->session->getFlash('success') as $msg): ?>
     <div class="alert alert-success alert-dismissible fade show" role="alert">
-        <i class="bi bi-check-circle-fill me-1"></i> <?= Html::encode($msg) ?>
+        <?= \app\helpers\SvgHelper::icon('check-circle-fill', ['class' => 'me-1']) ?> <?= Html::encode($msg) ?>
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 <?php endforeach; ?>
 <?php foreach ((array) Yii::$app->session->getFlash('danger') as $msg): ?>
     <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        <i class="bi bi-exclamation-triangle-fill me-1"></i> <?= Html::encode($msg) ?>
+        <?= \app\helpers\SvgHelper::icon('exclamation-triangle-fill', ['class' => 'me-1']) ?> <?= Html::encode($msg) ?>
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 <?php endforeach; ?>
@@ -372,7 +372,7 @@ $dailyColumns = [
                 <div class="card-body p-2">
                     <div class="text-muted small fw-semibold text-uppercase">Total Saham Lolos</div>
                     <div class="h2 mb-0 fw-bold text-dark"><?= number_format((int) ($stats['total'] ?? 0)) ?></div>
-                    <div class="small text-muted"><i class="bi bi-funnel"></i> Klik untuk reset filter</div>
+                    <div class="small text-muted"><?= \app\helpers\SvgHelper::icon('funnel') ?> Klik untuk reset filter</div>
                 </div>
             </div>
         </a>
@@ -383,7 +383,7 @@ $dailyColumns = [
                 <div class="card-body p-2">
                     <div class="text-success small fw-semibold text-uppercase"><?= $isDaily ? 'Strong Breakout' : 'Strong Buy Signals' ?></div>
                     <div class="h2 mb-0 fw-bold text-success"><?= number_format((int) ($stats['strongBuy'] ?? 0)) ?></div>
-                    <div class="small text-success"><i class="bi bi-gem"></i> <?= $isDaily ? 'Tekanan Beli & Gain Tinggi' : 'Dominasi Akumulasi Kuat' ?></div>
+                    <div class="small text-success"><?= \app\helpers\SvgHelper::icon('gem') ?> <?= $isDaily ? 'Tekanan Beli & Gain Tinggi' : 'Dominasi Akumulasi Kuat' ?></div>
                 </div>
             </div>
         </a>
@@ -394,7 +394,7 @@ $dailyColumns = [
                 <div class="card-body p-2">
                     <div class="text-primary small fw-semibold text-uppercase">Akumulasi &ge; 70%</div>
                     <div class="h2 mb-0 fw-bold text-primary"><?= number_format((int) ($stats['heavyAccumulation'] ?? 0)) ?></div>
-                    <div class="small text-primary"><i class="bi bi-buildings"></i> Tekanan Beli Tinggi</div>
+                    <div class="small text-primary"><?= \app\helpers\SvgHelper::icon('buildings') ?> Tekanan Beli Tinggi</div>
                 </div>
             </div>
         </a>
@@ -405,7 +405,7 @@ $dailyColumns = [
                 <div class="card-body p-2">
                     <div class="text-warning-emphasis small fw-semibold text-uppercase"><?= $isDaily ? 'Rata-rata Buy Pressure' : 'Rata-rata RVOL' ?></div>
                     <div class="h2 mb-0 fw-bold text-warning-emphasis"><?= number_format((float) ($stats['avgRvol'] ?? 0), 1) ?><?= $isDaily ? '%' : 'x' ?></div>
-                    <div class="small text-muted"><i class="bi bi-lightning-fill text-warning"></i> <?= $isDaily ? 'Intensitas Akumulasi' : 'Aktivitas Relatif Mingguan' ?></div>
+                    <div class="small text-muted"><?= \app\helpers\SvgHelper::icon('lightning-fill', ['class' => 'text-warning']) ?> <?= $isDaily ? 'Intensitas Akumulasi' : 'Aktivitas Relatif Mingguan' ?></div>
                 </div>
             </div>
         </a>
@@ -420,7 +420,7 @@ $dailyColumns = [
     <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
         <div class="d-flex align-items-center gap-2">
             <h5 class="mb-0 fw-bold text-dark">
-                <i class="bi bi-table text-primary me-1"></i> Daftar Saham Terfilter
+                <?= \app\helpers\SvgHelper::icon('table', ['class' => 'text-primary me-1']) ?> Daftar Saham Terfilter
                 <span class="badge bg-secondary ms-1"><?= $dataProvider->getTotalCount() ?> Saham</span>
             </h5>
             <span class="badge bg-light text-dark border">
@@ -431,25 +431,25 @@ $dailyColumns = [
         <div class="d-flex flex-wrap align-items-center gap-2">
             <!-- Client-side quick filter input -->
             <div class="input-group input-group-sm" style="max-width: 220px;">
-                <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+                <span class="input-group-text bg-light border-end-0"><?= \app\helpers\SvgHelper::icon('search', ['class' => 'text-muted']) ?></span>
                 <input type="text" id="scanner-table-search" class="form-control form-control-sm border-start-0" placeholder="Filter di tabel...">
             </div>
 
             <!-- Copy Symbols Dropdown -->
             <div class="dropdown">
                 <button class="btn btn-outline-primary btn-sm dropdown-toggle shadow-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false" <?= empty($symbols) ? 'disabled' : '' ?>>
-                    <i class="bi bi-clipboard"></i> Salin Simbol (<?= count($symbols) ?>)
+                    <?= \app\helpers\SvgHelper::icon('clipboard') ?> Salin Simbol (<?= count($symbols) ?>)
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end shadow-sm small">
                     <li><h6 class="dropdown-header">Pilih Format Simbol</h6></li>
                     <li>
                         <a class="dropdown-item" href="javascript:void(0)" onclick="copySymbolsText('<?= Html::encode($symbolsStr) ?>', 'Simbol standar')">
-                            <i class="bi bi-file-text me-1"></i> Standar (Cth: NVDA, AAPL)
+                            <?= \app\helpers\SvgHelper::icon('file-text', ['class' => 'me-1']) ?> Standar (Cth: NVDA, AAPL)
                         </a>
                     </li>
                     <li>
                         <a class="dropdown-item" href="javascript:void(0)" onclick="copySymbolsText('<?= Html::encode($tvSymbolsStr) ?>', 'Format TradingView')">
-                            <i class="bi bi-graph-up me-1"></i> TradingView (Cth: NASDAQ:NVDA)
+                            <?= \app\helpers\SvgHelper::icon('graph-up', ['class' => 'me-1']) ?> TradingView (Cth: NASDAQ:NVDA)
                         </a>
                     </li>
                 </ul>
@@ -457,14 +457,14 @@ $dailyColumns = [
 
             <!-- Export CSV -->
             <a href="<?= Url::to(array_merge(['scanner/export'], $currentGet)) ?>" class="btn btn-outline-success btn-sm shadow-sm" title="Download data hasil filter dalam format CSV">
-                <i class="bi bi-download"></i> Export CSV
+                <?= \app\helpers\SvgHelper::icon('download') ?> Export CSV
             </a>
         </div>
     </div>
 
     <!-- Toast Notification for Copy -->
     <div id="copy-toast" class="alert alert-dark position-fixed bottom-0 end-0 m-3 shadow py-2 px-3 fade" style="display:none; z-index:9999;" role="alert">
-        <i class="bi bi-check-circle-fill text-success me-1"></i> <span id="copy-toast-text">Simbol disalin ke clipboard!</span>
+        <?= \app\helpers\SvgHelper::icon('check-circle-fill', ['class' => 'text-success me-1']) ?> <span id="copy-toast-text">Simbol disalin ke clipboard!</span>
     </div>
 
     <div class="table-responsive">
@@ -472,11 +472,11 @@ $dailyColumns = [
             'dataProvider' => $dataProvider,
             'filterModel' => null,
             'emptyText' => '<div class="text-center py-5">
-                <div class="display-6 text-muted mb-2"><i class="bi bi-funnel"></i></div>
+                <div class="display-6 text-muted mb-2">' . \app\helpers\SvgHelper::icon('funnel') . '</div>
                 <h5 class="fw-bold text-secondary">Tidak ada saham yang cocok dengan filter</h5>
                 <p class="text-muted small mb-3">Coba longgarkan kriteria filter Anda (misal kurangi Min Skor, Min Buy Ratio, atau pilih Semua Sinyal).</p>
                 <a href="' . Url::to(['/scanner/index', 'mode' => $searchModel->mode]) . '" class="btn btn-primary btn-sm px-3 shadow-sm">
-                    <i class="bi bi-arrow-counterclockwise"></i> Reset Semua Filter
+                    ' . \app\helpers\SvgHelper::icon('arrow-counterclockwise') . ' Reset Semua Filter
                 </a>
             </div>',
             'tableOptions' => ['class' => 'table table-hover align-middle mb-0', 'id' => 'scanner-grid-table'],
