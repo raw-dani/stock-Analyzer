@@ -415,21 +415,58 @@ final class SettingsController extends Controller
      */
     public static function getPhpExecutable(): string
     {
-        if (defined('PHP_BINARY') && str_ends_with(strtolower(PHP_BINARY), 'php.exe') && file_exists(PHP_BINARY)) {
+        // 1. Cek dari environment (.env) jika diset secara eksplisit
+        $envPhp = getenv('PHP_BINARY_PATH');
+        if (!empty($envPhp) && file_exists($envPhp)) {
+            return $envPhp;
+        }
+
+        // 2. Windows environment check
+        if (DIRECTORY_SEPARATOR === '\\') {
+            if (defined('PHP_BINARY') && str_ends_with(strtolower(PHP_BINARY), 'php.exe') && file_exists(PHP_BINARY)) {
+                return PHP_BINARY;
+            }
+            if (defined('PHP_BINARY')) {
+                $candidate = dirname(PHP_BINARY) . DIRECTORY_SEPARATOR . 'php.exe';
+                if (file_exists($candidate)) {
+                    return $candidate;
+                }
+            }
+            if (defined('PHP_BINDIR')) {
+                $candidate = PHP_BINDIR . DIRECTORY_SEPARATOR . 'php.exe';
+                if (file_exists($candidate)) {
+                    return $candidate;
+                }
+            }
+            return 'php';
+        }
+
+        // 3. Linux / Unix (khususnya CyberPanel OpenLiteSpeed)
+        // Cari binary PHP 8.4, 8.3, 8.2, atau 8.1 milik CyberPanel LiteSpeed terlebih dahulu
+        $linuxCandidates = [
+            '/usr/local/lsws/lsphp84/bin/php',
+            '/usr/local/lsws/lsphp83/bin/php',
+            '/usr/local/lsws/lsphp82/bin/php',
+            '/usr/local/lsws/lsphp81/bin/php',
+            '/usr/local/lsws/lsphp80/bin/php',
+            '/usr/bin/php8.4',
+            '/usr/bin/php8.3',
+            '/usr/bin/php8.2',
+            '/usr/bin/php8.1',
+            '/usr/bin/php8.0',
+        ];
+
+        foreach ($linuxCandidates as $candidate) {
+            if (file_exists($candidate) && is_executable($candidate)) {
+                return $candidate;
+            }
+        }
+
+        // 4. Cek PHP_BINARY bawaan jika versinya >= PHP 8
+        if (defined('PHP_BINARY') && file_exists(PHP_BINARY) && PHP_VERSION_ID >= 80000) {
             return PHP_BINARY;
         }
-        if (defined('PHP_BINARY')) {
-            $candidate = dirname(PHP_BINARY) . DIRECTORY_SEPARATOR . 'php.exe';
-            if (file_exists($candidate)) {
-                return $candidate;
-            }
-        }
-        if (defined('PHP_BINDIR')) {
-            $candidate = PHP_BINDIR . DIRECTORY_SEPARATOR . 'php.exe';
-            if (file_exists($candidate)) {
-                return $candidate;
-            }
-        }
+
         return 'php';
     }
 }

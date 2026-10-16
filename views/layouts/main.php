@@ -117,15 +117,24 @@ if (!empty($systemItems)) {
         $topNavItems[] = ['label' => '📝 Register', 'url' => ['/site/register']];
         $topNavItems[] = ['label' => '🔑 Login', 'url' => ['/site/login']];
     } else {
-        $roleBadge = $isAdmin ? ' <span class="badge bg-danger ms-1">Admin</span>' : '';
-        $topNavItems[] = '<li class="nav-item d-flex align-items-center ms-lg-2">'
-            . Html::beginForm(['/site/logout'])
-            . Html::submitButton(
-                '<i class="bi bi-box-arrow-right me-1"></i> Logout (' . Html::encode($currentUser->username) . ')' . $roleBadge,
-                ['class' => 'btn btn-outline-light btn-sm text-decoration-none border-secondary text-white-50 py-1 px-2']
-            )
-            . Html::endForm()
-            . '</li>';
+        $roleBadge = $isAdmin ? ' <span class="badge bg-danger ms-1">Admin</span>' : ' <span class="badge bg-primary ms-1">User</span>';
+        $topNavItems[] = [
+            'label' => '👤 ' . Html::encode($currentUser->username) . $roleBadge,
+            'encode' => false,
+            'items' => [
+                ['label' => '👤 Profil Saya & Ganti Password', 'url' => ['/site/profile']],
+                $isAdmin ? ['label' => '👥 User Management', 'url' => ['/user/index']] : '',
+                '<div class="dropdown-divider"></div>',
+                '<li class="px-2">'
+                    . Html::beginForm(['/site/logout'])
+                    . Html::submitButton(
+                        '<i class="bi bi-box-arrow-right me-1 text-danger"></i> Keluar (Logout)',
+                        ['class' => 'dropdown-item text-danger rounded-2 py-1']
+                    )
+                    . Html::endForm()
+                    . '</li>',
+            ],
+        ];
     }
 
     echo Nav::widget([

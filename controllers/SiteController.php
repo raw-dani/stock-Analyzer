@@ -9,7 +9,9 @@ use yii\web\Response;
 use yii\filters\VerbFilter;
 use app\models\LoginForm;
 use app\models\ContactForm;
+use app\models\form\ProfileForm;
 use app\models\form\RegisterForm;
+use app\models\User;
 
 class SiteController extends Controller
 {
@@ -21,11 +23,12 @@ class SiteController extends Controller
         return [
             'access' => [
                 'class' => AccessControl::class,
-                'only' => ['logout'],
+                'only' => ['logout', 'profile'],
                 'rules' => [
                     [
-                        'actions' => ['logout'],
+                        'actions' => ['logout', 'profile'],
                         'allow' => true,
+                        'roles' => ['@'],
                     ],
                 ],
             ],
@@ -148,6 +151,32 @@ class SiteController extends Controller
 
         return $this->render('register', [
             'model' => $model,
+        ]);
+    }
+
+    /**
+     * User Profile & Reset Password action.
+     *
+     * @return Response|string
+     */
+    public function actionProfile()
+    {
+        /** @var User $currentUser */
+        $currentUser = Yii::$app->user->identity;
+        if ($currentUser === null) {
+            return $this->redirect(['login']);
+        }
+
+        $model = new ProfileForm($currentUser);
+
+        if ($model->load(Yii::$app->request->post()) && $model->save()) {
+            Yii::$app->session->setFlash('success', 'Profil dan informasi akun Anda berhasil diperbarui.');
+            return $this->refresh();
+        }
+
+        return $this->render('profile', [
+            'model' => $model,
+            'user' => $currentUser,
         ]);
     }
 }
