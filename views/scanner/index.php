@@ -161,15 +161,16 @@ $weeklyColumns = [
     ],
     [
         'label' => 'Aksi Pola',
-        'headerOptions' => ['class' => 'text-center', 'style' => 'width: 155px'],
+        'headerOptions' => ['class' => 'text-center', 'style' => 'width: 175px'],
         'contentOptions' => ['class' => 'text-center'],
         'value' => function ($m) {
             $sym = $m->stock->symbol;
             return '<div class="btn-group btn-group-sm" role="group">'
+                . Html::a('CF', ['/strategy-confluence/index', 'symbol' => $sym], ['class' => 'btn btn-primary py-0 px-2 fw-bold', 'title' => 'Cek Confluence Multi-Strategi'])
                 . Html::a('DB', ['/double-bottom/detail', 'symbol' => $sym], ['class' => 'btn btn-outline-primary py-0 px-2', 'title' => 'Cek Pola Double Bottom'])
                 . Html::a('TB', ['/triple-bottom/detail', 'symbol' => $sym], ['class' => 'btn btn-outline-success py-0 px-2', 'title' => 'Cek Pola Triple Bottom'])
                 . Html::a('RSI', ['/rsi-double-bottom/detail', 'symbol' => $sym], ['class' => 'btn btn-outline-info py-0 px-2', 'title' => 'Cek Pola RSI Double Bottom'])
-                . Html::a('MA', ['/moving-average/detail', 'symbol' => $sym], ['class' => 'btn btn-outline-warning text-dark py-0 px-2', 'title' => 'Cek Posisi Beli/Jual Moving Average'])
+                . Html::a('MA', ['/moving-average/detail', 'symbol' => $sym], ['class' => 'btn btn-outline-warning text-dark py-0 px-2', 'title' => 'Cek Moving Average'])
                 . Html::a('<i class="bi bi-box-arrow-up-right"></i>', ['/stock/view', 'symbol' => $sym], ['class' => 'btn btn-outline-secondary py-0 px-1', 'title' => 'Detail Saham'])
                 . '</div>';
         },
@@ -323,11 +324,16 @@ $dailyColumns = [
         <p class="text-muted small mb-0">Deteksi aliran dana institusi / bandar melalui analisis rasio volume beli vs jual, lonjakan RVOL, dan scoring komposit.</p>
     </div>
     <div class="d-flex align-items-center gap-2">
-        <span class="badge bg-<?= $isDaily ? 'info' : 'primary' ?> px-2 py-1">
-            Mode: <?= strtoupper($searchModel->mode ?? 'weekly') ?>
-        </span>
+        <div class="btn-group btn-group-sm shadow-sm" role="group">
+            <?= Html::a('<i class="bi bi-calendar3-week me-1"></i> Mode Weekly', $filterWith(['mode' => 'weekly']), [
+                'class' => 'btn ' . (!$isDaily ? 'btn-primary fw-bold' : 'btn-outline-primary'),
+            ]) ?>
+            <?= Html::a('<i class="bi bi-calendar-day me-1"></i> Mode Daily', $filterWith(['mode' => 'daily']), [
+                'class' => 'btn ' . ($isDaily ? 'btn-info text-white fw-bold' : 'btn-outline-info'),
+            ]) ?>
+        </div>
         <a href="<?= Url::to(array_merge(['scanner/run-scan'], $currentGet)) ?>" class="btn btn-warning btn-sm fw-bold px-3 shadow-sm">
-            <i class="bi bi-arrow-clockwise"></i> Jalankan Scan Harian
+            <i class="bi bi-arrow-clockwise"></i> <?= $isDaily ? 'Refresh Scan Harian' : 'Refresh Analisis Mingguan' ?>
         </a>
     </div>
 </div>

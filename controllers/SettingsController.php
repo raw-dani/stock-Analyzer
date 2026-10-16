@@ -51,11 +51,20 @@ final class SettingsController extends Controller
             'btnClass' => 'warning text-dark',
             'hasLimit' => true,
         ],
+        'data/analyze' => [
+            'key' => 'data/analyze',
+            'title' => 'Analyze Weekly Volume & Signals',
+            'cli' => 'data/analyze',
+            'desc' => 'Jalankan kalkulasi transaksi Metode A, akumulasi mingguan, RVOL, dan scoring sinyal untuk semua saham',
+            'badge' => 'Analysis & Scoring',
+            'btnClass' => 'info text-dark',
+            'hasLimit' => false,
+        ],
         'all' => [
             'key' => 'all',
             'title' => 'Jalankan Semua Sinkronisasi',
             'cli' => 'all',
-            'desc' => 'Eksekusi berurutan: Refresh Stock List -> Refresh Daily Data -> Sync Intraday 1H Data',
+            'desc' => 'Eksekusi berurutan: Refresh Stock List -> Refresh Daily Data -> Analisis Mingguan & Scoring -> Sync Intraday 1H Data',
             'badge' => 'Full Pipeline',
             'btnClass' => 'dark',
             'hasLimit' => true,
@@ -142,9 +151,10 @@ final class SettingsController extends Controller
 
         $commandsToRun = [];
         if ($cmdKey === 'all') {
-            $commandsToRun[] = ['cli' => 'market/refresh-stocklist', 'title' => '1/3: Refresh Stock List'];
-            $commandsToRun[] = ['cli' => 'data/refresh-all' . ($limit > 0 ? " --limit={$limit}" : ''), 'title' => '2/3: Refresh Daily Data'];
-            $commandsToRun[] = ['cli' => 'data/sync-intraday-all' . ($limit > 0 ? " --limit={$limit}" : ''), 'title' => '3/3: Sync Intraday Data'];
+            $commandsToRun[] = ['cli' => 'market/refresh-stocklist', 'title' => '1/4: Refresh Stock List'];
+            $commandsToRun[] = ['cli' => 'data/refresh-all' . ($limit > 0 ? " --limit={$limit}" : ''), 'title' => '2/4: Refresh Daily Data'];
+            $commandsToRun[] = ['cli' => 'data/analyze', 'title' => '3/4: Analisis Volume Mingguan & Scoring'];
+            $commandsToRun[] = ['cli' => 'data/sync-intraday-all' . ($limit > 0 ? " --limit={$limit}" : ''), 'title' => '4/4: Sync Intraday Data'];
         } else {
             $cli = self::ALLOWED_COMMANDS[$cmdKey]['cli'];
             if ($limit > 0 && self::ALLOWED_COMMANDS[$cmdKey]['hasLimit']) {

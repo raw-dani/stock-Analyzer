@@ -249,7 +249,19 @@ final class ScannerController extends Controller
                 ")->execute();
             }
 
-            $flashMsg = "Scan selesai! Menampilkan hasil terkini untuk {$filterLabel} ({$stockCount} saham).";
+            // Agregasi mingguan & scoring untuk semua saham terfilter
+            $analyzedCount = 0;
+            foreach ($stocks as $stock) {
+                try {
+                    $analyzer->aggregateWeekly($stock->id);
+                    $engine->scoreStock($stock);
+                    $analyzedCount++;
+                } catch (\Throwable $e) {
+                    // ignore individual failure
+                }
+            }
+
+            $flashMsg = "Scan selesai! Analisis & scoring mingguan berhasil diperbarui untuk {$analyzedCount} saham ({$filterLabel}).";
         }
 
         Yii::$app->session->setFlash('success', $flashMsg);

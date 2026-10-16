@@ -36,8 +36,15 @@ final class ScannerService
 
     public function weeklySearch(ScanFilterForm $form): ActiveDataProvider
     {
+        // Ambil ID bar mingguan terbaru per saham agar hasil scanner fokus pada snapshot minggu berjalan & tidak terduplikasi histori lama
+        $latestWeeklySubquery = (new \yii\db\Query())
+            ->select(['max_id' => new Expression('MAX(id)')])
+            ->from('{{%weekly_analysis}}')
+            ->groupBy('stock_id');
+
         $query = WeeklyAnalysis::find()
             ->joinWith(['stock'])
+            ->where(['in', '{{%weekly_analysis}}.id', $latestWeeklySubquery])
             ->andWhere(['{{%stock}}.active' => true]);
 
         if (!empty($form->symbol)) {
