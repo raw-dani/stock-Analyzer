@@ -29,7 +29,7 @@ $slTightPct = $curPrice > 0 ? round((($curPrice - $slTight) / $curPrice) * 100, 
 ?>
 
 <div class="row g-3 mb-4">
-    <!-- Kolom Kiri: Status & Rekomendasi Sinyal RSI -->
+    <!-- Kolom Kiri: Status & Rekomendasi Sinyal RSI & Multi-Strategi -->
     <div class="col-lg-6">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-bottom">
@@ -77,6 +77,47 @@ $slTightPct = $curPrice > 0 ? round((($curPrice - $slTight) / $curPrice) * 100, 
                             </td>
                         </tr>
                         <tr class="border-bottom">
+                            <td class="text-muted py-2"><i class="bi bi-bar-chart-fill text-primary me-1"></i> Konfirmasi Volume (RVOL)</td>
+                            <td class="text-end py-2">
+                                <?php $rvolVal = (float)($pattern['rvol'] ?? 1.0); ?>
+                                <?php if (!empty($pattern['volume_spike'])): ?>
+                                    <span class="badge bg-info text-dark" title="Lonjakan Volume &gt;= 1.5x SMA20">
+                                        <i class="bi bi-lightning-fill"></i> RVOL <?= number_format($rvolVal, 2) ?>x (Surge)
+                                    </span>
+                                <?php elseif (!empty($pattern['volume_supportive'])): ?>
+                                    <span class="badge bg-success-subtle text-success border border-success">
+                                        <i class="bi bi-check-lg"></i> RVOL <?= number_format($rvolVal, 2) ?>x (Mendukung)
+                                    </span>
+                                <?php else: ?>
+                                    <span class="text-muted small">RVOL <?= number_format($rvolVal, 2) ?>x (Normal)</span>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                        <tr class="border-bottom">
+                            <td class="text-muted py-2"><i class="bi bi-reception-4 text-purple me-1"></i> Pola Candlestick</td>
+                            <td class="text-end py-2">
+                                <?php if (!empty($pattern['candle_pattern'])): ?>
+                                    <span class="badge <?= ($pattern['candle_signal'] ?? '') === 'BULLISH' ? 'bg-success text-white' : 'bg-danger text-white' ?>">
+                                        <?= Html::encode($pattern['candle_pattern']) ?> (<?= Html::encode($pattern['candle_signal'] ?? '') ?>)
+                                    </span>
+                                <?php else: ?>
+                                    <span class="text-muted small">Konsolidasi Standar</span>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                        <tr class="border-bottom">
+                            <td class="text-muted py-2"><i class="bi bi-bullseye text-warning me-1"></i> Fibonacci Retracement</td>
+                            <td class="text-end py-2">
+                                <?php if (!empty($pattern['is_golden_pocket'])): ?>
+                                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning">
+                                        <i class="bi bi-star-fill"></i> Golden Pocket 50%-61.8% ($<?= number_format((float)($pattern['fib618'] ?? 0), 2) ?> - $<?= number_format((float)($pattern['fib50'] ?? 0), 2) ?>)
+                                    </span>
+                                <?php else: ?>
+                                    <span class="text-muted small">Swing: $<?= number_format((float)($pattern['swing_low'] ?? 0), 2) ?> - $<?= number_format((float)($pattern['swing_high'] ?? 0), 2) ?></span>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                        <tr class="border-bottom">
                             <td class="text-muted py-2"><i class="bi bi-gem text-primary me-1"></i> Status Divergence</td>
                             <td class="text-end py-2">
                                 <?php if (!empty($pattern['divergence'])): ?>
@@ -98,32 +139,32 @@ $slTightPct = $curPrice > 0 ? round((($curPrice - $slTight) / $curPrice) * 100, 
                         </tr>
                         <tr class="table-success bg-opacity-25 border-bottom">
                             <td class="fw-bold text-success py-2">
-                                <i class="bi bi-bullseye me-1"></i> Target Profit 1 (TP1 Utama)
+                                <i class="bi bi-bullseye me-1"></i> Target Profit 1 (TP1 Konservatif)
                             </td>
                             <td class="text-end py-2">
                                 <span class="fw-bold text-success fs-5">$<?= number_format($tp1, 2) ?></span>
                                 <span class="badge bg-success text-white fw-bold ms-1">+<?= number_format($tp1Pct, 2) ?>%</span>
                                 <?php if ($riskReward !== null): ?>
-                                    <small class="d-block text-muted fw-normal" style="font-size: 0.75rem;">Risk/Reward 1:<?= number_format((float) $riskReward, 1) ?> (Swing High / Min 1.8R)</small>
+                                    <small class="d-block text-muted fw-normal" style="font-size: 0.75rem;">Risk/Reward 1:<?= number_format((float) $riskReward, 1) ?> (Swing High / Min 1.5R - 1.8R)</small>
                                 <?php endif; ?>
                             </td>
                         </tr>
                         <tr class="border-bottom">
                             <td class="text-muted py-2">
-                                <i class="bi bi-graph-up-arrow text-primary me-1"></i> Target Profit 2 (TP2 Runner)
+                                <i class="bi bi-graph-up-arrow text-primary me-1"></i> Target Profit 2 (TP2 Fibonacci Ext 1.272)
                             </td>
                             <td class="text-end py-2">
-                                <span class="fw-semibold text-primary">$<?= number_format($tp2, 2) ?></span>
+                                <span class="fw-semibold text-primary fs-6">$<?= number_format($tp2, 2) ?></span>
                                 <span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-bold ms-1">+<?= number_format($tp2Pct, 2) ?>%</span>
                                 <small class="d-block text-muted fw-normal" style="font-size: 0.72rem;">Extended 2.8R Target</small>
                             </td>
                         </tr>
                         <tr>
                             <td class="text-muted py-2">
-                                <i class="bi bi-trophy text-warning me-1"></i> Target Profit 3 (TP3 Moonbag)
+                                <i class="bi bi-trophy text-warning me-1"></i> Target Profit 3 (TP3 Golden Ext 1.618)
                             </td>
                             <td class="text-end py-2">
-                                <span class="fw-semibold text-dark">$<?= number_format($tp3, 2) ?></span>
+                                <span class="fw-semibold text-dark fs-6">$<?= number_format($tp3, 2) ?></span>
                                 <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle fw-bold ms-1">+<?= number_format($tp3Pct, 2) ?>%</span>
                                 <small class="d-block text-muted fw-normal" style="font-size: 0.72rem;">Extended 4.0R Trend Rider</small>
                             </td>
@@ -134,12 +175,12 @@ $slTightPct = $curPrice > 0 ? round((($curPrice - $slTight) / $curPrice) * 100, 
         </div>
     </div>
 
-    <!-- Kolom Kanan: 5-Point RSI Trading Checklist -->
+    <!-- Kolom Kanan: 6-Point Multi-Strategy Trading Checklist -->
     <div class="col-lg-6">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-header bg-white py-3 border-bottom">
                 <h5 class="mb-0 fw-bold text-dark">
-                    <i class="bi bi-check2-all text-success me-1"></i> 5-Point Trading Execution Checklist
+                    <i class="bi bi-check2-all text-success me-1"></i> 6-Point Multi-Strategy Trading Checklist
                 </h5>
             </div>
             <div class="card-body">
@@ -147,54 +188,71 @@ $slTightPct = $curPrice > 0 ? round((($curPrice - $slTight) / $curPrice) * 100, 
                 $cond1 = ($curRsi <= 40 || !empty($pattern['divergence']));
                 $cond2 = ($curRsi > $prevRsi); // RSI mulai memantul ke atas
                 $cond3 = $isAboveMa50; // Tren sehat
-                $cond4 = (!empty($pattern['divergence']) || !empty($pattern['breakout']) || $curRsi >= 30);
-                $cond5 = ($riskReward !== null && $riskReward >= 1.5);
-                $scoreCount = (int)$cond1 + (int)$cond2 + (int)$cond3 + (int)$cond4 + (int)$cond5;
+                $cond4 = (!empty($pattern['divergence']) || !empty($pattern['breakout']) || !empty($pattern['is_golden_pocket']) || ($pattern['candle_signal'] ?? '') === 'BULLISH');
+                $cond5 = (!empty($pattern['volume_spike']) || !empty($pattern['volume_supportive']));
+                $cond6 = ($riskReward !== null && $riskReward >= 1.5);
+                $scoreCount = (int)$cond1 + (int)$cond2 + (int)$cond3 + (int)$cond4 + (int)$cond5 + (int)$cond6;
                 ?>
                 <div class="d-flex align-items-center justify-content-between p-2 mb-3 bg-light rounded">
-                    <span class="small fw-bold">Kualitas Setup Perdagangan:</span>
-                    <span class="badge <?= $scoreCount >= 4 ? 'bg-success' : ($scoreCount >= 3 ? 'bg-warning text-dark' : 'bg-secondary') ?> fs-6">
-                        <?= $scoreCount ?> / 5 Parameter Terpenuhi
+                    <span class="small fw-bold">Kualitas Setup Perdagangan Terkonfirmasi:</span>
+                    <span class="badge <?= $scoreCount >= 5 ? 'bg-success' : ($scoreCount >= 3 ? 'bg-warning text-dark' : 'bg-secondary') ?> fs-6">
+                        <?= $scoreCount ?> / 6 Parameter Terpenuhi
                     </span>
                 </div>
 
                 <ul class="list-group list-group-flush small">
                     <li class="list-group-item d-flex justify-content-between align-items-center px-0">
                         <div>
-                            <strong>1. Area Masuk Ideal (Oversold / Reversal Zone):</strong>
-                            <div class="text-muted">RSI berada di area diskon / memantul dari &lt; 40 (Current: <?= number_format($curRsi, 1) ?>)</div>
+                            <strong>1. Area Masuk Diskon (Oversold / Reversal Zone):</strong>
+                            <div class="text-muted">RSI berada di zona pantulan &lt; 40 (Current: <?= number_format($curRsi, 1) ?>)</div>
                         </div>
                         <i class="bi <?= $cond1 ? 'bi-check-circle-fill text-success' : 'bi-x-circle-fill text-secondary' ?> fs-5"></i>
                     </li>
                     <li class="list-group-item d-flex justify-content-between align-items-center px-0">
                         <div>
-                            <strong>2. Konfirmasi Momentum Rebound:</strong>
-                            <div class="text-muted">RSI hari ini melengkung naik dibanding candle sebelumnya (<?= number_format($curRsi, 1) ?> &gt; <?= number_format($prevRsi, 1) ?>)</div>
+                            <strong>2. Konfirmasi Momentum Rebound RSI:</strong>
+                            <div class="text-muted">RSI hari ini melengkung naik (<?= number_format($curRsi, 1) ?> &gt; <?= number_format($prevRsi, 1) ?>)</div>
                         </div>
                         <i class="bi <?= $cond2 ? 'bi-check-circle-fill text-success' : 'bi-x-circle-fill text-danger' ?> fs-5"></i>
                     </li>
                     <li class="list-group-item d-flex justify-content-between align-items-center px-0">
                         <div>
                             <strong>3. Trend Bias Filter (MA50):</strong>
-                            <div class="text-muted">Harga berada di atas MA50 (Bukan pisau jatuh / downtrend liar)</div>
+                            <div class="text-muted">Harga berada di atas MA50 (Bukan pisau jatuh liar)</div>
                         </div>
                         <i class="bi <?= $cond3 ? 'bi-check-circle-fill text-success' : 'bi-dash-circle text-warning' ?> fs-5"></i>
                     </li>
                     <li class="list-group-item d-flex justify-content-between align-items-center px-0">
                         <div>
-                            <strong>4. Katalis Divergensi / Breakout:</strong>
-                            <div class="text-muted">Terdapat Bullish Divergence atau konfirmasi penembusan level support-resistance</div>
+                            <strong>4. Katalis Reversal (Candle / Fib / Divergence):</strong>
+                            <div class="text-muted">Terdapat Bullish Divergence, Reversal Candle (<?= Html::encode($pattern['candle_pattern'] ?? 'Tidak Ada') ?>), atau Fib Pocket</div>
                         </div>
                         <i class="bi <?= $cond4 ? 'bi-check-circle-fill text-success' : 'bi-dash-circle text-muted' ?> fs-5"></i>
                     </li>
                     <li class="list-group-item d-flex justify-content-between align-items-center px-0">
                         <div>
-                            <strong>5. Rasio Risk to Reward Memadai (&ge; 1:1.5):</strong>
+                            <strong>5. Konfirmasi Volume Transaksi (RVOL &ge; 1.0x):</strong>
+                            <div class="text-muted">Volume saat harga rebound mencukupi (RVOL: <?= number_format((float)($pattern['rvol'] ?? 1.0), 2) ?>x)</div>
+                        </div>
+                        <i class="bi <?= $cond5 ? 'bi-check-circle-fill text-success' : 'bi-x-circle-fill text-secondary' ?> fs-5"></i>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        <div>
+                            <strong>6. Rasio Risk to Reward Memadai (&ge; 1:1.5):</strong>
                             <div class="text-muted">Potensi keuntungan TP1 jauh lebih besar dibanding batas risiko (R:R 1:<?= number_format((float)($riskReward ?? 0), 1) ?>)</div>
                         </div>
-                        <i class="bi <?= $cond5 ? 'bi-check-circle-fill text-success' : 'bi-x-circle-fill text-danger' ?> fs-5"></i>
+                        <i class="bi <?= $cond6 ? 'bi-check-circle-fill text-success' : 'bi-x-circle-fill text-danger' ?> fs-5"></i>
                     </li>
                 </ul>
+
+                <div class="p-2 mt-3 bg-light rounded small">
+                    <strong class="d-block text-dark mb-1"><i class="bi bi-lightbulb-fill text-warning me-1"></i> Strategi Eksekusi Take Profit Bertahap:</strong>
+                    <div class="text-muted">
+                        • <strong>TP1 ($<?= number_format($tp1, 2) ?>):</strong> Jual 40%-50% porsi saham untuk amankan modal &amp; kunci cuan.<br>
+                        • <strong>TP2 ($<?= number_format($tp2, 2) ?>):</strong> Jual 30% porsi tambahan dan naikkan Stop Loss ke Trailing Stop (Break Even).<br>
+                        • <strong>TP3 ($<?= number_format($tp3, 2) ?>):</strong> Biarkan sisa 20%-30% saham <em>let your profits run</em> hingga RSI jenuh jual &gt; 75.
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -204,7 +262,7 @@ $slTightPct = $curPrice > 0 ? round((($curPrice - $slTight) / $curPrice) * 100, 
 <div class="card border-0 shadow-sm mb-4">
     <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
         <h5 class="mb-0 fw-bold text-dark">
-            <i class="bi bi-calculator text-primary me-1"></i> Kalkulator Ukuran Posisi &amp; Manajemen Risiko
+            <i class="bi bi-calculator text-primary me-1"></i> Kalkulator Ukuran Posisi &amp; Multi-Target TP (TP1 / TP2 / TP3)
         </h5>
         <span class="badge bg-light text-muted border">Kalkulasi Otomatis Sesuai Modal</span>
     </div>
@@ -228,8 +286,13 @@ $slTightPct = $curPrice > 0 ? round((($curPrice - $slTight) / $curPrice) * 100, 
                 <input type="number" id="rsi-calc-sl" class="form-control" value="<?= $slSwing ?>" step="0.01">
             </div>
             <div class="col-md-3">
-                <label class="form-label small fw-bold">Target Profit (TP1) ($)</label>
-                <input type="number" id="rsi-calc-tp" class="form-control" value="<?= $tp1 ?>" step="0.01">
+                <label class="form-label small fw-bold">Pilihan Target Profit</label>
+                <select id="rsi-calc-tp-target" class="form-select">
+                    <option value="<?= $tp1 ?>" selected>TP1 Utama: $<?= number_format($tp1, 2) ?> (+<?= number_format($tp1Pct, 1) ?>%)</option>
+                    <option value="<?= $tp2 ?>">TP2 Runner: $<?= number_format($tp2, 2) ?> (+<?= number_format($tp2Pct, 1) ?>%)</option>
+                    <option value="<?= $tp3 ?>">TP3 Moonbag: $<?= number_format($tp3, 2) ?> (+<?= number_format($tp3Pct, 1) ?>%)</option>
+                </select>
+                <input type="hidden" id="rsi-calc-tp" value="<?= $tp1 ?>">
             </div>
         </div>
 
@@ -244,7 +307,7 @@ $slTightPct = $curPrice > 0 ? round((($curPrice - $slTight) / $curPrice) * 100, 
                 <div class="small text-muted" id="rsi-res-total-alloc">Alokasi: $0.00</div>
             </div>
             <div class="col-md-3 text-center border-start">
-                <div class="small text-muted fw-bold">PROYEKSI PROFIT (TP1)</div>
+                <div class="small text-muted fw-bold">PROYEKSI PROFIT</div>
                 <div class="h4 mb-0 text-success fw-bold" id="rsi-res-profit">$0.00</div>
             </div>
             <div class="col-md-3 text-center border-start">
@@ -262,7 +325,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const riskPct = parseFloat(document.getElementById('rsi-calc-risk-pct').value) || 0;
         const entry = parseFloat(document.getElementById('rsi-calc-entry').value) || 0;
         const sl = parseFloat(document.getElementById('rsi-calc-sl').value) || 0;
-        const tp = parseFloat(document.getElementById('rsi-calc-tp').value) || 0;
+        const tpSelector = document.getElementById('rsi-calc-tp-target');
+        const tp = parseFloat(tpSelector ? tpSelector.value : document.getElementById('rsi-calc-tp').value) || 0;
 
         const maxRiskUsd = (capital * riskPct) / 100;
         document.getElementById('rsi-res-max-loss').innerText = '$' + maxRiskUsd.toFixed(2);
@@ -287,8 +351,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    ['rsi-calc-capital', 'rsi-calc-risk-pct', 'rsi-calc-entry', 'rsi-calc-sl', 'rsi-calc-tp'].forEach(function(id) {
+    ['rsi-calc-capital', 'rsi-calc-risk-pct', 'rsi-calc-entry', 'rsi-calc-sl', 'rsi-calc-tp-target'].forEach(function(id) {
         document.getElementById(id)?.addEventListener('input', recalcRsiPosition);
+        document.getElementById(id)?.addEventListener('change', recalcRsiPosition);
     });
     recalcRsiPosition();
 });

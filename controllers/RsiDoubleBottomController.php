@@ -85,6 +85,12 @@ final class RsiDoubleBottomController extends Controller
             $results = array_filter($results, fn ($r) => ($r['current_rsi'] ?? 50) <= 35);
         } elseif ($statusFilter === 'overbought') {
             $results = array_filter($results, fn ($r) => ($r['current_rsi'] ?? 50) >= 65);
+        } elseif ($statusFilter === 'volume_surge') {
+            $results = array_filter($results, fn ($r) => !empty($r['volume_spike']));
+        } elseif ($statusFilter === 'candle_reversal') {
+            $results = array_filter($results, fn ($r) => !empty($r['candle_pattern']));
+        } elseif ($statusFilter === 'fib_pocket') {
+            $results = array_filter($results, fn ($r) => !empty($r['is_golden_pocket']));
         } elseif ($statusFilter === 'breakout') {
             $results = array_filter($results, fn ($r) => !empty($r['breakout']));
         } elseif ($statusFilter === 'high_conf') {

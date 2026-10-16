@@ -206,7 +206,41 @@ final class MovingAverageService
         // Hitung ATR (14-periode) untuk level risiko dinamis
         $atr = $this->calculateAtr($candles, 14);
 
-        // Evaluasi Setup Strategi dengan konfirmasi Slope & ATR
+        // Tambahan Strategi 1: RSI (14-periode) untuk konfirmasi momentum dan filter false breakout
+        $rsiSeries = RsiService::calculate($closes, 14);
+        $currRsi = $rsiSeries[$currIdx] !== null ? round((float) $rsiSeries[$currIdx], 1) : 50.0;
+        $prevRsi = $rsiSeries[$prevIdx] !== null ? round((float) $rsiSeries[$prevIdx], 1) : 50.0;
+
+        // Tambahan Strategi 2: Candlestick Reversal Pattern Confirmation
+        $candlePattern = null;
+        $candleSignal = 'NONE';
+        $cOpen = (float) $candles[$currIdx]['open'];
+        $cClose = (float) $candles[$currIdx]['close'];
+        $cHigh = (float) $candles[$currIdx]['high'];
+        $cLow = (float) $candles[$currIdx]['low'];
+        $cRange = max(0.001, $cHigh - $cLow);
+        $cBody = abs($cClose - $cOpen);
+        $lowerWick = min($cOpen, $cClose) - $cLow;
+        $upperWick = $cHigh - max($cOpen, $cClose);
+
+        $prevOpen = (float) ($candles[$prevIdx]['open'] ?? $cOpen);
+        $prevBarClose = (float) ($candles[$prevIdx]['close'] ?? $cClose);
+
+        if ($lowerWick >= ($cBody * 1.8) && $upperWick <= ($cBody * 0.7) && $cBody >= ($cRange * 0.15)) {
+            $candlePattern = 'Hammer / Pinbar';
+            $candleSignal = 'BULLISH';
+        } elseif ($cClose > $cOpen && $prevBarClose < $prevOpen && $cOpen <= $prevBarClose && $cClose >= $prevOpen) {
+            $candlePattern = 'Bullish Engulfing';
+            $candleSignal = 'BULLISH';
+        } elseif ($upperWick >= ($cBody * 1.8) && $lowerWick <= ($cBody * 0.7) && $cBody >= ($cRange * 0.15)) {
+            $candlePattern = 'Shooting Star';
+            $candleSignal = 'BEARISH';
+        } elseif ($cClose < $cOpen && $prevBarClose > $prevOpen && $cOpen >= $prevBarClose && $cClose <= $prevOpen) {
+            $candlePattern = 'Bearish Engulfing';
+            $candleSignal = 'BEARISH';
+        }
+
+        // Evaluasi Setup Strategi dengan konfirmasi Slope, ATR, RSI & Candlestick
         $setup = $this->evaluateSetup(
             $currClose,
             $prevClose,
@@ -218,10 +252,13 @@ final class MovingAverageService
             $prevSlow,
             $currTrend,
             $rvol,
-            $atr
+            $atr,
+            $currRsi,
+            $candlePattern,
+            $candleSignal
         );
 
-        // Kalkulasi Posisi Presisi: Entry, Stop Loss berbasis ATR, Target 1, Target 2, R:R
+        // Kalkulasi Posisi Presisi: Entry, Stop Loss berbasis ATR, Target TP1, TP2, TP3, R:R
         $levels = $this->calculateTradingLevels($currClose, $currLow, $currHigh, $currFast, $currSlow, $setup['action'], $atr);
 
         // Persentase jarak harga ke MA
@@ -231,8 +268,8 @@ final class MovingAverageService
         // Status Tren Pasar
         $trendStatus = $this->determineTrend($currClose, $currFast, $currSlow, $currTrend);
 
-        // 5-Point Checklist Kualitas Sinyal
-        $checklist = $this->buildChecklist($currClose, $currFast, $currSlow, $currTrend, $rvol, $levels['rr_ratio']);
+        // 6-Point Checklist Kualitas Sinyal Multi-Strategi
+        $checklist = $this->buildChecklist($currClose, $currFast, $currSlow, $currTrend, $rvol, $levels['rr_ratio'], $currRsi, $candleSignal);
 
         return [
             'stock_id' => $stock->id,
@@ -244,6 +281,10 @@ final class MovingAverageService
             'date' => $dates[$currIdx],
             'ma_type' => strtoupper($maType),
             'atr' => round($atr, 2),
+            'rsi' => $currRsi,
+            'rsi_prev' => $prevRsi,
+            'candle_pattern' => $candlePattern,
+            'candle_signal' => $candleSignal,
             'fast_period' => $fastPeriod,
             'slow_period' => $slowPeriod,
             'fast_ma' => round($currFast, 2),
@@ -258,7 +299,7 @@ final class MovingAverageService
             'strategy_name' => $setup['strategy_name'],
             'strategy_badge' => $setup['strategy_badge'],
             'description' => $setup['description'],
-            // Level Presisi Beli & Jual
+            // Level Presisi Beli & Jual (TP1, TP2, TP3)
             'entry_price' => $levels['entry_price'],
             'entry_range' => $levels['entry_range'],
             'stop_loss' => $levels['stop_loss'],
@@ -267,6 +308,8 @@ final class MovingAverageService
             'target_1_pct' => $levels['target_1_pct'],
             'target_2' => $levels['target_2'],
             'target_2_pct' => $levels['target_2_pct'],
+            'target_3' => $levels['target_3'],
+            'target_3_pct' => $levels['target_3_pct'],
             'rr_ratio' => $levels['rr_ratio'],
             'checklist' => $checklist,
             'timeframe' => $timeframe,
@@ -282,7 +325,7 @@ final class MovingAverageService
     }
 
     /**
-     * Evaluasi setup pola persilangan dan reaksi harga terhadap MA.
+     * Evaluasi setup pola persilangan dan reaksi harga terhadap MA didukung RSI & Candlestick.
      */
     private function evaluateSetup(
         float $currClose,
@@ -295,7 +338,10 @@ final class MovingAverageService
         float $prevSlow,
         ?float $currTrend,
         float $rvol,
-        float $atr = 0.0
+        float $atr = 0.0,
+        float $currRsi = 50.0,
+        ?string $candlePattern = null,
+        string $candleSignal = 'NONE'
     ): array {
         // MA Slope check: hindari false Golden Cross saat Slow MA sedang mengarah turun tajam (downward slope)
         $isSlowSlopeUp = ($currSlow >= $prevSlow * 0.9995);
@@ -303,7 +349,7 @@ final class MovingAverageService
         // 1. Golden Cross (Fast MA melintas naik di atas Slow MA)
         $isGoldenCross = ($prevFast <= $prevSlow && $currFast > $currSlow);
         if ($isGoldenCross) {
-            $isStrong = ($rvol >= 1.3 && $currClose > $currFast && $isSlowSlopeUp);
+            $isStrong = ($rvol >= 1.3 && $currClose > $currFast && $isSlowSlopeUp && $currRsi >= 45.0 && $currRsi <= 68.0);
             $hasSlopeConfirmation = $isSlowSlopeUp;
             return [
                 'signal' => $isStrong ? self::SIGNAL_STRONG_BUY : self::SIGNAL_BUY,
@@ -311,12 +357,25 @@ final class MovingAverageService
                 'strategy_name' => $hasSlopeConfirmation ? 'Golden Cross (Konfirmasi Slope Positif)' : 'Golden Cross (Awal Crossover)',
                 'strategy_badge' => 'success',
                 'description' => $hasSlopeConfirmation
-                    ? "Fast MA menembus ke atas Slow MA dengan kemiringan (slope) MA yang mulai mendatar/menanjak. Konfirmasi awal tren bullish valid."
+                    ? "Fast MA menembus ke atas Slow MA dengan kemiringan (slope) MA yang mulai mendatar/menanjak dan RSI sehat ({$currRsi}). Konfirmasi awal tren bullish valid."
                     : "Fast MA memotong ke atas Slow MA. Perhatikan konfirmasi lanjutan karena kemiringan Slow MA masih cenderung melandai.",
             ];
         }
 
-        // 2. Death Cross (Fast MA melintas turun di bawah Slow MA)
+        // 2. Candlestick Reversal Rebound di Support MA (Multi-Strategy Confirmation)
+        $nearFast = (abs($currClose - $currFast) / $currFast <= 0.025);
+        $testedFast = ($currLow <= $currFast * 1.015 && $currClose >= $currFast * 0.99);
+        if ($candleSignal === 'BULLISH' && ($nearFast || $testedFast) && $currFast >= $currSlow * 0.98) {
+            return [
+                'signal' => self::SIGNAL_STRONG_BUY,
+                'action' => 'BUY',
+                'strategy_name' => 'MA Bounce + ' . $candlePattern,
+                'strategy_badge' => 'success',
+                'description' => "Pantulan kuat terkonfirmasi pola {$candlePattern} tepat di area support dinamis MA dengan momentum RSI ({$currRsi}).",
+            ];
+        }
+
+        // 3. Death Cross (Fast MA melintas turun di bawah Slow MA)
         $isDeathCross = ($prevFast >= $prevSlow && $currFast < $currSlow);
         if ($isDeathCross) {
             return [
@@ -328,20 +387,32 @@ final class MovingAverageService
             ];
         }
 
-        // 3. Overextended Climax (Harga sudah naik terlalu jauh di atas Fast MA > 10% atau > 2.5x ATR) -> Zona Take Profit
+        // 4. Overextended Climax (Harga sudah naik terlalu jauh di atas Fast MA > 10% atau > 2.5x ATR atau RSI > 72) -> Zona Take Profit
         $distAboveFast = ($currClose - $currFast) / $currFast;
         $isAtrClimax = ($atr > 0 && ($currClose - $currFast) > ($atr * 2.5));
-        if (($distAboveFast >= 0.10 || $isAtrClimax) && $currFast > $currSlow) {
+        $isRsiOverbought = ($currRsi >= 72.0);
+        if (($distAboveFast >= 0.10 || $isAtrClimax || $isRsiOverbought) && $currFast > $currSlow) {
             return [
                 'signal' => self::SIGNAL_TAKE_PROFIT,
                 'action' => 'TAKE_PROFIT',
                 'strategy_name' => 'Overextended Climax (Area Take Profit)',
                 'strategy_badge' => 'warning',
-                'description' => "Harga berada " . round($distAboveFast * 100, 1) . "% di atas MA (melebihi volatilitas wajar). Rawan mean-reversion, disarankan ambil profit bertahap.",
+                'description' => "Harga berada " . round($distAboveFast * 100, 1) . "% di atas MA dan RSI jenuh beli ({$currRsi}). Rawan koreksi tajam, amankan profit bertahap (TP1/TP2/TP3).",
             ];
         }
 
-        // 4. MA Breakdown (Harga jebol ke bawah MA Fast/Slow)
+        // 5. Candlestick Bearish Reversal di Puncak Tren (Shooting Star / Bearish Engulfing)
+        if ($candleSignal === 'BEARISH' && ($currRsi >= 65.0 || $distAboveFast >= 0.06)) {
+            return [
+                'signal' => self::SIGNAL_SELL,
+                'action' => 'SELL',
+                'strategy_name' => 'Reversal Exit (' . $candlePattern . ')',
+                'strategy_badge' => 'danger',
+                'description' => "Pola pembalikan {$candlePattern} muncul di area resistance atas didukung RSI ({$currRsi}). Disarankan ambil untung atau kurangi posisi.",
+            ];
+        }
+
+        // 6. MA Breakdown (Harga jebol ke bawah MA Fast/Slow)
         if ($prevClose >= $currFast && $currClose < $currFast * 0.99 && $currClose < $currSlow) {
             return [
                 'signal' => self::SIGNAL_SELL,
@@ -352,41 +423,39 @@ final class MovingAverageService
             ];
         }
 
-        // 5. Pullback Buy (Buy on Dip di Area Dinamis MA Support)
+        // 7. Pullback Buy (Buy on Dip di Area Dinamis MA Support)
         // Syarat: Tren Naik (Fast > Slow), harga menguji area Fast MA (-0.8% s/d +1.5%) dan memantul
         $isUptrend = ($currFast > $currSlow && ($currTrend === null || $currClose >= $currTrend * 0.98));
-        $nearFast = (abs($currClose - $currFast) / $currFast <= 0.02);
-        $testedFast = ($currLow <= $currFast * 1.01 && $currClose >= $currFast * 0.995);
 
-        if ($isUptrend && ($nearFast || $testedFast)) {
+        if ($isUptrend && ($nearFast || $testedFast) && $currRsi >= 38.0 && $currRsi <= 60.0) {
             return [
                 'signal' => self::SIGNAL_PULLBACK_BUY,
                 'action' => 'BUY',
                 'strategy_name' => 'Pullback Buy (Support Retest)',
                 'strategy_badge' => 'primary',
-                'description' => "Harga menguji support dinamis MA saat tren naik. Posisi beli ideal dengan stop loss sangat terukur.",
+                'description' => "Harga menguji support dinamis MA saat tren naik dengan RSI sehat ({$currRsi}). Posisi beli ideal dengan stop loss sangat terukur.",
             ];
         }
 
-        // 6. MA Breakout (Harga menembus naik di atas Fast MA dari bawah)
+        // 8. MA Breakout (Harga menembus naik di atas Fast MA dari bawah)
         if ($prevClose < $prevFast && $currClose > $currFast && $rvol >= 1.2) {
             return [
                 'signal' => self::SIGNAL_BUY,
                 'action' => 'BUY',
                 'strategy_name' => 'MA Breakout + Vol Surge',
                 'strategy_badge' => 'info',
-                'description' => "Harga menembus MA ke atas didukung lonjakan volume ({$rvol}x).",
+                'description' => "Harga menembus MA ke atas didukung lonjakan volume ({$rvol}x) dan penguatan RSI ({$currRsi}).",
             ];
         }
 
-        // 7. Trending Healthy Bullish (Ride the Trend)
+        // 9. Trending Healthy Bullish (Ride the Trend)
         if ($currClose > $currFast && $currFast > $currSlow) {
             return [
                 'signal' => self::SIGNAL_BUY,
                 'action' => 'HOLD',
                 'strategy_name' => 'Bullish Trend Continuation',
                 'strategy_badge' => 'secondary',
-                'description' => "Struktur harga di atas MA. Tren naik sehat, pertahankan posisi dengan trailing stop.",
+                'description' => "Struktur harga di atas MA. Tren naik sehat, pertahankan posisi dengan trailing stop menuju target TP2 / TP3.",
             ];
         }
 
@@ -401,7 +470,7 @@ final class MovingAverageService
     }
 
     /**
-     * Hitung level presisi: Entry Price, Stop Loss (Dinamis ATR), Target 1, Target 2, dan Risk/Reward.
+     * Hitung level presisi: Entry Price, Stop Loss (Dinamis ATR), Target TP1, TP2, TP3, dan Risk/Reward.
      */
     private function calculateTradingLevels(
         float $close,
@@ -422,6 +491,8 @@ final class MovingAverageService
                 'target_1_pct' => round(abs(($fastMa - $close) / $close) * 100, 1),
                 'target_2' => round($slowMa, 2),
                 'target_2_pct' => round(abs(($slowMa - $close) / $close) * 100, 1),
+                'target_3' => round(min($slowMa * 0.97, $close * 0.92), 2),
+                'target_3_pct' => round(abs((min($slowMa * 0.97, $close * 0.92) - $close) / $close) * 100, 1),
                 'rr_ratio' => 0.0,
             ];
         }
@@ -452,13 +523,17 @@ final class MovingAverageService
         $risk = max(0.01, $entry - $stopLoss);
         $stopLossPct = round(($risk / $entry) * 100, 1);
 
-        // Target 1: Minimal 1.8x Risk
+        // Target 1: Minimal 1.8x Risk (Konservatif / Swing High)
         $target1 = round($entry + ($risk * 1.8), 2);
         $target1Pct = round((($target1 - $entry) / $entry) * 100, 1);
 
         // Target 2: 3.0x Risk (Runner)
         $target2 = round($entry + ($risk * 3.0), 2);
         $target2Pct = round((($target2 - $entry) / $entry) * 100, 1);
+
+        // Target 3: 4.2x Risk (Moonbag / Ekstensi Tren Penuh)
+        $target3 = round($entry + ($risk * 4.2), 2);
+        $target3Pct = round((($target3 - $entry) / $entry) * 100, 1);
 
         $rrRatio = round(($target1 - $entry) / $risk, 1);
 
@@ -471,6 +546,8 @@ final class MovingAverageService
             'target_1_pct' => $target1Pct,
             'target_2' => $target2,
             'target_2_pct' => $target2Pct,
+            'target_3' => $target3,
+            'target_3_pct' => $target3Pct,
             'rr_ratio' => $rrRatio,
         ];
     }
@@ -493,10 +570,18 @@ final class MovingAverageService
     }
 
     /**
-     * Checklist 5 kriteria keandalan setup trading.
+     * Bangun 6-Point Checklist Kualitas Sinyal Multi-Strategi.
      */
-    private function buildChecklist(float $close, float $fast, float $slow, ?float $trend, float $rvol, float $rr): array
-    {
+    private function buildChecklist(
+        float $close,
+        float $fast,
+        float $slow,
+        ?float $trend,
+        float $rvol,
+        float $rr,
+        float $rsi = 50.0,
+        string $candleSignal = 'NONE'
+    ): array {
         return [
             [
                 'title' => 'Struktur Moving Average',
@@ -509,9 +594,14 @@ final class MovingAverageService
                 'pass' => $close >= $fast * 0.99,
             ],
             [
-                'title' => 'Tidak Overextended',
-                'desc' => 'Jarak harga ke MA wajar (< 8%), bukan di pucuk climax.',
-                'pass' => (($close - $fast) / $fast) < 0.08,
+                'title' => 'Momentum RSI Sehat (40 - 68)',
+                'desc' => "RSI berada di zona akumulasi ideal ({$rsi}), bukan overbought > 70.",
+                'pass' => ($rsi >= 40.0 && $rsi <= 68.0),
+            ],
+            [
+                'title' => 'Konfirmasi Candlestick / Rebound',
+                'desc' => $candleSignal === 'BULLISH' ? 'Terdeteksi pola candlestick bullish reversal.' : 'Tidak terdapat rejection candle bearish ekstrem.',
+                'pass' => ($candleSignal !== 'BEARISH'),
             ],
             [
                 'title' => 'Konfirmasi Volume (RVOL ≥ 1.0x)',
@@ -520,7 +610,7 @@ final class MovingAverageService
             ],
             [
                 'title' => 'Risk to Reward Memadai (≥ 1.5x)',
-                'desc' => "Potensi profit ({$rr}x) lebih besar dibanding risiko cut loss.",
+                'desc' => "Potensi profit TP1 ({$rr}x) lebih besar dibanding risiko cut loss.",
                 'pass' => $rr >= 1.5,
             ],
         ];
@@ -541,7 +631,10 @@ final class MovingAverageService
             return str_contains($analysis['strategy_name'], 'Golden Cross');
         }
         if ($strategy === 'pullback') {
-            return $analysis['signal'] === self::SIGNAL_PULLBACK_BUY;
+            return $analysis['signal'] === self::SIGNAL_PULLBACK_BUY || str_contains($analysis['strategy_name'], 'Pullback');
+        }
+        if ($strategy === 'candle_bounce') {
+            return !empty($analysis['candle_pattern']) && ($analysis['candle_signal'] ?? '') === 'BULLISH';
         }
         if ($strategy === 'breakout') {
             return str_contains($analysis['strategy_name'], 'Breakout');

@@ -71,6 +71,12 @@ $markLines = [
         'lineStyle' => ['color' => '#0f5132', 'type' => 'dotted', 'width' => 2],
         'label' => ['formatter' => 'TP2: $' . number_format($analysis['target_2'], 2) . ' (+' . $analysis['target_2_pct'] . '%)', 'position' => 'insideEndTop'],
     ],
+    [
+        'yAxis' => (float)($analysis['target_3'] ?? 0),
+        'name' => 'TP3',
+        'lineStyle' => ['color' => '#ffc107', 'type' => 'dotted', 'width' => 2],
+        'label' => ['formatter' => 'TP3: $' . number_format((float)($analysis['target_3'] ?? 0), 2) . ' (+' . ($analysis['target_3_pct'] ?? 0) . '%)', 'position' => 'insideEndTop'],
+    ],
 ];
 ?>
 
@@ -90,6 +96,14 @@ $markLines = [
             <span class="badge bg-dark fs-6 px-3 py-1 shadow-sm">
                 <?= Html::encode($analysis['ma_type'] ?? 'SMA') ?>: <?= Html::encode($maPairs[$params['maPair']] ?? 'MA20 / MA50') ?>
             </span>
+            <span class="badge bg-purple text-white fs-6 px-3 py-1 shadow-sm" style="background-color: #6f42c1;">
+                RSI(14): <?= number_format((float)($analysis['rsi'] ?? 50), 1) ?>
+            </span>
+            <?php if (!empty($analysis['candle_pattern'])): ?>
+                <span class="badge <?= ($analysis['candle_signal'] ?? '') === 'BULLISH' ? 'bg-success' : 'bg-danger' ?> fs-6 px-3 py-1 shadow-sm">
+                    <i class="bi bi-reception-4"></i> <?= Html::encode($analysis['candle_pattern']) ?>
+                </span>
+            <?php endif; ?>
             <?php if (!empty($analysis['atr'])): ?>
                 <span class="badge bg-info text-dark fs-6 px-3 py-1 shadow-sm">
                     ATR(14): <?= Yii::$app->formatter->asCurrency($analysis['atr']) ?>
@@ -142,13 +156,13 @@ $markLines = [
 <?php endif; ?>
 
 <!-- Kartu Rencana Trading Presisi (Precision Trading Plan) -->
-<div class="row g-3 mb-4">
+<div class="row g-2 mb-4">
     <!-- Entry Card -->
-    <div class="col-6 col-lg-3">
+    <div class="col-6 col-md-4 col-lg">
         <div class="card border-0 shadow-sm bg-primary bg-opacity-10 h-100 border-start border-primary border-4">
             <div class="card-body p-3">
                 <div class="text-primary small fw-semibold text-uppercase">Posisi Beli (Entry)</div>
-                <div class="h3 mb-0 fw-bold text-primary">
+                <div class="h4 mb-0 fw-bold text-primary">
                     <?= Yii::$app->formatter->asCurrency($analysis['entry_price']) ?>
                 </div>
                 <div class="small text-muted mt-1">
@@ -159,11 +173,11 @@ $markLines = [
     </div>
 
     <!-- Stop Loss Card -->
-    <div class="col-6 col-lg-3">
+    <div class="col-6 col-md-4 col-lg">
         <div class="card border-0 shadow-sm bg-danger bg-opacity-10 h-100 border-start border-danger border-4">
             <div class="card-body p-3">
                 <div class="text-danger small fw-semibold text-uppercase">Stop Loss (Batas Risiko)</div>
-                <div class="h3 mb-0 fw-bold text-danger">
+                <div class="h4 mb-0 fw-bold text-danger">
                     <?= Yii::$app->formatter->asCurrency($analysis['stop_loss']) ?>
                 </div>
                 <div class="small text-danger mt-1">
@@ -174,30 +188,45 @@ $markLines = [
     </div>
 
     <!-- Target Profit 1 Card -->
-    <div class="col-6 col-lg-3">
+    <div class="col-6 col-md-4 col-lg">
         <div class="card border-0 shadow-sm bg-success bg-opacity-10 h-100 border-start border-success border-4">
             <div class="card-body p-3">
-                <div class="text-success small fw-semibold text-uppercase">Target Profit 1 (TP1)</div>
-                <div class="h3 mb-0 fw-bold text-success">
+                <div class="text-success small fw-semibold text-uppercase">TP1 (Konservatif)</div>
+                <div class="h4 mb-0 fw-bold text-success">
                     <?= Yii::$app->formatter->asCurrency($analysis['target_1']) ?>
                 </div>
                 <div class="small text-success mt-1">
-                    <i class="bi bi-graph-up-arrow"></i> Potensi Gain: <strong>+<?= $analysis['target_1_pct'] ?>%</strong>
+                    <i class="bi bi-graph-up-arrow"></i> Target: <strong>+<?= $analysis['target_1_pct'] ?>%</strong>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Target Profit 2 Card -->
-    <div class="col-6 col-lg-3">
+    <div class="col-6 col-md-4 col-lg">
         <div class="card border-0 shadow-sm bg-success bg-opacity-10 h-100 border-start border-success border-4">
             <div class="card-body p-3">
-                <div class="text-success small fw-semibold text-uppercase">Target Profit 2 (TP2 / Runner)</div>
-                <div class="h3 mb-0 fw-bold text-success">
+                <div class="text-success small fw-semibold text-uppercase">TP2 (Runner)</div>
+                <div class="h4 mb-0 fw-bold text-success">
                     <?= Yii::$app->formatter->asCurrency($analysis['target_2']) ?>
                 </div>
                 <div class="small text-success mt-1">
-                    <i class="bi bi-trophy"></i> Potensi Gain: <strong>+<?= $analysis['target_2_pct'] ?>%</strong>
+                    <i class="bi bi-trophy"></i> Target: <strong>+<?= $analysis['target_2_pct'] ?>%</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Target Profit 3 Card -->
+    <div class="col-12 col-md-4 col-lg">
+        <div class="card border-0 shadow-sm bg-warning bg-opacity-10 h-100 border-start border-warning border-4">
+            <div class="card-body p-3">
+                <div class="text-warning-emphasis small fw-semibold text-uppercase">TP3 (Moonbag)</div>
+                <div class="h4 mb-0 fw-bold text-dark">
+                    <?= !empty($analysis['target_3']) ? Yii::$app->formatter->asCurrency($analysis['target_3']) : '-' ?>
+                </div>
+                <div class="small text-success mt-1">
+                    <i class="bi bi-rocket-takeoff text-warning"></i> Target: <strong>+<?= $analysis['target_3_pct'] ?? '0' ?>%</strong>
                 </div>
             </div>
         </div>
@@ -304,9 +333,20 @@ $markLines = [
                 </p>
                 <div class="small text-secondary">
                     <?php if ($action === 'BUY'): ?>
-                        Pasang order pembelian pada area <strong><?= Html::encode($analysis['entry_range']) ?></strong>.
-                        Pasang proteksi stop loss ketat pada <strong><?= Yii::$app->formatter->asCurrency($analysis['stop_loss']) ?></strong>.
-                        Ketika target 1 (<strong><?= Yii::$app->formatter->asCurrency($analysis['target_1']) ?></strong>) tercapai, amankan 50% profit dan geser stop loss ke titik impas (Breakeven).
+                        <div class="mb-2">
+                            <strong>1. Area Beli:</strong> Pasang antrian beli bertahap pada zona <strong><?= Html::encode($analysis['entry_range']) ?></strong> (Ideal: <?= Yii::$app->formatter->asCurrency($analysis['entry_price']) ?>).
+                        </div>
+                        <div class="mb-2">
+                            <strong>2. Disiplin Proteksi:</strong> Pasang stop loss ketat di <strong><?= Yii::$app->formatter->asCurrency($analysis['stop_loss']) ?></strong> (Risiko <?= $analysis['stop_loss_pct'] ?>%). Cut loss wajib dieksekusi jika harga ditutup di bawah level ini.
+                        </div>
+                        <div>
+                            <strong>3. Realisasi Profit Bertingkat (Scaling Out):</strong>
+                            <ul class="ps-3 mb-0 mt-1">
+                                <li><strong>TP1 (<?= Yii::$app->formatter->asCurrency($analysis['target_1']) ?> / +<?= $analysis['target_1_pct'] ?>%):</strong> Jual 40%-50% porsi untuk mengunci profit awal dan amankan modal. Geser Stop Loss ke harga modal (Breakeven).</li>
+                                <li><strong>TP2 (<?= Yii::$app->formatter->asCurrency($analysis['target_2']) ?> / +<?= $analysis['target_2_pct'] ?>%):</strong> Jual 30% porsi tambahan dan pasang Trailing Stop di garis MA Cepat (MA<?= $analysis['fast_period'] ?>).</li>
+                                <li><strong>TP3 (<?= !empty($analysis['target_3']) ? Yii::$app->formatter->asCurrency($analysis['target_3']) : '-' ?> / +<?= $analysis['target_3_pct'] ?? '0' ?>%):</strong> Biarkan sisa porsi 20%-30% (Moonbag) berjalan hingga muncul sinyal pembalikan (candlestick reversal atau RSI > 75).</li>
+                            </ul>
+                        </div>
                     <?php elseif ($action === 'SELL'): ?>
                         Pola persilangan bearish terdeteksi. Segera kurangi eksposur atau keluar dari posisi untuk menghindari penurunan harga lebih lanjut.
                     <?php elseif ($action === 'TAKE_PROFIT'): ?>

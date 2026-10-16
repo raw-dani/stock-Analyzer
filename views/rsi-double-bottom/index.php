@@ -27,6 +27,9 @@ $buyCount = count(array_filter($allPatterns, fn($r) => in_array($r['action'] ?? 
 $sellCount = count(array_filter($allPatterns, fn($r) => in_array($r['action'] ?? '', ['SELL_NOW', 'TAKE_PROFIT'], true)));
 $bullDivCount = count(array_filter($allPatterns, fn($r) => !empty($r['divergence'])));
 $bearDivCount = count(array_filter($allPatterns, fn($r) => !empty($r['bearish_divergence'])));
+$volumeSurgeCount = count(array_filter($allPatterns, fn($r) => !empty($r['volume_spike'])));
+$candleReversalCount = count(array_filter($allPatterns, fn($r) => !empty($r['candle_pattern'])));
+$fibPocketCount = count(array_filter($allPatterns, fn($r) => !empty($r['is_golden_pocket'])));
 $oversoldWatchCount = count(array_filter($allPatterns, fn($r) => ($r['current_rsi'] ?? 50) <= 35));
 $overboughtWatchCount = count(array_filter($allPatterns, fn($r) => ($r['current_rsi'] ?? 50) >= 65));
 
@@ -40,7 +43,7 @@ $staleDays = $dailyMax ? (int) floor((time() - strtotime($dailyMax . ' 23:59:00'
             <i class="bi bi-activity text-primary"></i> <?= Html::encode($this->title) ?>
         </h1>
         <p class="text-muted small mb-0">
-            Sistem analisis RSI modern untuk menentukan <strong>Waktu Beli (Entry)</strong> dan <strong>Waktu Jual (Exit/Take Profit)</strong> optimal berbasis Oversold Reversal, Bullish/Bearish Divergence, Trend Filter MA50, serta Level Risk-Reward presisi.
+            Sistem analisis RSI Multi-Strategi terintegrasi <strong>Konfirmasi Volume (RVOL)</strong>, <strong>Candlestick Reversal</strong>, dan <strong>Fibonacci Retracement</strong> untuk menentukan <strong>Waktu Beli (Entry)</strong> dan target keuntungan berjenjang <strong>TP1, TP2, TP3</strong> serta Stop Loss terukur.
         </p>
     </div>
     <div class="d-flex align-items-center gap-2">
@@ -104,10 +107,10 @@ $staleDays = $dailyMax ? (int) floor((time() - strtotime($dailyMax . ' 23:59:00'
         <div class="card border-0 shadow-sm bg-primary bg-opacity-10 text-center h-100 py-2 border-start border-primary border-4">
             <div class="card-body p-2">
                 <div class="text-primary small fw-semibold text-uppercase">
-                    <i class="bi bi-gem me-1"></i> Bullish Divergence
+                    <i class="bi bi-layers-fill me-1"></i> Konfirmasi Multi-Strategi
                 </div>
-                <div class="h2 mb-0 fw-bold text-primary"><?= $bullDivCount ?></div>
-                <div class="small text-primary">Pelemahan Tekanan Jual</div>
+                <div class="h2 mb-0 fw-bold text-primary"><?= $volumeSurgeCount + $candleReversalCount + $fibPocketCount ?></div>
+                <div class="small text-primary">Vol Surge (<?= $volumeSurgeCount ?>) • Candle (<?= $candleReversalCount ?>) • Fib (<?= $fibPocketCount ?>)</div>
             </div>
         </div>
     </div>
@@ -170,7 +173,7 @@ $staleDays = $dailyMax ? (int) floor((time() - strtotime($dailyMax . ' 23:59:00'
 
             <!-- Signal Category Filter Tabs -->
             <div class="d-flex flex-wrap align-items-center gap-2 mt-3 pt-3 border-top">
-                <span class="fw-bold small text-muted me-1">Sinyal / Kategori:</span>
+                <span class="fw-bold small text-muted me-1">Sinyal / Strategi:</span>
                 <?php
                 $filters = [
                     'all' => ['label' => 'Semua (' . $totalCount . ')', 'icon' => 'list', 'class' => 'btn-outline-secondary'],
@@ -178,14 +181,17 @@ $staleDays = $dailyMax ? (int) floor((time() - strtotime($dailyMax . ' 23:59:00'
                     'sell' => ['label' => 'Waktu Jual / TP (' . $sellCount . ')', 'icon' => 'tag-fill', 'class' => 'btn-outline-danger'],
                     'bull_div' => ['label' => 'Bullish Div (' . $bullDivCount . ')', 'icon' => 'gem', 'class' => 'btn-outline-primary'],
                     'bear_div' => ['label' => 'Bearish Div (' . $bearDivCount . ')', 'icon' => 'lightning-fill', 'class' => 'btn-outline-danger'],
-                    'oversold' => ['label' => 'Oversold &le; 35 (' . $oversoldWatchCount . ')', 'icon' => 'arrow-down-circle', 'class' => 'btn-outline-info'],
-                    'overbought' => ['label' => 'Overbought &ge; 65 (' . $overboughtWatchCount . ')', 'icon' => 'arrow-up-circle', 'class' => 'btn-outline-warning'],
+                    'volume_surge' => ['label' => 'Vol Surge (' . $volumeSurgeCount . ')', 'icon' => 'bar-chart-fill', 'class' => 'btn-outline-info'],
+                    'candle_reversal' => ['label' => 'Candle Pattern (' . $candleReversalCount . ')', 'icon' => 'reception-4', 'class' => 'btn-outline-primary'],
+                    'fib_pocket' => ['label' => 'Fib Golden Zone (' . $fibPocketCount . ')', 'icon' => 'bullseye', 'class' => 'btn-outline-warning'],
+                    'oversold' => ['label' => 'Oversold &le; 35 (' . $oversoldWatchCount . ')', 'icon' => 'arrow-down-circle', 'class' => 'btn-outline-secondary'],
+                    'overbought' => ['label' => 'Overbought &ge; 65 (' . $overboughtWatchCount . ')', 'icon' => 'arrow-up-circle', 'class' => 'btn-outline-secondary'],
                 ];
                 foreach ($filters as $key => $meta):
                     $active = ($statusFilter === $key);
                 ?>
                     <button type="button" 
-                            class="btn btn-sm <?= $active ? 'btn-primary active' : $meta['class'] ?>"
+                            class="btn btn-sm <?= $active ? 'btn-primary active fw-bold' : $meta['class'] ?>"
                             onclick="document.getElementById('filter-status-input').value = '<?= $key ?>'; document.getElementById('rsi-filter-form').submit();">
                         <i class="bi bi-<?= $meta['icon'] ?>"></i> <?= $meta['label'] ?>
                     </button>
@@ -243,14 +249,14 @@ $staleDays = $dailyMax ? (int) floor((time() - strtotime($dailyMax . ' 23:59:00'
                     <th>Nama Saham &amp; Sektor</th>
                     <th style="width: 220px;">Rekomendasi Aksi</th>
                     <th class="text-end">Harga Saat Ini</th>
-                    <th class="text-center" style="width: 130px;">RSI (<?= $rsiPeriod ?>)</th>
+                    <th class="text-center" style="width: 120px;">RSI (<?= $rsiPeriod ?>)</th>
                     <th class="text-center">Trend (MA50)</th>
-                    <th class="text-center">Divergence</th>
-                    <th class="text-end">Target Profit</th>
+                    <th class="text-center">Konfirmasi Multi-Strategi</th>
+                    <th class="text-end" style="min-width: 130px;">Target TP1 / TP2 / TP3</th>
                     <th class="text-end">Stop Loss</th>
                     <th class="text-end">R:R</th>
                     <th class="text-end">Confidence</th>
-                    <th class="text-center" style="width: 100px;">Aksi</th>
+                    <th class="text-center" style="width: 90px;">Aksi</th>
                 </tr>
             </thead>
             <tbody>
@@ -318,21 +324,56 @@ $staleDays = $dailyMax ? (int) floor((time() - strtotime($dailyMax . ' 23:59:00'
                                 <?php endif; ?>
                             </td>
                             <td class="text-center">
-                                <?php if (!empty($r['divergence'])): ?>
-                                    <span class="badge bg-primary text-white" title="Bullish Divergence: Peluang pembalikan naik">
-                                        <i class="bi bi-gem"></i> BULLISH
-                                    </span>
-                                <?php elseif (!empty($r['bearish_divergence'])): ?>
-                                    <span class="badge bg-danger text-white" title="Bearish Divergence: Waspada pembalikan turun">
-                                        <i class="bi bi-lightning-charge"></i> BEARISH
-                                    </span>
-                                <?php else: ?>
-                                    <span class="text-muted small">—</span>
-                                <?php endif; ?>
+                                <div class="d-flex flex-column gap-1 align-items-center">
+                                    <?php if (!empty($r['divergence'])): ?>
+                                        <span class="badge bg-primary text-white" title="Bullish Divergence: Peluang pembalikan naik">
+                                            <i class="bi bi-gem"></i> BULLISH DIV
+                                        </span>
+                                    <?php elseif (!empty($r['bearish_divergence'])): ?>
+                                        <span class="badge bg-danger text-white" title="Bearish Divergence: Waspada pembalikan turun">
+                                            <i class="bi bi-lightning-charge"></i> BEARISH DIV
+                                        </span>
+                                    <?php endif; ?>
+
+                                    <?php if (!empty($r['volume_spike'])): ?>
+                                        <span class="badge bg-info text-dark" title="Lonjakan Volume RVOL <?= $r['rvol'] ?? 0 ?>x">
+                                            <i class="bi bi-bar-chart-fill"></i> RVOL <?= $r['rvol'] ?? 0 ?>x
+                                        </span>
+                                    <?php endif; ?>
+
+                                    <?php if (!empty($r['candle_pattern'])): ?>
+                                        <span class="badge <?= ($r['candle_signal'] ?? '') === 'BULLISH' ? 'bg-success-subtle text-success border border-success' : 'bg-danger-subtle text-danger border border-danger' ?>">
+                                            <i class="bi bi-reception-4"></i> <?= Html::encode($r['candle_pattern']) ?>
+                                        </span>
+                                    <?php endif; ?>
+
+                                    <?php if (!empty($r['is_golden_pocket'])): ?>
+                                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning" title="Fibonacci Golden Pocket 50%-61.8%">
+                                            <i class="bi bi-bullseye"></i> Fib Golden Zone
+                                        </span>
+                                    <?php endif; ?>
+
+                                    <?php if (empty($r['divergence']) && empty($r['bearish_divergence']) && empty($r['volume_spike']) && empty($r['candle_pattern']) && empty($r['is_golden_pocket'])): ?>
+                                        <span class="text-muted small">—</span>
+                                    <?php endif; ?>
+                                </div>
                             </td>
-                            <td class="text-end text-success fw-bold">
-                                $<?= number_format((float) ($r['tp1_price'] ?? $r['target_price'] ?? 0), 2) ?>
-                                <div class="small text-success fw-normal">+<?= number_format((float) ($r['potential_upside'] ?? 0), 1) ?>%</div>
+                            <td class="text-end">
+                                <div class="text-success fw-bold" title="TP1: Target Swing / Minimum 1.5R">
+                                    <span class="badge bg-success text-white py-0 me-1" style="font-size: 0.65rem;">TP1</span>
+                                    $<?= number_format((float) ($r['tp1_price'] ?? 0), 2) ?>
+                                    <small class="fw-normal">(+<?= number_format((float) ($r['tp1_pct'] ?? 0), 1) ?>%)</small>
+                                </div>
+                                <div class="text-primary small" style="font-size: 0.75rem;" title="TP2: Ekstensi Fibonacci 1.272 / 2.8R">
+                                    <span class="badge bg-primary-subtle text-primary border py-0 me-1" style="font-size: 0.62rem;">TP2</span>
+                                    $<?= number_format((float) ($r['tp2_price'] ?? 0), 2) ?>
+                                    <small>(+<?= number_format((float) ($r['tp2_pct'] ?? 0), 1) ?>%)</small>
+                                </div>
+                                <div class="text-muted small" style="font-size: 0.72rem;" title="TP3: Ekstensi Fibonacci 1.618 / 4.0R">
+                                    <span class="badge bg-warning-subtle text-dark border py-0 me-1" style="font-size: 0.62rem;">TP3</span>
+                                    $<?= number_format((float) ($r['tp3_price'] ?? 0), 2) ?>
+                                    <small>(+<?= number_format((float) ($r['tp3_pct'] ?? 0), 1) ?>%)</small>
+                                </div>
                             </td>
                             <td class="text-end text-danger small">
                                 $<?= number_format((float) ($r['sl_price'] ?? 0), 2) ?>

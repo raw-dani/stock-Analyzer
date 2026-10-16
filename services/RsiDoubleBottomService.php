@@ -279,19 +279,71 @@ final class RsiDoubleBottomService
         $curMa50 = $ma50[$n - 1] ?? null;
         $isAboveMa50 = ($curMa50 !== null) ? ($curPrice >= $curMa50) : true;
 
-        // Recent min/max RSI window (5 candle terakhir)
-        $recentSliceRsi = array_filter(array_slice($rsi, -5), fn ($v) => $v !== null);
-        $minRsi5 = !empty($recentSliceRsi) ? min($recentSliceRsi) : $curRsi;
-        $maxRsi5 = !empty($recentSliceRsi) ? max($recentSliceRsi) : $curRsi;
+        // 4. Tambahan Strategi Konfirmasi 1: Volume & Relative Volume (RVOL)
+        $volSMA20 = 1.0;
+        $curVol = (int) ($candles[$n - 1]['volume'] ?? 0);
+        $recentVols = array_map(fn ($c) => (int) ($c['volume'] ?? 0), array_slice($candles, -21, 20));
+        if (!empty($recentVols)) {
+            $volSMA20 = max(1.0, array_sum($recentVols) / count($recentVols));
+        }
+        $rvol = round($curVol / $volSMA20, 2);
+        $volumeSpike = $rvol >= 1.5;
+        $volumeSupportive = ($curPrice >= ($candles[$n - 1]['open'] ?? $curPrice)) ? ($rvol >= 1.0) : false;
 
-        // 1. Deteksi Divergence (Bullish & Bearish) dalam 30 candle terakhir
-        $bullDiv = $this->detectBullishDivergence($candles, $rsi, 30);
-        $bearDiv = $this->detectBearishDivergence($candles, $rsi, 30);
+        // 5. Tambahan Strategi Konfirmasi 2: Candlestick Reversal Patterns (Hammer, Engulfing, Shooting Star)
+        $candlePattern = null;
+        $candleSignal = 'NONE';
+        $cOpen = (float) $candles[$n - 1]['open'];
+        $cClose = (float) $candles[$n - 1]['close'];
+        $cHigh = (float) $candles[$n - 1]['high'];
+        $cLow = (float) $candles[$n - 1]['low'];
+        $cRange = max(0.001, $cHigh - $cLow);
+        $cBody = abs($cClose - $cOpen);
+        $lowerWick = min($cOpen, $cClose) - $cLow;
+        $upperWick = $cHigh - max($cOpen, $cClose);
 
-        // 2. Deteksi Double Bottom Pattern pada seri RSI (jika ada)
+        $prevOpen = (float) ($candles[$n - 2]['open'] ?? $cOpen);
+        $prevClose = (float) ($candles[$n - 2]['close'] ?? $cClose);
+
+        if ($lowerWick >= ($cBody * 1.8) && $upperWick <= ($cBody * 0.7) && $cBody >= ($cRange * 0.15)) {
+            $candlePattern = 'Hammer / Pinbar';
+            $candleSignal = 'BULLISH';
+        } elseif ($cClose > $cOpen && $prevClose < $prevOpen && $cOpen <= $prevClose && $cClose >= $prevOpen) {
+            $candlePattern = 'Bullish Engulfing';
+            $candleSignal = 'BULLISH';
+        } elseif ($upperWick >= ($cBody * 1.8) && $lowerWick <= ($cBody * 0.7) && $cBody >= ($cRange * 0.15)) {
+            $candlePattern = 'Shooting Star';
+            $candleSignal = 'BEARISH';
+        } elseif ($cClose < $cOpen && $prevClose > $prevOpen && $cOpen >= $prevClose && $cClose <= $prevOpen) {
+            $candlePattern = 'Bearish Engulfing';
+            $candleSignal = 'BEARISH';
+        }
+
+        // 6. Tambahan Strategi Konfirmasi 3: Fibonacci Retracement & Extension Levels
+        $fibWindow = min(60, $n);
+        $fibLows = array_map(fn ($c) => (float) $c['low'], array_slice($candles, -$fibWindow));
+        $fibHighs = array_map(fn ($c) => (float) $c['high'], array_slice($candles, -$fibWindow));
+        $swingLow = !empty($fibLows) ? min($fibLows) : $curPrice * 0.95;
+        $swingHigh = !empty($fibHighs) ? max($fibHighs) : $curPrice * 1.05;
+        $swingDiff = max(0.01, $swingHigh - $swingLow);
+
+        // Fib Retracement levels from Swing High to Swing Low
+        $fib50 = round($swingHigh - (0.50 * $swingDiff), 2);
+        $fib618 = round($swingHigh - (0.618 * $swingDiff), 2);
+        $fib382 = round($swingHigh - (0.382 * $swingDiff), 2);
+        $isGoldenPocket = ($curPrice >= min($fib50, $fib618) * 0.985 && $curPrice <= max($fib50, $fib618) * 1.015);
+
+        // Deteksi Divergences & RSI Double Bottom Pattern
+        $bearDiv = $this->detectBearishDivergence($candles, $rsi);
+        $bullDiv = $this->detectBullishDivergence($candles, $rsi);
         $dbPattern = $this->findRecentDoubleBottom($candles, $rsi, $tol, $maxRsi, $minSeparation, $maxSeparation, $necklineMin);
 
-        // 3. Evaluasi Sinyal Trading & Rekomendasi Waktu Beli / Waktu Jual
+        // Window RSI 5 bar terakhir
+        $recentRsi5 = array_filter(array_slice($rsi, -5), fn ($v) => $v !== null);
+        $minRsi5 = !empty($recentRsi5) ? min($recentRsi5) : $curRsi;
+        $maxRsi5 = !empty($recentRsi5) ? max($recentRsi5) : $curRsi;
+
+        // Evaluasi Sinyal Trading & Rekomendasi Waktu Beli / Waktu Jual
         $signalType = 'NEUTRAL';
         $action = 'WAIT';
         $actionLabel = 'NEUTRAL / HOLD';
@@ -299,7 +351,7 @@ final class RsiDoubleBottomService
         $signalReason = 'RSI berada dalam rentang normal (konsolidasi/menunggu setup).';
         $confidence = 50;
 
-        // Prioritas A: Sinyal Jual (Overbought Exit & Bearish Divergence)
+        // Prioritas A: Sinyal Jual (Overbought Exit, Bearish Divergence, Reversal Candle)
         if ($bearDiv !== null && ($curRsi >= 65.0 || ($prevRsi >= 68.0 && $curRsi < $prevRsi))) {
             $signalType = 'SELL_BEARISH_DIVERGENCE';
             $action = 'SELL_NOW';
@@ -307,6 +359,13 @@ final class RsiDoubleBottomService
             $actionBadge = 'bg-danger';
             $signalReason = 'Terdeteksi Bearish Divergence (harga buat higher-high tapi RSI melemah), momentum beli telah jenuh.';
             $confidence = 90;
+        } elseif ($candleSignal === 'BEARISH' && $curRsi >= 65.0) {
+            $signalType = 'SELL_CANDLE_CONFIRMATION';
+            $action = 'SELL_NOW';
+            $actionLabel = 'SELL (' . strtoupper($candlePattern) . ')';
+            $actionBadge = 'bg-danger';
+            $signalReason = 'Pembalikan arah terkonfirmasi oleh pola ' . $candlePattern . ' di zona jenuh beli (RSI ' . round($curRsi, 1) . ').';
+            $confidence = 88;
         } elseif ($prevRsi >= 70.0 && $curRsi < 70.0) {
             $signalType = 'SELL_OVERBOUGHT_CROSS';
             $action = 'SELL_NOW';
@@ -329,14 +388,29 @@ final class RsiDoubleBottomService
             $signalReason = 'Pembalikan arah pasca Overbought. Momentum penurunan mulai mendominasi.';
             $confidence = 75;
         }
-        // Prioritas B: Sinyal Beli (Oversold Bounce, Bullish Divergence, RSI Double Bottom, Trend Pullback)
+        // Prioritas B: Sinyal Beli (Bullish Divergence, Oversold Reversal + Volume & Fib Confluence)
         elseif ($bullDiv !== null && ($curRsi > $prevRsi || $curRsi >= 30.0)) {
             $signalType = 'BUY_BULLISH_DIVERGENCE';
             $action = 'BUY_NOW';
             $actionLabel = 'BUY (BULLISH DIVERGENCE)';
             $actionBadge = 'bg-success';
-            $signalReason = 'Peluang akumulasi terbaik! Bullish Divergence (harga buat lower-low tapi RSI mencetak higher-low).';
+            $signalReason = 'Peluang akumulasi terbaik! Bullish Divergence (harga buat lower-low tapi RSI mencetak higher-low)' . ($volumeSupportive ? ' dengan dukungan Volume' : '') . '.';
             $confidence = $isAboveMa50 ? 95 : 85;
+            if ($volumeSpike) $confidence = min(98, $confidence + 3);
+        } elseif ($isGoldenPocket && $curRsi > $prevRsi && $curRsi <= 45.0) {
+            $signalType = 'BUY_FIB_GOLDEN_POCKET';
+            $action = 'BUY_NOW';
+            $actionLabel = 'BUY (FIB GOLDEN POCKET)';
+            $actionBadge = 'bg-success';
+            $signalReason = 'Konfluensi Emas! Rebound dari Fibonacci Retracement 50%-61.8% ($' . number_format($fib618, 2) . ') bersamaan dengan pembalikan RSI.';
+            $confidence = $isAboveMa50 ? 92 : 84;
+        } elseif ($candleSignal === 'BULLISH' && ($curRsi <= 40.0 || $prevRsi <= 35.0)) {
+            $signalType = 'BUY_CANDLE_CONFIRMATION';
+            $action = 'BUY_NOW';
+            $actionLabel = 'BUY (' . strtoupper($candlePattern) . ')';
+            $actionBadge = 'bg-success';
+            $signalReason = 'Sinyal pembalikan kuat! Pola ' . $candlePattern . ' muncul di zona oversold didukung lonjakan RVOL ' . $rvol . 'x.';
+            $confidence = $isAboveMa50 ? 92 : 82;
         } elseif ($prevRsi <= 30.0 && $curRsi > 30.0) {
             $signalType = 'BUY_OVERSOLD_CROSS';
             $action = 'BUY_NOW';
@@ -381,24 +455,32 @@ final class RsiDoubleBottomService
             $confidence = 70;
         }
 
-        // Tentukan Target Profit & Stop Loss Dinamis
-        $recentLows = array_map(fn ($c) => (float) $c['low'], array_slice($candles, -20));
-        $recentHighs = array_map(fn ($c) => (float) $c['high'], array_slice($candles, -20));
-        $swingLow = !empty($recentLows) ? min($recentLows) : $curPrice * 0.95;
-        $swingHigh = !empty($recentHighs) ? max($recentHighs) : $curPrice * 1.05;
-
-        // Stop loss: 2% di bawah swing low atau min 3% dari entry
-        $slPrice = round(min($swingLow * 0.98, $curPrice * 0.96), 2);
+        // Tentukan Target Profit TP1, TP2, TP3 & Stop Loss Berbasis Multi-Strategi
+        // Stop loss: 2% di bawah swing low terdekat atau min 3.5% dari entry
+        $slPrice = round(min($swingLow * 0.98, $curPrice * 0.965), 2);
         if ($slPrice >= $curPrice) {
-            $slPrice = round($curPrice * 0.96, 2);
+            $slPrice = round($curPrice * 0.965, 2);
         }
         $riskAmount = max(0.01, $curPrice - $slPrice);
 
-        // Target Profit:
-        // TP1: Menguji swing high atau minimal 1.8x risk
-        $tp1Price = round(max($swingHigh, $curPrice + ($riskAmount * 1.8)), 2);
-        $tp2Price = round($curPrice + ($riskAmount * 2.8), 2);
-        $tp3Price = round($curPrice + ($riskAmount * 4.0), 2);
+        // Kalkulasi Target Profit yang Akurat:
+        // TP1 (Konservatif / Swing High / Fib 50% atau 1.5R - 1.8R): Amankan modal & kunci profit 40-50%
+        $candidateTp1 = max($curPrice + ($riskAmount * 1.5), min($swingHigh, $curPrice + ($riskAmount * 2.0)));
+        if ($candidateTp1 <= $curPrice) {
+            $candidateTp1 = $curPrice + ($riskAmount * 1.8);
+        }
+        $tp1Price = round($candidateTp1, 2);
+
+        // TP2 (Moderate / Breakout Resistance / Fibonacci Extension 1.272 atau 2.8R): Profit lanjutan
+        $fibExt127 = $swingLow + (1.272 * $swingDiff);
+        $candidateTp2 = max($tp1Price * 1.02, max($fibExt127, $curPrice + ($riskAmount * 2.8)));
+        $tp2Price = round($candidateTp2, 2);
+
+        // TP3 (Agresif / Golden Target Fibonacci Extension 1.618 atau 4.0R): Maksimal tren kenaikan
+        $fibExt161 = $swingLow + (1.618 * $swingDiff);
+        $candidateTp3 = max($tp2Price * 1.03, max($fibExt161, $curPrice + ($riskAmount * 4.2)));
+        $tp3Price = round($candidateTp3, 2);
+
         $tp1Pct = $curPrice > 0 ? round((($tp1Price - $curPrice) / $curPrice) * 100, 2) : 0.0;
         $tp2Pct = $curPrice > 0 ? round((($tp2Price - $curPrice) / $curPrice) * 100, 2) : 0.0;
         $tp3Pct = $curPrice > 0 ? round((($tp3Price - $curPrice) / $curPrice) * 100, 2) : 0.0;
@@ -408,7 +490,7 @@ final class RsiDoubleBottomService
         $rrRatio = $riskAmount > 0 ? round(($tp1Price - $curPrice) / $riskAmount, 2) : 0.0;
 
         // Data backward-compatible untuk RSI Double Bottom jika ada
-        $rsi1Val = $dbPattern['rsi1_value'] ?? ($bullDiv['rsi1'] ?? round($minRsi5, 1));
+        $rsi1Val = $dbPattern['rsi1_value'] ?? ($bullDiv['rsi1'] ?? round($minRsi5 ?? $curRsi, 1));
         $rsi1Date = $dbPattern['rsi1_date'] ?? ($bullDiv['date1'] ?? $candles[$n - 5]['date']);
         $rsi2Val = $dbPattern['rsi2_value'] ?? ($bullDiv['rsi2'] ?? round($curRsi, 1));
         $rsi2Date = $dbPattern['rsi2_date'] ?? ($bullDiv['date2'] ?? $candles[$n - 1]['date']);
@@ -425,6 +507,23 @@ final class RsiDoubleBottomService
             'ma50' => $curMa50 !== null ? round($curMa50, 2) : null,
             'is_above_ma50' => $isAboveMa50,
             'trend_bias' => $isAboveMa50 ? 'BULLISH' : 'BEARISH',
+
+            // Multi-Strategy Enhancements: Volume RVOL
+            'rvol' => $rvol,
+            'volume_spike' => $volumeSpike,
+            'volume_supportive' => $volumeSupportive,
+
+            // Multi-Strategy Enhancements: Candlestick Reversal
+            'candle_pattern' => $candlePattern,
+            'candle_signal' => $candleSignal,
+
+            // Multi-Strategy Enhancements: Fibonacci Retracement Levels
+            'swing_high' => round($swingHigh, 2),
+            'swing_low' => round($swingLow, 2),
+            'fib50' => $fib50,
+            'fib618' => $fib618,
+            'fib382' => $fib382,
+            'is_golden_pocket' => $isGoldenPocket,
 
             // Sinyal & Rekomendasi Aksi
             'signal_type' => $signalType,

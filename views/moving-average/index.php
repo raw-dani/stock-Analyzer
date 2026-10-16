@@ -93,12 +93,12 @@ $badgeAction = [
         </a>
     </div>
     <div class="col-6 col-md-3">
-        <a href="<?= $filterWith(['strategy' => 'pullback']) ?>" class="text-decoration-none">
-            <div class="card border-0 shadow-sm bg-primary bg-opacity-10 text-center h-100 py-2 border-start border-primary border-4 hover-card <?= ($params['strategy'] === 'pullback') ? 'ring-active' : '' ?>">
+        <a href="<?= $filterWith(['strategy' => 'candle_bounce']) ?>" class="text-decoration-none">
+            <div class="card border-0 shadow-sm bg-primary bg-opacity-10 text-center h-100 py-2 border-start border-primary border-4 hover-card <?= ($params['strategy'] === 'candle_bounce') ? 'ring-active' : '' ?>">
                 <div class="card-body p-2">
-                    <div class="text-primary small fw-semibold text-uppercase">Pullback Buy on Dip</div>
-                    <div class="h2 mb-0 fw-bold text-primary"><?= number_format((int) ($stats['pullbackCount'] ?? 0)) ?></div>
-                    <div class="small text-primary"><i class="bi bi-bullseye"></i> Uji Support MA (Low Risk)</div>
+                    <div class="text-primary small fw-semibold text-uppercase">Konfirmasi Multi-Strategi</div>
+                    <div class="h2 mb-0 fw-bold text-primary"><?= number_format((int) (($stats['candleBounceCount'] ?? 0) + ($stats['volumeSurgeCount'] ?? 0))) ?></div>
+                    <div class="small text-primary"><i class="bi bi-reception-4"></i> Candle Rebound (<?= $stats['candleBounceCount'] ?? 0 ?>) • Vol Surge (<?= $stats['volumeSurgeCount'] ?? 0 ?>)</div>
                 </div>
             </div>
         </a>
@@ -139,6 +139,12 @@ $badgeAction = [
                     '<i class="bi bi-arrow-repeat"></i> Golden Cross',
                     $filterWith(['strategy' => 'golden_cross']),
                     ['class' => 'btn btn-sm ' . ($params['strategy'] === 'golden_cross' ? 'btn-primary' : 'btn-outline-primary')]
+                ) ?>
+
+                <?= Html::a(
+                    '<i class="bi bi-reception-4"></i> MA + Candle Rebound',
+                    $filterWith(['strategy' => 'candle_bounce']),
+                    ['class' => 'btn btn-sm ' . ($params['strategy'] === 'candle_bounce' ? 'btn-success active fw-bold' : 'btn-outline-success')]
                 ) ?>
 
                 <?= Html::a(
@@ -205,6 +211,7 @@ $badgeAction = [
                     'all' => 'Semua Setup Strategi',
                     'buy_all' => '🟢 Semua Setup BELI (BUY)',
                     'golden_cross' => '⭐ Golden Cross (Persilangan MA)',
+                    'candle_bounce' => '🕯️ MA Bounce + Candlestick Reversal',
                     'pullback' => '🎯 Pullback Buy on Dip (MA Support)',
                     'breakout' => '🚀 Breakout di Atas MA',
                     'sell_all' => '🔴 Semua Sinyal JUAL (SELL)',
@@ -317,24 +324,23 @@ $badgeAction = [
         <table class="table table-hover align-middle mb-0" id="ma-grid-table">
             <thead class="table-light small text-uppercase text-muted">
                 <tr>
-                    <th style="width: 40px;">#</th>
+                    <th style="width: 35px;">#</th>
                     <th style="width: 105px;">Simbol</th>
                     <th>Harga Terkini</th>
-                    <th class="text-center" style="width: 120px;">Rekomendasi</th>
+                    <th class="text-center" style="width: 110px;">Rekomendasi</th>
                     <th>Setup Strategi</th>
-                    <th class="text-end text-primary" style="width: 120px;">Posisi Beli (Entry)</th>
-                    <th class="text-end text-danger" style="width: 125px;">Stop Loss (SL)</th>
-                    <th class="text-end text-success" style="width: 125px;">Target 1 (TP1)</th>
-                    <th class="text-end text-success" style="width: 125px;">Target 2 (TP2)</th>
-                    <th class="text-center" style="width: 90px;">Risk/Reward</th>
-                    <th class="text-center" style="width: 85px;">RVOL</th>
-                    <th class="text-center" style="width: 130px;">Aksi</th>
+                    <th class="text-center">Konfirmasi Multi-Strategi</th>
+                    <th class="text-end text-primary" style="width: 110px;">Posisi Beli</th>
+                    <th class="text-end text-danger" style="width: 115px;">Stop Loss (SL)</th>
+                    <th class="text-end text-success" style="min-width: 135px;">Target TP1 / TP2 / TP3</th>
+                    <th class="text-center" style="width: 85px;">Risk/Reward</th>
+                    <th class="text-center" style="width: 100px;">Aksi</th>
                 </tr>
             </thead>
             <tbody>
                 <?php if (empty($results)): ?>
                     <tr class="empty">
-                        <td colspan="12" class="text-center py-5">
+                        <td colspan="11" class="text-center py-5">
                             <div class="display-6 text-muted mb-2"><i class="bi bi-funnel"></i></div>
                             <h5 class="fw-bold text-secondary">Tidak ada saham yang cocok dengan kriteria filter</h5>
                             <p class="text-muted small mb-3">Coba longgarkan filter strategi atau pilih timeframe yang berbeda.</p>
@@ -353,6 +359,8 @@ $badgeAction = [
                             'TAKE_PROFIT' => 'table-warning bg-opacity-10',
                             default => '',
                         };
+                        $rsiVal = (float)($r['rsi'] ?? 50.0);
+                        $rsiColor = $rsiVal <= 40 ? 'text-success fw-bold' : ($rsiVal >= 70 ? 'text-danger fw-bold' : 'text-primary');
                         ?>
                         <tr class="<?= $rowClass ?>">
                             <td class="text-muted small"><?= $idx + 1 ?></td>
@@ -395,6 +403,23 @@ $badgeAction = [
                                     &bull; Tren: <strong><?= Html::encode($r['trend_status']) ?></strong>
                                 </div>
                             </td>
+                            <td class="text-center">
+                                <div class="d-flex flex-column gap-1 align-items-center">
+                                    <span class="badge bg-light text-dark border" style="font-size:0.7rem;" title="RSI Momentum (14)">
+                                        RSI(14): <strong class="<?= $rsiColor ?>"><?= number_format($rsiVal, 1) ?></strong>
+                                    </span>
+                                    <?php if (!empty($r['candle_pattern'])): ?>
+                                        <span class="badge <?= ($r['candle_signal'] ?? '') === 'BULLISH' ? 'bg-success-subtle text-success border border-success' : 'bg-danger-subtle text-danger border border-danger' ?>" style="font-size:0.68rem;">
+                                            <i class="bi bi-reception-4"></i> <?= Html::encode($r['candle_pattern']) ?>
+                                        </span>
+                                    <?php endif; ?>
+                                    <?php if (($r['rvol'] ?? 0) >= 1.5): ?>
+                                        <span class="badge bg-info text-dark" style="font-size:0.68rem;" title="Lonjakan Volume RVOL &ge; 1.5x">
+                                            <i class="bi bi-lightning-fill"></i> RVOL <?= $r['rvol'] ?>x
+                                        </span>
+                                    <?php endif; ?>
+                                </div>
+                            </td>
                             <td class="text-end">
                                 <?php if ($act === 'BUY' || $act === 'HOLD'): ?>
                                     <div class="fw-bold text-primary"><?= Yii::$app->formatter->asCurrency($r['entry_price']) ?></div>
@@ -413,16 +438,23 @@ $badgeAction = [
                             </td>
                             <td class="text-end">
                                 <?php if ($act === 'BUY' || $act === 'HOLD'): ?>
-                                    <div class="fw-bold text-success"><?= Yii::$app->formatter->asCurrency($r['target_1']) ?></div>
-                                    <div class="text-success small" style="font-size: 0.72rem;">+<?= $r['target_1_pct'] ?>% Gain</div>
-                                <?php else: ?>
-                                    <span class="text-muted">—</span>
-                                <?php endif; ?>
-                            </td>
-                            <td class="text-end">
-                                <?php if ($act === 'BUY' || $act === 'HOLD'): ?>
-                                    <div class="fw-bold text-success"><?= Yii::$app->formatter->asCurrency($r['target_2']) ?></div>
-                                    <div class="text-success small" style="font-size: 0.72rem;">+<?= $r['target_2_pct'] ?>% Gain</div>
+                                    <div class="text-success fw-bold" style="font-size: 0.85rem;" title="TP1: Target Swing / Minimum 1.8R">
+                                        <span class="badge bg-success text-white py-0 me-1" style="font-size: 0.62rem;">TP1</span>
+                                        <?= Yii::$app->formatter->asCurrency($r['target_1']) ?>
+                                        <small class="fw-normal">(+<?= $r['target_1_pct'] ?>%)</small>
+                                    </div>
+                                    <div class="text-primary small" style="font-size: 0.75rem;" title="TP2: Target Runner 3.0R">
+                                        <span class="badge bg-primary-subtle text-primary border py-0 me-1" style="font-size: 0.62rem;">TP2</span>
+                                        <?= Yii::$app->formatter->asCurrency($r['target_2']) ?>
+                                        <small>(+<?= $r['target_2_pct'] ?>%)</small>
+                                    </div>
+                                    <?php if (!empty($r['target_3'])): ?>
+                                        <div class="text-muted small" style="font-size: 0.72rem;" title="TP3: Target Moonbag 4.2R">
+                                            <span class="badge bg-warning-subtle text-dark border py-0 me-1" style="font-size: 0.62rem;">TP3</span>
+                                            <?= Yii::$app->formatter->asCurrency($r['target_3']) ?>
+                                            <small>(+<?= $r['target_3_pct'] ?>%)</small>
+                                        </div>
+                                    <?php endif; ?>
                                 <?php else: ?>
                                     <span class="text-muted">—</span>
                                 <?php endif; ?>

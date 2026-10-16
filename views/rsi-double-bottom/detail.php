@@ -180,25 +180,32 @@ $ma50Series = $pattern['ma50_series'] ?? [];
                 // Price MarkPoints & Lines
                 $tp1Label = sprintf('TP1: ${c} (+%.1f%%)', (float)($pattern['tp1_pct'] ?? 0));
                 $tp2Label = sprintf('TP2: ${c} (+%.1f%%)', (float)($pattern['tp2_pct'] ?? 0));
+                $tp3Label = sprintf('TP3: ${c} (+%.1f%%)', (float)($pattern['tp3_pct'] ?? 0));
                 $slLabel = sprintf('SL: ${c} (-%.1f%%)', (float)($pattern['potential_risk'] ?? 0));
 
                 $priceMarkPoints = [];
                 $priceMarkLines = [
                     [
                         'name' => 'TP1',
-                        'yAxis' => (float) $pattern['tp1_price'],
+                        'yAxis' => (float) ($pattern['tp1_price'] ?? 0),
                         'lineStyle' => ['color' => '#198754', 'type' => 'dashed', 'width' => 1.5],
                         'label' => ['formatter' => $tp1Label, 'position' => 'end'],
                     ],
                     [
                         'name' => 'TP2',
-                        'yAxis' => (float) $pattern['tp2_price'],
-                        'lineStyle' => ['color' => '#20c997', 'type' => 'dotted', 'width' => 1.5],
+                        'yAxis' => (float) ($pattern['tp2_price'] ?? 0),
+                        'lineStyle' => ['color' => '#0d6efd', 'type' => 'dashed', 'width' => 1.5],
                         'label' => ['formatter' => $tp2Label, 'position' => 'end'],
                     ],
                     [
+                        'name' => 'TP3',
+                        'yAxis' => (float) ($pattern['tp3_price'] ?? 0),
+                        'lineStyle' => ['color' => '#ffc107', 'type' => 'dotted', 'width' => 1.8],
+                        'label' => ['formatter' => $tp3Label, 'position' => 'end'],
+                    ],
+                    [
                         'name' => 'Stop Loss',
-                        'yAxis' => (float) $pattern['sl_price'],
+                        'yAxis' => (float) ($pattern['sl_price'] ?? 0),
                         'lineStyle' => ['color' => '#dc3545', 'type' => 'solid', 'width' => 1.5],
                         'label' => ['formatter' => $slLabel, 'position' => 'end'],
                     ],
