@@ -32,6 +32,7 @@ $sideMenuGroups = [
     'Overview' => [
         ['label' => \app\helpers\SvgHelper::icon('speedometer2', ['class' => 'me-2']) . 'Dashboard', 'url' => ['/dashboard/index'], 'active' => $ctrlId === 'dashboard'],
         ['label' => \app\helpers\SvgHelper::icon('briefcase', ['class' => 'me-2']) . 'Portofolio & Averaging', 'url' => ['/portfolio/index'], 'active' => $ctrlId === 'portfolio', 'badge' => 'New'],
+        ['label' => \app\helpers\SvgHelper::icon('info-circle', ['class' => 'me-2']) . 'Tentang Aplikasi', 'url' => ['/site/about'], 'active' => $ctrlId === 'site' && (Yii::$app->controller?->action?->id ?? '') === 'about'],
     ],
     'Scanners & Patterns' => [
         ['label' => \app\helpers\SvgHelper::icon('bullseye', ['class' => 'me-2']) . 'Confluence Strategy', 'url' => ['/strategy-confluence/index'], 'active' => $ctrlId === 'strategy-confluence', 'badge' => 'PRO'],
@@ -117,6 +118,7 @@ if (!empty($systemItems)) {
     }
 
     if (Yii::$app->user->isGuest) {
+        $topNavItems[] = ['label' => \app\helpers\SvgHelper::icon('info-circle', ['class' => 'me-1']) . ' About', 'url' => ['/site/about'], 'encode' => false];
         $topNavItems[] = ['label' => \app\helpers\SvgHelper::icon('pencil-square', ['class' => 'me-1']) . ' Register', 'url' => ['/site/register'], 'encode' => false];
         $topNavItems[] = ['label' => \app\helpers\SvgHelper::icon('key', ['class' => 'me-1']) . ' Login', 'url' => ['/site/login'], 'encode' => false];
     } else {
@@ -126,7 +128,8 @@ if (!empty($systemItems)) {
             'encode' => false,
             'items' => [
                 ['label' => \app\helpers\SvgHelper::icon('person-vcard', ['class' => 'me-2 text-primary']) . 'Profil Saya & Ganti Password', 'url' => ['/site/profile'], 'encode' => false],
-                $isAdmin ? ['label' => \app\helpers\SvgHelper::icon('people', ['class' => 'me-2 text-info']) . 'User Management', 'url' => ['/user/index'], 'encode' => false] : '',
+                ['label' => \app\helpers\SvgHelper::icon('info-circle', ['class' => 'me-2 text-info']) . 'Tentang Aplikasi & Developer', 'url' => ['/site/about'], 'encode' => false],
+                $isAdmin ? ['label' => \app\helpers\SvgHelper::icon('people', ['class' => 'me-2 text-primary']) . 'User Management', 'url' => ['/user/index'], 'encode' => false] : '',
                 '<div class="dropdown-divider"></div>',
                 '<li class="px-2">'
                     . Html::beginForm(['/site/logout'])
@@ -159,8 +162,18 @@ if (!empty($systemItems)) {
                 <?= $content ?>
             </div>
         <?php else: ?>
-            <div class="row">
-                <aside class="col-md-3 col-lg-2 d-none d-md-block pt-3 sidebar">
+            <div class="row g-3">
+                <aside id="sidebar-wrapper" class="col-md-3 col-lg-2 d-none d-md-block pt-3 sidebar">
+                    <div class="d-flex align-items-center justify-content-between px-2 mb-2 pb-2 border-bottom">
+                        <span class="small fw-bold text-muted text-uppercase tracking-wider">Navigasi Fitur</span>
+                        <button type="button" 
+                                id="btn-sidebar-collapse" 
+                                class="btn btn-sm btn-light border-0 text-muted p-1 rounded-2 shadow-none" 
+                                title="Sembunyikan Menu Sidebar (Ctrl+B)" 
+                                onclick="toggleSidebar()">
+                            <?= \app\helpers\SvgHelper::icon('layout-sidebar-inset', ['class' => 'fs-6']) ?>
+                        </button>
+                    </div>
                     <nav class="nav flex-column gap-1">
                         <?php foreach ($sideMenuGroups as $groupTitle => $items): ?>
                             <div class="sidebar-heading"><?= Html::encode($groupTitle) ?></div>
@@ -181,7 +194,17 @@ if (!empty($systemItems)) {
                         </div>
                     <?php endif ?>
                 </aside>
-                <div class="col-md-9 col-lg-10 py-3">
+                <div id="main-content-col" class="col-md-9 col-lg-10 py-3">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <button type="button" 
+                                id="btn-sidebar-expand" 
+                                class="sidebar-toggle-btn shadow-sm" 
+                                title="Tampilkan Menu Sidebar" 
+                                onclick="toggleSidebar()" 
+                                style="display: none;">
+                            <?= \app\helpers\SvgHelper::icon('layout-sidebar', ['class' => 'fs-5']) ?>
+                        </button>
+                    </div>
                     <?= Alert::widget() ?>
                     <?= $content ?>
                 </div>
@@ -207,6 +230,38 @@ if (!empty($systemItems)) {
         Sinyal: <?= yii\helpers\Html::encode((string) ($mkt['lastSignalDate'] ?? '—')) ?>
     </div>
 </footer>
+
+<script>
+function toggleSidebar() {
+    var isCollapsed = document.body.classList.toggle('sidebar-collapsed');
+    localStorage.setItem('stock_analyzer_sidebar_collapsed', isCollapsed ? '1' : '0');
+    updateSidebarToggleUI(isCollapsed);
+}
+
+function updateSidebarToggleUI(isCollapsed) {
+    var expandBtn = document.getElementById('btn-sidebar-expand');
+    if (expandBtn) {
+        expandBtn.style.display = isCollapsed ? 'inline-flex' : 'none';
+    }
+}
+
+// Restore user sidebar preference
+(function() {
+    var savedState = localStorage.getItem('stock_analyzer_sidebar_collapsed');
+    if (savedState === '1') {
+        document.body.classList.add('sidebar-collapsed');
+        updateSidebarToggleUI(true);
+    }
+    
+    // Shortcut Ctrl+B or Cmd+B to toggle sidebar
+    window.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'b' || e.key === 'B')) {
+            e.preventDefault();
+            toggleSidebar();
+        }
+    });
+})();
+</script>
 
 <?php $this->endBody() ?>
 </body>
