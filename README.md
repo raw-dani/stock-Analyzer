@@ -72,10 +72,16 @@ php -S 127.0.0.1:8089 -t web
 Lalu buka scanner & halaman analisis:
 
 ```
+# US Stocks
 http://127.0.0.1:8089/scanner
 http://127.0.0.1:8089/double-bottom
 http://127.0.0.1:8089/rsi-double-bottom
 http://127.0.0.1:8089/backtest/index
+
+# Crypto (24/7 Market)
+http://127.0.0.1:8089/crypto
+http://127.0.0.1:8089/crypto/confluence
+http://127.0.0.1:8089/crypto/bullish-patterns
 ```
 
 ## Logging

@@ -19,6 +19,7 @@ $this->registerLinkTag(['rel' => 'icon', 'type' => 'image/x-icon', 'href' => Yii
 
 // menu sidebar (task 5.1 & complete feature navigation)
 $ctrlId = Yii::$app->controller?->id;
+$actionId = Yii::$app->controller?->action?->id;
 $currentUser = Yii::$app->user->identity;
 $isAdmin = $currentUser !== null && $currentUser->isAdmin();
 
@@ -32,7 +33,12 @@ $sideMenuGroups = [
     'Overview' => [
         ['label' => \app\helpers\SvgHelper::icon('speedometer2', ['class' => 'me-2']) . 'Dashboard', 'url' => ['/dashboard/index'], 'active' => $ctrlId === 'dashboard'],
         ['label' => \app\helpers\SvgHelper::icon('briefcase', ['class' => 'me-2']) . 'Portofolio & Averaging', 'url' => ['/portfolio/index'], 'active' => $ctrlId === 'portfolio', 'badge' => 'New'],
-        ['label' => \app\helpers\SvgHelper::icon('info-circle', ['class' => 'me-2']) . 'Tentang Aplikasi', 'url' => ['/site/about'], 'active' => $ctrlId === 'site' && (Yii::$app->controller?->action?->id ?? '') === 'about'],
+        ['label' => \app\helpers\SvgHelper::icon('info-circle', ['class' => 'me-2']) . 'Tentang Aplikasi', 'url' => ['/site/about'], 'active' => $ctrlId === 'site' && $actionId === 'about'],
+    ],
+    'Crypto Market (24/7)' => [
+        ['label' => '<i class="bi bi-search me-2 text-warning fs-6"></i> Volume Scanner & Hub', 'url' => ['/crypto/index'], 'active' => $ctrlId === 'crypto' && in_array($actionId, ['index', 'view'], true), 'badge' => '24/7'],
+        ['label' => '<i class="bi bi-bullseye me-2 text-primary fs-6"></i> Confluence Strategy', 'url' => ['/crypto/confluence'], 'active' => $ctrlId === 'crypto' && $actionId === 'confluence', 'badge' => 'PRO'],
+        ['label' => '<i class="bi bi-rocket-takeoff me-2 text-success fs-6"></i> Bullish Patterns', 'url' => ['/crypto/bullish-patterns'], 'active' => $ctrlId === 'crypto' && $actionId === 'bullish-patterns', 'badge' => 'New'],
     ],
     'Scanners & Patterns' => [
         ['label' => \app\helpers\SvgHelper::icon('bullseye', ['class' => 'me-2']) . 'Confluence Strategy', 'url' => ['/strategy-confluence/index'], 'active' => $ctrlId === 'strategy-confluence', 'badge' => 'PRO'],
@@ -84,6 +90,17 @@ if (!empty($systemItems)) {
     // Top navigation with direct access to all main features
     $topNavItems = [
         ['label' => \app\helpers\SvgHelper::icon('speedometer2', ['class' => 'me-1']) . ' Dashboard', 'url' => ['/dashboard/index'], 'active' => $ctrlId === 'dashboard', 'encode' => false],
+        [
+            'label' => '<i class="bi bi-currency-bitcoin text-warning me-1"></i> Crypto <span class="badge bg-warning text-dark ms-1" style="font-size:0.65rem;">24/7</span>',
+            'encode' => false,
+            'active' => $ctrlId === 'crypto',
+            'items' => [
+                ['label' => '<i class="bi bi-search text-warning me-2"></i> Volume Scanner & Hub', 'url' => ['/crypto/index'], 'encode' => false],
+                '<div class="dropdown-divider"></div>',
+                ['label' => '<i class="bi bi-bullseye text-primary me-2"></i> Confluence Strategy (MA, RSI, MACD, Fib)', 'url' => ['/crypto/confluence'], 'encode' => false],
+                ['label' => '<i class="bi bi-rocket-takeoff text-success me-2"></i> Bullish Continuation & Breakouts', 'url' => ['/crypto/bullish-patterns'], 'encode' => false],
+            ],
+        ],
         ['label' => \app\helpers\SvgHelper::icon('briefcase', ['class' => 'me-1']) . ' Portofolio', 'url' => ['/portfolio/index'], 'active' => $ctrlId === 'portfolio', 'encode' => false],
         [
             'label' => \app\helpers\SvgHelper::icon('filter-square', ['class' => 'me-1']) . ' Scanners & Patterns',
