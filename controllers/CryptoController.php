@@ -50,11 +50,23 @@ class CryptoController extends Controller
             $this->service->refreshCoinList();
         }
 
-        // Query asset & analisis untuk timeframe aktif
+        // Query asset aktif
         $assets = CryptoAsset::find()
             ->where(['is_active' => true])
             ->orderBy(['sort_order' => SORT_ASC])
             ->all();
+
+        // Optimasi: Preload seluruh CryptoAnalysis untuk timeframe aktif dalam 1 query (menghilangkan N+1 query)
+        $analysesMap = [];
+        if (!empty($assets)) {
+            $assetIds = array_map(fn($a) => $a->id, $assets);
+            $analyses = CryptoAnalysis::find()
+                ->where(['crypto_id' => $assetIds, 'timeframe' => $timeframe])
+                ->all();
+            foreach ($analyses as $ana) {
+                $analysesMap[$ana->crypto_id] = $ana;
+            }
+        }
 
         $rows = [];
         $strongBuyCount = 0;
@@ -66,19 +78,7 @@ class CryptoController extends Controller
 
         foreach ($assets as $asset) {
             /** @var CryptoAnalysis|null $analysis */
-            $analysis = CryptoAnalysis::findOne([
-                'crypto_id' => $asset->id,
-                'timeframe' => $timeframe,
-            ]);
-
-            // Jika belum ada analisis untuk timeframe ini, coba analisis cepat
-            if ($analysis === null) {
-                $hasBars = CryptoPrice::find()->where(['crypto_id' => $asset->id, 'timeframe' => $timeframe])->exists();
-                if (!$hasBars) {
-                    $this->service->syncCoinBars($asset, $timeframe, 60);
-                }
-                $analysis = $this->service->analyze($asset, $timeframe);
-            }
+            $analysis = $analysesMap[$asset->id] ?? null;
 
             $currentPrice = $analysis ? (float)$analysis->current_price : 0.0;
             $change24h = $analysis ? (float)($analysis->price_change_24h ?? 0.0) : 0.0;
@@ -282,6 +282,32 @@ class CryptoController extends Controller
                 'score' => (int)$analysis->score,
                 'signal' => $analysis->signal,
             ] : null,
+        ]);
+    }
+
+    /**
+     * AJAX Endpoint: Sinkronisasi data koin via background/batch request tanpa membuat halaman utama lemot
+     */
+    public function actionSyncAll(string $timeframe = CryptoPrice::TIMEFRAME_1H): Response
+    {
+        set_time_limit(180);
+        $assets = CryptoAsset::find()->where(['is_active' => true])->orderBy(['sort_order' => SORT_ASC])->all();
+        $synced = 0;
+        foreach ($assets as $asset) {
+            try {
+                $this->service->syncCoinBars($asset, $timeframe, 60);
+                $this->service->analyze($asset, $timeframe);
+                $synced++;
+            } catch (\Throwable $e) {
+                Yii::warning("Gagal sync coin {$asset->symbol}: " . $e->getMessage(), __METHOD__);
+            }
+        }
+
+        return $this->asJson([
+            'success' => true,
+            'synced' => $synced,
+            'total' => count($assets),
+            'message' => "Berhasil menyinkronkan {$synced} koin.",
         ]);
     }
 

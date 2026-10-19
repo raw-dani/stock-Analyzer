@@ -447,16 +447,17 @@ function syncAllCrypto() {
     const spin = document.getElementById('icon-sync-spin');
     const txt = document.getElementById('text-sync-btn');
     
-    btn.disabled = true;
-    spin.classList.add('spin-animation');
-    txt.innerText = 'Menyinkronkan...';
+    if (btn) btn.disabled = true;
+    if (spin) spin.classList.add('spin-animation');
+    if (txt) txt.innerText = 'Menyinkronkan...';
     
-    // Trigger sync via console atau AJAX
-    fetch('<?= Url::to(['/crypto/index', 'timeframe' => $timeframe]) ?>', { method: 'GET' })
-        .then(() => {
+    fetch('<?= Url::to(['/crypto/sync-all', 'timeframe' => $timeframe]) ?>', { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+            if (txt) txt.innerText = 'Selesai!';
             setTimeout(() => {
                 window.location.reload();
-            }, 1500);
+            }, 800);
         })
         .catch(() => {
             window.location.reload();

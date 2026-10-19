@@ -205,16 +205,81 @@ Aplikasi ini memiliki modul sinkronisasi harga pasar saham Yahoo Finance dan kal
 
 | Nama Task | Waktu / Schedule | Command |
 |---|---|---|
-| **Sync Data Pasar & EOD** | Setiap Hari Kerja (02:00 WIB) `0 2 * * 2-6` | `/usr/local/lsws/lsphp81/bin/php /home/stock.pemain12.com/public_html/yii data/sync-all > /dev/null 2>&1` |
+| **Sync Data Pasar Saham & EOD** | Setiap Hari Kerja (02:00 WIB) `0 2 * * 2-6` | `/usr/local/lsws/lsphp81/bin/php /home/stock.pemain12.com/public_html/yii data/sync-all > /dev/null 2>&1` |
+| **Sync Data Candlestick & Volume Crypto** | Setiap 10 Menit `*/10 * * * *` | `/usr/local/lsws/lsphp81/bin/php /home/stock.pemain12.com/public_html/yii crypto/sync --limit=60 > /dev/null 2>&1` |
 | **Worker Queue (Background)** | Tiap Menit `* * * * *` | `/usr/local/lsws/lsphp81/bin/php /home/stock.pemain12.com/public_html/yii queue/run > /dev/null 2>&1` |
 
 ---
 
-## 11. Checklist Verifikasi Akhir
+## 11. Troubleshooting: Mengatasi Database Exception (#42S02)
+
+Jika saat membuka menu (misal menu `/crypto`), muncul error:
+> **Database Exception (#42S02)**  
+> *SQLSTATE[42S02]: Base table or view not found*
+
+Penyebabnya adalah skema tabel modul belum dibuat di database MySQL CyberPanel atau masalah case-sensitivity pada Linux.
+
+### Solusi 1: Jalankan Migrasi Database via SSH (Direkomendasikan)
+```bash
+cd /home/stock.pemain12.com/public_html
+php yii migrate
+```
+Ketik `yes` saat konfirmasi untuk membuat tabel yang kurang (`crypto_asset`, `crypto_price`, `crypto_analysis`, dll).
+
+### Solusi 2: Buat Tabel via phpMyAdmin CyberPanel
+Jika tidak memiliki akses terminal SSH:
+1. Buka dashboard CyberPanel &rarr; **Databases** &rarr; **phpMyAdmin**.
+2. Pilih database website Anda.
+3. Buka tab **SQL**, paste query pembuatan tabel (misal tabel modul crypto), lalu klik **Go**.
+
+### Solusi 3: Case-Sensitivity Table Names di Linux MySQL
+Linux MariaDB/MySQL bersifat case-sensitive. Jika nama tabel berbeda huruf kapital:
+1. Edit file `/etc/my.cnf` melalui SSH:
+   ```ini
+   [mysqld]
+   lower_case_table_names = 1
+   ```
+2. Restart MariaDB di CyberPanel (**Manage Services** &rarr; **MariaDB** &rarr; **Restart**).
+
+---
+
+## 12. Optimasi Load Time & Kecepatan Server (Mengatasi Halaman Lemot >20s)
+
+Jika halaman web terasa lambat atau waktu tunggu (TTFB / Request time) tinggi saat dibuka di CyberPanel:
+
+### A. Nonaktifkan Debug Mode di Production
+Pastikan mode debug dinonaktifkan di `web/index.php`. Saat `YII_DEBUG` aktif, Yii2 mencatat ratusan kueri ke disk log setiap request:
+```php
+defined('YII_DEBUG') or define('YII_DEBUG', false);
+defined('YII_ENV') or define('YII_ENV', 'prod');
+```
+
+### B. Aktifkan PHP OPcache di CyberPanel
+OPcache menyimpan bytecode PHP di memori RAM sehingga tidak perlu kompilasi ulang setiap request:
+1. Buka CyberPanel &rarr; **PHP** &rarr; **Edit PHP Configs** &rarr; tab **Advanced**.
+2. Pilih versi PHP aktif (cth: `PHP 8.1` / `lsphp81`).
+3. Pastikan konfigurasi berikut aktif:
+   ```ini
+   opcache.enable=1
+   opcache.memory_consumption=256
+   opcache.interned_strings_buffer=16
+   opcache.max_accelerated_files=10000
+   ```
+4. Restart service PHP via menu **Manage Services** &rarr; **PHP**.
+
+### C. Hindari Fetch API Eksternal Sinkron di Tengah Request Web
+- Jangan memanggil API eksternal (seperti Binance API atau Yahoo Finance) satu per satu secara sinkron di dalam loop view/controller saat pengguna membuka halaman.
+- Gunakan preloading database satu kueri (`IN (...)`) untuk menghindari masalah N+1 query.
+- Pindahkan proses download data berat ke Cron Job berkala (`php yii crypto/sync`) atau eksekusi via background AJAX (`/crypto/sync-all`).
+
+---
+
+## 13. Checklist Verifikasi Akhir
 
 - [ ] Buka `https://stock.pemain12.com` di browser &mdash; halaman Dashboard / Login tampil sempurna.
 - [ ] Login menggunakan akun admin (`admin` / `Admin123!`).
 - [ ] Cek halaman **Portofolio** (`/portfolio`), **Stock Screener** (`/stock`), dan **Strategi Confluence** (`/strategy-confluence`).
+- [ ] Cek halaman **Crypto Scanner & Hub** (`/crypto`), **Bullish Patterns** (`/crypto/bullish-patterns`), dan **Crypto Confluence** (`/crypto/confluence`) &mdash; pastikan load cepat tanpa error 42S02.
 - [ ] Tes fitur **Form Edit Posisi** dan pastikan modal dapat dibuka dan disimpan tanpa kendala.
 - [ ] Cek endpoint REST API:
   ```bash
