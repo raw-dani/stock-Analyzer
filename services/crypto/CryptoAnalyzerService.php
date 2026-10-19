@@ -62,9 +62,9 @@ class CryptoAnalyzerService extends Component
      * @param int $limit
      * @return int jumlah bar yang tersimpan/terupdate
      */
-    public function syncCoinBars(CryptoAsset $asset, string $timeframe = '1h', int $limit = 100): int
+    public function syncCoinBars(CryptoAsset $asset, string $timeframe = '1h', int $limit = 200): int
     {
-        $bars = $this->provider->getKlines($asset->symbol, $timeframe, $limit);
+        $bars = $this->provider->getKlines($asset->symbol, $timeframe, max($limit, 200));
         if (empty($bars)) {
             return 0;
         }
@@ -105,7 +105,7 @@ class CryptoAnalyzerService extends Component
     }
 
     /**
-     * Hitung analisis volume pressure, RVOL, RSI, MA20/50, dan skor sinyal
+     * Hitung analisis volume pressure, RVOL, RSI, MA20/50/200, dan skor sinyal presisi
      */
     public function analyze(CryptoAsset $asset, string $timeframe = '1h', ?array $ticker24h = null): ?CryptoAnalysis
     {
@@ -113,7 +113,7 @@ class CryptoAnalyzerService extends Component
         $bars = CryptoPrice::find()
             ->where(['crypto_id' => $asset->id, 'timeframe' => $timeframe])
             ->orderBy(['bar_time' => SORT_ASC])
-            ->limit(100)
+            ->limit(200)
             ->all();
 
         $n = count($bars);
@@ -122,7 +122,9 @@ class CryptoAnalyzerService extends Component
         }
 
         $latestBar = $bars[$n - 1];
+        $prevBar = $bars[$n - 2];
         $currentPrice = (float)$latestBar->close;
+        $isLatestGreen = $currentPrice >= (float)$latestBar->open;
 
         // 1. Perubahan harga 24h
         $priceChange24h = null;
@@ -165,54 +167,67 @@ class CryptoAnalyzerService extends Component
             }
         }
 
-        // 4. Moving Average MA20 dan MA50
+        // 4. Moving Average MA20, MA50, MA200
         $ma20 = $this->calculateSMA($bars, 20);
         $ma50 = $this->calculateSMA($bars, 50);
+        $ma200 = $n >= 80 ? $this->calculateSMA($bars, min(200, $n)) : null;
 
-        // 5. RSI 14
-        $rsi = $this->calculateRSI($bars, 14);
+        // 5. RSI 14 (Current & Previous untuk deteksi Hook/Reversal)
+        $rsiSeries = $this->calculateRsiSeries($bars, 14);
+        $rsi = !empty($rsiSeries) ? end($rsiSeries) : null;
+        $prevRsi = count($rsiSeries) >= 2 ? $rsiSeries[count($rsiSeries) - 2] : $rsi;
 
-        // 6. Kalkulasi Skor Akumulasi (0 - 100)
+        // 6. Kalkulasi Skor Akumulasi Presisi (0 - 100)
         $score = 50;
 
-        // Faktor 1: Buying Pressure (Taker Buy Ratio)
-        if ($finalBuyRatio >= 75.0) {
-            $score += 25;
-        } elseif ($finalBuyRatio >= 65.0) {
-            $score += 15;
-        } elseif ($finalBuyRatio >= 55.0) {
-            $score += 8;
-        } elseif ($finalBuyRatio <= 35.0) {
-            $score -= 25;
-        } elseif ($finalBuyRatio <= 45.0) {
-            $score -= 15;
+        // Faktor 1: Taker Buying Pressure (Orderflow Real Binance)
+        if ($finalBuyRatio >= 72.0) {
+            $score += 22;
+        } elseif ($finalBuyRatio >= 62.0) {
+            $score += 14;
+        } elseif ($finalBuyRatio >= 54.0) {
+            $score += 7;
+        } elseif ($finalBuyRatio <= 36.0) {
+            $score -= 22; // Dominasi seller agresif
+        } elseif ($finalBuyRatio <= 44.0) {
+            $score -= 12;
         }
 
-        // Faktor 2: RVOL (Volume Spike)
-        if ($rvol >= 2.0) {
-            $score += 15;
-        } elseif ($rvol >= 1.4) {
-            $score += 10;
+        // Faktor 2: RVOL Directional (Volume Spike Terarah)
+        // PENTING REAL TRADING: Volume tinggi saat harga jatuh marun adalah PANIC SELL / DUMP, bukan akumulasi!
+        if ($rvol >= 1.4) {
+            if ($finalBuyRatio >= 58.0 && $isLatestGreen) {
+                $score += ($rvol >= 2.0 ? 16 : 10); // Akumulasi buyer bervolume tinggi
+            } elseif ($finalBuyRatio <= 44.0 && !$isLatestGreen) {
+                $score -= ($rvol >= 2.0 ? 20 : 12); // Panic dumping / distribusi institusi
+            } else {
+                $score += 4; // Volume churn / perebutan harga
+            }
         } elseif ($rvol < 0.6) {
-            $score -= 5;
+            $score -= 5; // Volume sepi / minat rendah
         }
 
-        // Faktor 3: RSI
+        // Faktor 3: RSI Reversal vs Falling Knife Protection
         if ($rsi !== null) {
             if ($rsi <= 32.0) {
-                $score += 15; // Oversold akumulasi
-            } elseif ($rsi <= 40.0) {
+                // Jangan beli pisau jatuh: RSI oversold hanya positif jika harga mulai berbalik naik (Hook)
+                if ($rsi > $prevRsi || $isLatestGreen || $finalBuyRatio >= 55.0) {
+                    $score += 14; // Reversal / Absorption bounce terkonfirmasi
+                } else {
+                    $score -= 8; // Masih dalam tren jatuh bebas (falling knife)
+                }
+            } elseif ($rsi <= 40.0 && ($rsi > $prevRsi || $isLatestGreen)) {
                 $score += 8;
             } elseif ($rsi >= 75.0) {
-                $score -= 15; // Overbought rawan koreksi
+                $score -= 16; // Overbought ekstrem rawan koreksi tajam
             } elseif ($rsi >= 68.0) {
-                $score -= 5;
+                $score -= 7;
             }
         }
 
-        // Faktor 4: Trend MA
+        // Faktor 4: Trend Regime (MA20, MA50, MA200)
         if ($ma20 !== null) {
-            if ($currentPrice >= $ma20) {
+            if ($currentPrice >= $ma20 * 0.998) {
                 $score += 10;
             } else {
                 $score -= 10;
@@ -220,22 +235,28 @@ class CryptoAnalyzerService extends Component
         }
         if ($ma20 !== null && $ma50 !== null) {
             if ($ma20 >= $ma50) {
-                $score += 5; // Golden cross / bullish alignment
+                $score += 8; // Golden cross / Bullish alignment
             } else {
-                $score -= 5;
+                $score -= 8; // Death cross / Bearish alignment
             }
+        }
+        // Filter Pasar Bearish Makro: Di bawah MA200 kurangi skor agar tidak menangkap koin yang sedang downtrend besar
+        if ($ma200 !== null && $currentPrice < $ma200 * 0.98) {
+            $score -= 10;
         }
 
         // Clamp 0 - 100
         $score = max(0, min(100, $score));
 
-        // 7. Sinyal
+        // 7. Sinyal Presisi Real Spot Trading (Tanpa Margin / Leverage)
         $signal = CryptoAnalysis::SIGNAL_NEUTRAL;
-        if ($score >= 78 && $finalBuyRatio >= 60.0) {
+        $isDumping = ($rvol >= 1.5 && !$isLatestGreen && $finalBuyRatio <= 44.0);
+
+        if ($score >= 76 && $finalBuyRatio >= 58.0 && !$isDumping && ($ma20 === null || $currentPrice >= $ma20 * 0.985)) {
             $signal = CryptoAnalysis::SIGNAL_STRONG_BUY;
-        } elseif ($score >= 65 && $finalBuyRatio >= 53.0) {
+        } elseif ($score >= 64 && $finalBuyRatio >= 52.0 && !$isDumping) {
             $signal = CryptoAnalysis::SIGNAL_BUY;
-        } elseif ($score <= 35 || $finalBuyRatio <= 40.0) {
+        } elseif ($score <= 36 || $finalBuyRatio <= 40.0 || $isDumping) {
             $signal = CryptoAnalysis::SIGNAL_SELL;
         }
 
@@ -284,19 +305,20 @@ class CryptoAnalyzerService extends Component
     }
 
     /**
-     * Hitung RSI 14
+     * Hitung series RSI 14 dari kumpulan bar
+     * @return float[]
      */
-    private function calculateRSI(array $bars, int $period = 14): ?float
+    private function calculateRsiSeries(array $bars, int $period = 14): array
     {
         $n = count($bars);
         if ($n < $period + 1) {
-            return null;
+            return [];
         }
 
+        $series = [];
         $gains = 0.0;
         $losses = 0.0;
 
-        // Initial average
         for ($i = 1; $i <= $period; $i++) {
             $change = (float)$bars[$i]->close - (float)$bars[$i - 1]->close;
             if ($change >= 0) {
@@ -309,7 +331,8 @@ class CryptoAnalyzerService extends Component
         $avgGain = $gains / $period;
         $avgLoss = $losses / $period;
 
-        // Smoothed average
+        $series[] = $avgLoss == 0.0 ? 100.0 : round(100.0 - (100.0 / (1.0 + ($avgGain / $avgLoss))), 2);
+
         for ($i = $period + 1; $i < $n; $i++) {
             $change = (float)$bars[$i]->close - (float)$bars[$i - 1]->close;
             $gain = $change >= 0 ? $change : 0.0;
@@ -317,15 +340,21 @@ class CryptoAnalyzerService extends Component
 
             $avgGain = (($avgGain * ($period - 1)) + $gain) / $period;
             $avgLoss = (($avgLoss * ($period - 1)) + $loss) / $period;
+
+            $rsi = $avgLoss == 0.0 ? 100.0 : round(100.0 - (100.0 / (1.0 + ($avgGain / $avgLoss))), 2);
+            $series[] = $rsi;
         }
 
-        if ($avgLoss == 0.0) {
-            return 100.0;
-        }
+        return $series;
+    }
 
-        $rs = $avgGain / $avgLoss;
-        $rsi = 100.0 - (100.0 / (1.0 + $rs));
-        return round($rsi, 2);
+    /**
+     * Hitung RSI 14
+     */
+    private function calculateRSI(array $bars, int $period = 14): ?float
+    {
+        $series = $this->calculateRsiSeries($bars, $period);
+        return !empty($series) ? end($series) : null;
     }
 
     /**

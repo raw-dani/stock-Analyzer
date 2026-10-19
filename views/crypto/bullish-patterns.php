@@ -282,6 +282,7 @@ $this->params['breadcrumbs'][] = 'Bullish Patterns';
                                 CryptoBullishPatternService::STATUS_CONSOLIDATION_BOUNCE => 'bg-info text-dark',
                                 CryptoBullishPatternService::STATUS_FORMING => 'bg-warning text-dark',
                                 CryptoBullishPatternService::STATUS_EXTENDED => 'bg-secondary text-white',
+                                CryptoBullishPatternService::STATUS_BULL_TRAP => 'bg-danger text-white',
                                 default => 'bg-light text-dark',
                             };
 

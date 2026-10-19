@@ -127,7 +127,7 @@ class BinanceCryptoProvider extends Component
      * @param int $limit default 100 bar
      * @return array<int, array{bar_time: string, open: float, high: float, low: float, close: float, volume: float, quote_volume: float, buy_volume: float, sell_volume: float}>
      */
-    public function getKlines(string $symbol, string $interval = '1h', int $limit = 100): array
+    public function getKlines(string $symbol, string $interval = '1h', int $limit = 200): array
     {
         $symbol = strtoupper($symbol);
         $validIntervals = ['15m', '1h', '2h', '4h', '1d'];

@@ -112,19 +112,19 @@ class CryptoConfluenceService extends Component
         $bars = CryptoPrice::find()
             ->where(['crypto_id' => $asset->id, 'timeframe' => $timeframe])
             ->orderBy(['bar_time' => SORT_ASC])
-            ->limit(100)
+            ->limit(200)
             ->all();
 
-        // Jika bar kurang dari 35, sync dari Binance
-        if (count($bars) < 35) {
+        // Jika bar kurang dari 50, sync dari Binance
+        if (count($bars) < 50) {
             $analyzer = new CryptoAnalyzerService();
             $analyzer->init();
-            $analyzer->syncCoinBars($asset, $timeframe, 100);
+            $analyzer->syncCoinBars($asset, $timeframe, 200);
 
             $bars = CryptoPrice::find()
                 ->where(['crypto_id' => $asset->id, 'timeframe' => $timeframe])
                 ->orderBy(['bar_time' => SORT_ASC])
-                ->limit(100)
+                ->limit(200)
                 ->all();
         }
 
@@ -160,6 +160,14 @@ class CryptoConfluenceService extends Component
         $currBuyVol = $buyVolumes[$currIdx];
 
         // 1. Taker Buy Pressure & RVOL
+        $currOpen = (float)$bars[$currIdx]->open;
+        $isGreen = $currClose >= $currOpen;
+        $body = abs($currClose - $currOpen);
+        $lowerWick = min($currClose, $currOpen) - $currLow;
+        $upperWick = $currHigh - max($currClose, $currOpen);
+        $isAbsorptionPinbar = ($lowerWick >= 1.2 * max(0.000001, $body)) && ($upperWick <= 0.8 * max(0.000001, $body));
+        $isShootingStar = ($upperWick >= 1.4 * max(0.000001, $body)) && ($lowerWick <= 0.6 * max(0.000001, $body));
+
         $buyRatio = $currVol > 0 ? round(($currBuyVol / $currVol) * 100, 2) : 50.0;
         $volSlice = array_slice($volumes, -20);
         $avgVol = count($volSlice) > 0 ? (array_sum($volSlice) / count($volSlice)) : 1.0;
@@ -180,6 +188,7 @@ class CryptoConfluenceService extends Component
 
         $maBullish = ($currEma20 !== null && $currSma50 !== null && $currEma20 > $currSma50);
         $priceAboveMa = ($currEma20 !== null && $currClose >= $currEma20 * 0.995);
+        $macroBullish = ($currSma200 === null || $currClose >= $currSma200 * 0.99);
 
         // 3. RSI 14 (Wilder)
         $rsiSeries = $this->calculateRsi($closes, 14);
@@ -203,13 +212,23 @@ class CryptoConfluenceService extends Component
         $isMacdHistExpanding = ($currHist > $prevHist && $currHist > 0);
         $isMacdPositive = ($currMacd > 0.0);
 
-        // 5. Fibonacci Retracement & Golden Pocket (Lookback 45 bar)
-        $fibLookback = min(45, $count);
-        $fibHighs = array_slice($highs, -$fibLookback);
-        $fibLows = array_slice($lows, -$fibLookback);
-        $swingHigh = count($fibHighs) > 0 ? max($fibHighs) : $currHigh;
-        $swingLow = count($fibLows) > 0 ? min($fibLows) : $currLow;
-        $diff = $swingHigh - $swingLow;
+        // 5. Fibonacci Retracement Kronologis & Golden Pocket Realistis
+        // Lookback 50 bar: cari swing low dan swing high secara urut waktu (chronological order)
+        $fibLookback = min(50, $count);
+        $subHighs = array_slice($highs, -$fibLookback);
+        $subLows = array_slice($lows, -$fibLookback);
+
+        $maxHighVal = max($subHighs);
+        $minLowVal = min($subLows);
+        $maxHighIdxRel = array_search($maxHighVal, $subHighs, true);
+        $minLowIdxRel = array_search($minLowVal, $subLows, true);
+
+        // Bullish impulse hanya valid jika Swing Low terjadi SEBELUM Swing High (impuls naik lalu pullback)
+        $isBullishImpulse = ($minLowIdxRel !== false && $maxHighIdxRel !== false && $minLowIdxRel < $maxHighIdxRel && ($maxHighVal - $minLowVal) / max($minLowVal, 0.000001) >= 0.035);
+
+        $swingHigh = $isBullishImpulse ? $maxHighVal : $currHigh;
+        $swingLow = $isBullishImpulse ? $minLowVal : $currLow;
+        $diff = max(0.000001, $swingHigh - $swingLow);
 
         $fibLevels = [
             'level_0' => round($swingHigh, 6),
@@ -223,16 +242,23 @@ class CryptoConfluenceService extends Component
             'ext_1618' => round($swingHigh + ($diff * 0.618), 6),
         ];
 
-        // Cek apakah harga berada di Golden Pocket (50% - 61.8% retracement dengan toleransi 1.5%)
-        $gpUpper = $fibLevels['level_500'] * 1.015;
-        $gpLower = $fibLevels['level_618'] * 0.985;
-        $inGoldenPocket = ($currClose >= $gpLower && $currClose <= $gpUpper);
+        // Golden Pocket (50% - 61.8% retracement dari gelombang impuls bullish)
+        $inGoldenPocket = false;
+        if ($isBullishImpulse) {
+            $gpUpper = $fibLevels['level_500'] * 1.012;
+            $gpLower = $fibLevels['level_618'] * 0.988;
+            $inGoldenPocket = ($currClose >= $gpLower && $currClose <= $gpUpper);
+        }
 
-        // 6. Confluence Scoring (0 - 100)
+        // 6. ATR 14 untuk Stop Loss & Target Presisi Volatilitas Crypto
+        $atrSeries = $this->calculateAtr($highs, $lows, $closes, 14);
+        $currAtr = !empty($atrSeries) ? end($atrSeries) : ($currClose * 0.02);
+
+        // 7. Confluence Scoring Presisi (0 - 100)
         $score = 50;
         $confluences = [];
 
-        // Confluence MA
+        // Trend MA & Makro
         if ($maBullish && $priceAboveMa) {
             $score += 15;
             $confluences[] = 'MA Bullish Alignment (EMA20 > SMA50)';
@@ -243,75 +269,112 @@ class CryptoConfluenceService extends Component
             $score -= 10;
         }
 
-        // Confluence RSI
+        if (!$macroBullish) {
+            $score -= 12; // Di bawah SMA 200 (bearish regime)
+        } else {
+            $score += 6;
+            $confluences[] = 'Tren Makro Bullish (Di Atas SMA 200)';
+        }
+
+        // Candlestick Absorption / Rejection
+        if ($isAbsorptionPinbar) {
+            $score += 10;
+            $confluences[] = 'Pinbar / Sumbu Bawah Rejection (Penyerapan Beli)';
+        } elseif ($isShootingStar) {
+            $score -= 15; // Rawan penolakan resisten / bull trap
+        }
+
+        // RSI Reversal Protection
         if ($isRsiOversold) {
-            $score += 18;
-            $confluences[] = 'RSI Oversold (' . round($currRsi, 1) . ') - Potensi Pantulan';
+            if ($currRsi > $prevRsi || $isAbsorptionPinbar || $isGreen) {
+                $score += 16;
+                $confluences[] = 'RSI Oversold Berbalik Naik (' . round($currRsi, 1) . ')';
+            } else {
+                $score -= 8; // Menghindari pisau jatuh
+            }
         } elseif ($isRsiBullishZone && $currRsi > $prevRsi) {
-            $score += 12;
+            $score += 10;
             $confluences[] = 'RSI Bullish Momentum (' . round($currRsi, 1) . ')';
         } elseif ($isRsiOverbought) {
-            $score -= 15;
+            $score -= 16;
         }
 
-        // Confluence MACD
+        // MACD
         if ($isMacdBullishCross) {
             $score += 18;
-            $confluences[] = 'MACD Golden Cross Bullish Baru Terbentuk';
+            $confluences[] = 'MACD Golden Cross Bullish Terkonfirmasi';
         } elseif ($isMacdHistExpanding) {
-            $score += 10;
+            $score += 8;
             $confluences[] = 'Histogram MACD Positif Menguat';
         } elseif ($isMacdBearishCross) {
-            $score -= 15;
+            $score -= 16;
         }
 
-        // Confluence Fibonacci
+        // Fibonacci Golden Pocket
         if ($inGoldenPocket) {
-            $score += 20;
-            $confluences[] = 'Harga Berada di Fibonacci Golden Pocket (50% - 61.8%)';
-        } elseif ($currClose >= $fibLevels['level_382'] && $currClose <= $fibLevels['level_500']) {
-            $score += 10;
+            $score += 18;
+            $confluences[] = 'Fibonacci Golden Pocket 50% - 61.8% Terkonfirmasi';
+        } elseif ($isBullishImpulse && $currClose >= $fibLevels['level_382'] && $currClose <= $fibLevels['level_500']) {
+            $score += 8;
             $confluences[] = 'Fibonacci Healthy Retracement (38.2% - 50%)';
         }
 
-        // Confluence Taker Buy Pressure
-        if ($buyRatio >= 68.0) {
-            $score += 15;
-            $confluences[] = 'High Taker Buying Pressure (' . $buyRatio . '%)';
-        } elseif ($buyRatio >= 58.0) {
-            $score += 8;
-            $confluences[] = 'Buyer Dominan (' . $buyRatio . '%)';
-        } elseif ($buyRatio <= 40.0) {
+        // Taker Buying Pressure Directional
+        $isDumping = ($rvol >= 1.4 && !$isGreen && $buyRatio <= 43.0);
+        if ($buyRatio >= 66.0) {
+            $score += 14;
+            $confluences[] = 'Dominasi Taker Buy Tinggi (' . $buyRatio . '%)';
+        } elseif ($buyRatio >= 56.0) {
+            $score += 7;
+            $confluences[] = 'Buyer Taker Aktif (' . $buyRatio . '%)';
+        } elseif ($buyRatio <= 42.0) {
             $score -= 15;
         }
 
-        if ($rvol >= 1.5) {
-            $score += 8;
-            $confluences[] = 'Volume Spike (' . $rvol . 'x RVOL)';
+        if ($rvol >= 1.4) {
+            if ($buyRatio >= 56.0 && $isGreen) {
+                $score += 10;
+                $confluences[] = 'Volume Spike Akumulasi (' . $rvol . 'x RVOL)';
+            } elseif ($isDumping) {
+                $score -= 18; // Heavy sell dump
+            }
         }
 
         $score = max(0, min(100, $score));
 
-        // Action Sinyal
+        // Action Sinyal Presisi Spot Trading
         $action = self::ACTION_HOLD;
-        if ($score >= 78 && ($isRsiOversold || $inGoldenPocket || $isMacdBullishCross)) {
+        if ($score >= 76 && !$isDumping && !$isShootingStar && ($isRsiOversold || $inGoldenPocket || $isMacdBullishCross || $buyRatio >= 62.0)) {
             $action = self::ACTION_STRONG_BUY;
-        } elseif ($score >= 65) {
+        } elseif ($score >= 64 && !$isDumping && !$isShootingStar) {
             $action = self::ACTION_BUY;
-        } elseif ($score <= 35 || $isRsiOverbought || $isMacdBearishCross) {
+        } elseif ($score <= 36 || $isRsiOverbought || $isMacdBearishCross || $isDumping) {
             $action = self::ACTION_SELL;
         } elseif ($score < 50) {
             $action = self::ACTION_WAIT;
         }
 
-        // 7. Trading Plan (Stop Loss & Target TP)
-        $stopLoss = round(min($fibLevels['level_786'], $swingLow, $currClose * 0.96), 6);
-        $entryLow = round($currClose * 0.995, 6);
-        $entryHigh = round($currClose * 1.005, 6);
-        $targetTp1 = round(max($fibLevels['level_236'], $swingHigh, $currClose * 1.04), 6);
-        $targetTp2 = round(max($fibLevels['ext_1272'], $currClose * 1.08), 6);
+        // 8. Rencana Trading Presisi Spot (ATR Dynamic Risk Management)
+        // Stop Loss ditempatkan di bawah support/swing low dengan buffer 0.8x ATR
+        // Dibatasi rentang sehat spot: minimal 1.5% dan maksimal 5.5% dari harga entry
+        $slCandidate = min($fibLevels['level_786'], $currClose - ($currAtr * 1.0));
+        $maxRiskPrice = $currClose * 0.945; // Maksimal risiko 5.5%
+        $minRiskPrice = $currClose * 0.985; // Minimal risiko 1.5%
 
+        $stopLoss = round(max($maxRiskPrice, min($minRiskPrice, $slCandidate)), 6);
         $risk = max(0.000001, $currClose - $stopLoss);
+
+        $entryLow = round($currClose * 0.996, 6);
+        $entryHigh = round($currClose * 1.004, 6);
+
+        // TP1: Minimal 1.5x Risk atau Swing High
+        $tp1Candidate = max($currClose + ($risk * 1.5), $swingHigh);
+        $targetTp1 = round($tp1Candidate, 6);
+
+        // TP2: Minimal 2.5x Risk atau Fib Extension 1.272
+        $tp2Candidate = max($currClose + ($risk * 2.5), $fibLevels['ext_1272']);
+        $targetTp2 = round($tp2Candidate, 6);
+
         $reward = max(0.0, $targetTp1 - $currClose);
         $rrRatio = round($reward / $risk, 2);
 
@@ -486,5 +549,45 @@ class CryptoConfluenceService extends Component
             'signal' => $signalLine,
             'histogram' => $histogram,
         ];
+    }
+
+    /**
+     * Hitung Average True Range (ATR) untuk manajemen risiko adaptif
+     * @return float[]
+     */
+    private function calculateAtr(array $highs, array $lows, array $closes, int $period = 14): array
+    {
+        $n = count($closes);
+        if ($n < 2) {
+            return [];
+        }
+
+        $tr = [];
+        $tr[0] = $highs[0] - $lows[0];
+        for ($i = 1; $i < $n; $i++) {
+            $hL = $highs[$i] - $lows[$i];
+            $hCp = abs($highs[$i] - $closes[$i - 1]);
+            $lCp = abs($lows[$i] - $closes[$i - 1]);
+            $tr[$i] = max($hL, $hCp, $lCp);
+        }
+
+        if ($n < $period) {
+            return [round(array_sum($tr) / $n, 6)];
+        }
+
+        $atr = [];
+        $firstAtr = array_sum(array_slice($tr, 0, $period)) / $period;
+        for ($i = 0; $i < $period - 1; $i++) {
+            $atr[$i] = null;
+        }
+        $atr[$period - 1] = round($firstAtr, 6);
+
+        for ($i = $period; $i < $n; $i++) {
+            $prev = $atr[$i - 1];
+            $curr = (($prev * ($period - 1)) + $tr[$i]) / $period;
+            $atr[$i] = round($curr, 6);
+        }
+
+        return array_values(array_filter($atr, fn($v) => $v !== null));
     }
 }

@@ -148,7 +148,7 @@ $sortLink = fn(string $key, string $label) => Html::a($label . ($sort === $key ?
     </div>
 </div>
 
-<?php if ($isIntradayTf && ($fbCount > 0 || $intradaySyms < $stockCount)): ?>
+<?php if ($isIntradayTf && $fbCount > 0): ?>
 <div class="alert alert-warning py-2 small">
     <strong>Mode approximasi:</strong>
     <?= $fbCount ?> dari <?= count($results) ?> hasil memakai <em>daily fallback</em>
