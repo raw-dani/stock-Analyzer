@@ -55,6 +55,19 @@ $fib = $signals['fibonacci'] ?? null;
             </p>
         </div>
         <div class="d-flex gap-2 flex-wrap">
+            <?php if ($isProfit): ?>
+                <button type="button" class="btn btn-success btn-sm shadow-sm fw-bold d-inline-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#modalDetailSell">
+                    <?= \app\helpers\SvgHelper::icon('cash-stack') ?> Realisasi Jual Untung
+                </button>
+            <?php elseif ($isLoss): ?>
+                <button type="button" class="btn btn-danger btn-sm shadow-sm fw-bold d-inline-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#modalDetailCutLoss">
+                    <?= \app\helpers\SvgHelper::icon('shield-exclamation') ?> Eksekusi Cut Loss
+                </button>
+            <?php else: ?>
+                <button type="button" class="btn btn-secondary btn-sm shadow-sm fw-bold d-inline-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#modalDetailSell">
+                    <?= \app\helpers\SvgHelper::icon('box-arrow-right') ?> Jual (Impas)
+                </button>
+            <?php endif; ?>
             <a href="<?= Url::to(['/portfolio/refresh-prices', 'id' => $position->id]) ?>" class="btn btn-outline-success btn-sm shadow-sm fw-semibold" title="Ambil quote harga realtime terbaru dari Yahoo Finance">
                 <?= \app\helpers\SvgHelper::icon('arrow-repeat', ['class' => 'me-1']) ?> Update Harga Real-Time
             </a>
@@ -501,13 +514,27 @@ $fib = $signals['fibonacci'] ?? null;
                                 <h6 class="fw-bold mb-2"><?= \app\helpers\SvgHelper::icon('shield-check', ['class' => 'text-success me-1']) ?> Rekomendasi Tindakan:</h6>
                                 <?php if ($isProfit && $currentPrice >= $targetPrice): ?>
                                     <p class="text-success fw-bold mb-1">🎉 TARGET PROFIT TELAH TERCAPAI!</p>
-                                    <p class="text-muted mb-0">Harga saat ini (<?= $fmt->asCurrency($currentPrice) ?>) sudah menyentuh target <?= $targetPct ?>%. Sangat disarankan untuk segera merealisasikan keuntungan (Sell/Take Profit).</p>
+                                    <p class="text-muted mb-2">Harga saat ini (<?= $fmt->asCurrency($currentPrice) ?>) sudah menyentuh target <?= $targetPct ?>%. Sangat disarankan untuk segera merealisasikan keuntungan (Sell/Take Profit).</p>
+                                    <button type="button" class="btn btn-success btn-sm w-100 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#modalDetailSell">
+                                        <?= \app\helpers\SvgHelper::icon('cash-stack', ['class' => 'me-1']) ?> Realisasikan Jual Untung Sekarang
+                                    </button>
                                 <?php elseif ($isProfit): ?>
                                     <p class="text-primary fw-bold mb-1">📈 DALAM TREN UNTUNG MENUJU TARGET</p>
-                                    <p class="text-muted mb-0">Posisi Anda sedang mengapung profit +<?= $plPct ?>%. Pertahankan posisi dengan trailing stop hingga menyentuh <?= $fmt->asCurrency($targetPrice) ?>.</p>
+                                    <p class="text-muted mb-2">Posisi Anda sedang mengapung profit +<?= $plPct ?>%. Pertahankan posisi dengan trailing stop hingga menyentuh <?= $fmt->asCurrency($targetPrice) ?> atau kunci keuntungan sebagian sekarang.</p>
+                                    <button type="button" class="btn btn-outline-success btn-sm w-100 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#modalDetailSell">
+                                        <?= \app\helpers\SvgHelper::icon('cash-coin', ['class' => 'me-1']) ?> Kunci / Jual Untung Sebagian
+                                    </button>
                                 <?php else: ?>
                                     <p class="text-danger fw-bold mb-1">⚠️ SEDANG MINUS DARI HARGA BELI</p>
-                                    <p class="text-muted mb-0">Harga saat ini di bawah harga modal beli. Gunakan <strong>Tab 1 (Kalkulator Average Down)</strong> dan <strong>Tab 3 (Analisis Multi-Fitur)</strong> untuk merencanakan waktu beli terbaik agar modal cepat kembali.</p>
+                                    <p class="text-muted mb-2">Harga saat ini di bawah harga modal beli. Anda bisa membatasi risiko kerugian dengan <strong>Cut Loss</strong>, atau menggunakan <strong>Kalkulator Average Down</strong> di Tab 1.</p>
+                                    <div class="d-flex gap-2">
+                                        <button type="button" class="btn btn-outline-danger btn-sm w-50 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#modalDetailCutLoss">
+                                            <?= \app\helpers\SvgHelper::icon('shield-x', ['class' => 'me-1']) ?> Cut Loss
+                                        </button>
+                                        <a href="#averaging-pane" onclick="document.getElementById('averaging-tab').click();" class="btn btn-outline-primary btn-sm w-50 fw-bold shadow-sm">
+                                            <?= \app\helpers\SvgHelper::icon('tools', ['class' => 'me-1']) ?> Average Down
+                                        </a>
+                                    </div>
                                 <?php endif; ?>
                             </div>
                         </div>
@@ -750,14 +777,22 @@ $fib = $signals['fibonacci'] ?? null;
                                                 <div class="small text-muted" style="font-size: 0.72rem;"><?= date('H:i:s', (int) $h->created_at) ?> WIB</div>
                                             </td>
                                             <td>
-                                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2 py-1">
+                                                <?php
+                                                $actionType = $h->action_type ?? '';
+                                                $badgeClass = match ($actionType) {
+                                                    \app\models\PortfolioHistory::ACTION_SELL => 'bg-success text-white',
+                                                    \app\models\PortfolioHistory::ACTION_CUT_LOSS => 'bg-danger text-white',
+                                                    default => 'bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25',
+                                                };
+                                                ?>
+                                                <span class="badge <?= $badgeClass ?> px-2 py-1">
                                                     <?= Html::encode($h->scenario_name ?? 'Averaging Down') ?>
                                                 </span>
                                             </td>
                                             <td class="text-end text-muted">
                                                 $<?= number_format($oldP, 2) ?>
                                             </td>
-                                            <td class="text-end fw-bold text-primary fs-6">
+                                            <td class="text-end fw-bold <?= $actionType === \app\models\PortfolioHistory::ACTION_SELL ? 'text-success' : ($actionType === \app\models\PortfolioHistory::ACTION_CUT_LOSS ? 'text-danger' : 'text-primary') ?> fs-6">
                                                 $<?= number_format($newP, 2) ?>
                                             </td>
                                             <td class="text-center text-success fw-bold">
@@ -839,6 +874,144 @@ $fib = $signals['fibonacci'] ?? null;
             <div class="modal-footer bg-light py-2">
                 <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
                 <button type="submit" class="btn btn-primary btn-sm px-4 fw-bold">Simpan Perubahan</button>
+            </div>
+            <?php ActiveForm::end(); ?>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Jual Untung (Detail Page) -->
+<div class="modal fade" id="modalDetailSell" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <?php $sellForm = ActiveForm::begin([
+                'action' => ['/portfolio/sell', 'id' => $position->id],
+                'method' => 'post'
+            ]); ?>
+            <div class="modal-header bg-success text-white py-3">
+                <h5 class="modal-title fw-bold">
+                    <?= \app\helpers\SvgHelper::icon('cash-stack', ['class' => 'me-2']) ?> Jual / Amankan Untung — <?= Html::encode($stock->symbol) ?>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="alert alert-success bg-success bg-opacity-10 border-success border-opacity-25 d-flex align-items-center justify-content-between mb-3 py-2 px-3">
+                    <div>
+                        <span class="small text-muted d-block">Harga Beli Modal</span>
+                        <strong class="text-dark"><?= $fmt->asCurrency($buyPrice) ?></strong>
+                    </div>
+                    <div class="text-center">
+                        <span class="small text-muted d-block">Harga Pasar Saat Ini</span>
+                        <strong class="text-success fs-5"><?= $fmt->asCurrency($currentPrice) ?></strong>
+                    </div>
+                    <div class="text-end">
+                        <span class="small text-muted d-block">Floating Profit</span>
+                        <strong class="text-success">+<?= $plPct ?>% (+<?= $fmt->asCurrency($plAmount) ?>)</strong>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-6">
+                        <label class="form-label small fw-bold text-muted">Harga Eksekusi Jual ($)</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" step="0.01" name="sell_price" class="form-control fw-bold text-success" value="<?= $currentPrice ?>" required>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small fw-bold text-muted">Jumlah Lembar Jual</label>
+                        <div class="input-group">
+                            <input type="number" step="any" name="sell_shares" class="form-control fw-bold" value="<?= $shares ?>" max="<?= $shares ?>" min="0.0001" required>
+                            <span class="input-group-text">lbr</span>
+                        </div>
+                        <div class="form-text small">Maksimal <?= $position->getFormattedShares() ?> lbr.</div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-bold text-muted">Catatan Jual / Rencana Exit (Opsional)</label>
+                    <input type="text" name="notes" class="form-control form-control-sm" placeholder="Misal: Jual 50% porsi amankan target +3%, sisanya trailing stop">
+                </div>
+
+                <div class="p-3 bg-light rounded small text-secondary">
+                    <?= \app\helpers\SvgHelper::icon('info-circle-fill', ['class' => 'text-success me-1']) ?>
+                    Jika Anda menjual <strong>seluruhnya</strong>, posisi saham ini akan dipindahkan ke riwayat terealisasi. Jika menjual <strong>sebagian</strong>, sisa lembar tetap aktif dipantau.
+                </div>
+            </div>
+            <div class="modal-footer bg-light py-2">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+                <button type="submit" class="btn btn-success btn-sm px-4 fw-bold">
+                    <?= \app\helpers\SvgHelper::icon('check-circle-fill', ['class' => 'me-1']) ?> Konfirmasi Realisasi Jual
+                </button>
+            </div>
+            <?php ActiveForm::end(); ?>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Cut Loss (Detail Page) -->
+<div class="modal fade" id="modalDetailCutLoss" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <?php $cutForm = ActiveForm::begin([
+                'action' => ['/portfolio/cut-loss', 'id' => $position->id],
+                'method' => 'post'
+            ]); ?>
+            <div class="modal-header bg-danger text-white py-3">
+                <h5 class="modal-title fw-bold">
+                    <?= \app\helpers\SvgHelper::icon('shield-exclamation', ['class' => 'me-2']) ?> Eksekusi Cut Loss — <?= Html::encode($stock->symbol) ?>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="alert alert-danger bg-danger bg-opacity-10 border-danger border-opacity-25 d-flex align-items-center justify-content-between mb-3 py-2 px-3">
+                    <div>
+                        <span class="small text-muted d-block">Harga Beli Modal</span>
+                        <strong class="text-dark"><?= $fmt->asCurrency($buyPrice) ?></strong>
+                    </div>
+                    <div class="text-center">
+                        <span class="small text-muted d-block">Harga Pasar Saat Ini</span>
+                        <strong class="text-danger fs-5"><?= $fmt->asCurrency($currentPrice) ?></strong>
+                    </div>
+                    <div class="text-end">
+                        <span class="small text-muted d-block">Floating Rugi</span>
+                        <strong class="text-danger"><?= $plPct ?>% (<?= $fmt->asCurrency($plAmount) ?>)</strong>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-6">
+                        <label class="form-label small fw-bold text-muted">Harga Eksekusi Cut ($)</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" step="0.01" name="exit_price" class="form-control fw-bold text-danger" value="<?= $currentPrice ?>" required>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small fw-bold text-muted">Jumlah Lembar Dipotong</label>
+                        <div class="input-group">
+                            <input type="number" step="any" name="cut_shares" class="form-control fw-bold" value="<?= $shares ?>" max="<?= $shares ?>" min="0.0001" required>
+                            <span class="input-group-text">lbr</span>
+                        </div>
+                        <div class="form-text small">Maksimal <?= $position->getFormattedShares() ?> lbr.</div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-bold text-muted">Alasan Cut Loss (Opsional)</label>
+                    <input type="text" name="notes" class="form-control form-control-sm" placeholder="Misal: Breakdown support teknikal MA50 / ganti ke saham momentum lain">
+                </div>
+
+                <div class="p-3 bg-light rounded small text-secondary">
+                    <?= \app\helpers\SvgHelper::icon('shield-check', ['class' => 'text-danger me-1']) ?>
+                    <strong>Manajemen Modal:</strong> Cut loss secara disiplin adalah langkah tepat seorang trader handal untuk melindungi modal utama dari risiko kejatuhan pasar yang lebih dalam.
+                </div>
+            </div>
+            <div class="modal-footer bg-light py-2">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+                <button type="submit" class="btn btn-danger btn-sm px-4 fw-bold">
+                    <?= \app\helpers\SvgHelper::icon('shield-x', ['class' => 'me-1']) ?> Konfirmasi Eksekusi Cut Loss
+                </button>
             </div>
             <?php ActiveForm::end(); ?>
         </div>

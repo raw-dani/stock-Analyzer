@@ -244,16 +244,184 @@ $fmt = Yii::$app->formatter;
                                         <?php endif; ?>
                                     </td>
                                     <td class="text-center">
-                                        <div class="btn-group btn-group-sm">
-                                            <?= Html::a(\app\helpers\SvgHelper::icon('lightning-fill') . ' Strategi', ['/portfolio/detail', 'id' => $pos->id], ['class' => 'btn btn-primary btn-sm py-0 px-2 fw-semibold', 'title' => 'Buka Analisis Multi-Fitur & Simulasi Averaging']) ?>
-                                            <?= Html::a(\app\helpers\SvgHelper::icon('trash'), ['/portfolio/delete', 'id' => $pos->id], [
-                                                'class' => 'btn btn-outline-danger btn-sm py-0 px-1',
-                                                'title' => 'Hapus dari Portofolio',
-                                                'data' => [
-                                                    'confirm' => "Apakah Anda yakin ingin menghapus {$stock->symbol} dari portofolio?",
-                                                    'method' => 'post',
-                                                ],
-                                            ]) ?>
+                                        <div class="d-flex align-items-center justify-content-center gap-1">
+                                            <?php if ($isProfit): ?>
+                                                <button type="button" 
+                                                        class="btn btn-success btn-sm py-0 px-2 fw-semibold d-inline-flex align-items-center gap-1 shadow-xs" 
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#modalSellPosition<?= $pos->id ?>" 
+                                                        title="Realisasi Keuntungan (Jual / Take Profit)">
+                                                    <?= \app\helpers\SvgHelper::icon('cash-coin', ['class' => 'fs-7']) ?> Jual Cuan
+                                                </button>
+                                            <?php elseif ($pos->isLoss()): ?>
+                                                <button type="button" 
+                                                        class="btn btn-danger btn-sm py-0 px-2 fw-semibold d-inline-flex align-items-center gap-1 shadow-xs" 
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#modalCutLossPosition<?= $pos->id ?>" 
+                                                        title="Eksekusi Cut Loss untuk membatasi risiko kerugian">
+                                                    <?= \app\helpers\SvgHelper::icon('shield-x', ['class' => 'fs-7']) ?> Cut Loss
+                                                </button>
+                                            <?php else: ?>
+                                                <button type="button" 
+                                                        class="btn btn-secondary btn-sm py-0 px-2 fw-semibold d-inline-flex align-items-center gap-1 shadow-xs" 
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#modalSellPosition<?= $pos->id ?>" 
+                                                        title="Jual di harga impas">
+                                                    <?= \app\helpers\SvgHelper::icon('box-arrow-right', ['class' => 'fs-7']) ?> Jual
+                                                </button>
+                                            <?php endif; ?>
+
+                                            <div class="btn-group btn-group-sm">
+                                                <?= Html::a(\app\helpers\SvgHelper::icon('lightning-fill') . ' Strategi', ['/portfolio/detail', 'id' => $pos->id], ['class' => 'btn btn-outline-primary btn-sm py-0 px-2 fw-semibold', 'title' => 'Buka Analisis Multi-Fitur & Simulasi Averaging']) ?>
+                                                <?= Html::a(\app\helpers\SvgHelper::icon('trash'), ['/portfolio/delete', 'id' => $pos->id], [
+                                                    'class' => 'btn btn-outline-secondary btn-sm py-0 px-1',
+                                                    'title' => 'Hapus dari Portofolio',
+                                                    'data' => [
+                                                        'confirm' => "Apakah Anda yakin ingin menghapus {$stock->symbol} dari portofolio?",
+                                                        'method' => 'post',
+                                                    ],
+                                                ]) ?>
+                                            </div>
+                                        </div>
+
+                                        <!-- Modal Jual Untung (Take Profit) -->
+                                        <div class="modal fade text-start" id="modalSellPosition<?= $pos->id ?>" tabindex="-1" aria-hidden="true">
+                                            <div class="modal-dialog modal-dialog-centered">
+                                                <div class="modal-content border-0 shadow">
+                                                    <?php $sellForm = ActiveForm::begin([
+                                                        'action' => ['/portfolio/sell', 'id' => $pos->id],
+                                                        'method' => 'post'
+                                                    ]); ?>
+                                                    <div class="modal-header bg-success text-white py-3">
+                                                        <h5 class="modal-title fw-bold">
+                                                            <?= \app\helpers\SvgHelper::icon('cash-stack', ['class' => 'me-2']) ?> Jual / Amankan Untung — <?= Html::encode($stock->symbol) ?>
+                                                        </h5>
+                                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <div class="modal-body p-4">
+                                                        <div class="alert alert-success bg-success bg-opacity-10 border-success border-opacity-25 d-flex align-items-center justify-content-between mb-3 py-2 px-3">
+                                                            <div>
+                                                                <span class="small text-muted d-block">Harga Beli Modal</span>
+                                                                <strong class="text-dark"><?= $fmt->asCurrency($pos->buy_price) ?></strong>
+                                                            </div>
+                                                            <div class="text-center">
+                                                                <span class="small text-muted d-block">Harga Pasar Saat Ini</span>
+                                                                <strong class="text-success fs-5"><?= $fmt->asCurrency($pos->getCurrentPrice()) ?></strong>
+                                                            </div>
+                                                            <div class="text-end">
+                                                                <span class="small text-muted d-block">Floating Profit</span>
+                                                                <strong class="text-success">+<?= $plPct ?>% (+<?= $fmt->asCurrency($plAmount) ?>)</strong>
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="row g-3 mb-3">
+                                                            <div class="col-6">
+                                                                <label class="form-label small fw-bold text-muted">Harga Eksekusi Jual ($)</label>
+                                                                <div class="input-group">
+                                                                    <span class="input-group-text">$</span>
+                                                                    <input type="number" step="0.01" name="sell_price" class="form-control fw-bold text-success" value="<?= $pos->getCurrentPrice() ?>" required>
+                                                                </div>
+                                                                <div class="form-text small" style="font-size:0.70rem;">Bisa disesuaikan dengan harga real antrean order.</div>
+                                                            </div>
+                                                            <div class="col-6">
+                                                                <label class="form-label small fw-bold text-muted">Jumlah Lembar Jual</label>
+                                                                <div class="input-group">
+                                                                    <input type="number" step="any" name="sell_shares" class="form-control fw-bold" value="<?= $pos->shares ?>" max="<?= $pos->shares ?>" min="0.0001" required>
+                                                                    <span class="input-group-text">lbr</span>
+                                                                </div>
+                                                                <div class="form-text small" style="font-size:0.70rem;">Maksimal <?= $pos->getFormattedShares() ?> lembar.</div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="mb-3">
+                                                            <label class="form-label small fw-bold text-muted">Catatan Jual / Rencana Exit (Opsional)</label>
+                                                            <input type="text" name="notes" class="form-control form-control-sm" placeholder="Misal: Jual 50% porsi amankan target +3%, sisanya trailing stop">
+                                                        </div>
+
+                                                        <div class="p-3 bg-light rounded small text-secondary">
+                                                            <?= \app\helpers\SvgHelper::icon('info-circle-fill', ['class' => 'text-success me-1']) ?>
+                                                            Jika Anda menjual <strong>seluruhnya</strong>, posisi saham ini akan dipindahkan ke riwayat terealisasi. Jika menjual <strong>sebagian</strong>, sisa lembar tetap aktif dipantau.
+                                                        </div>
+                                                    </div>
+                                                    <div class="modal-footer bg-light py-2">
+                                                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+                                                        <button type="submit" class="btn btn-success btn-sm px-4 fw-bold">
+                                                            <?= \app\helpers\SvgHelper::icon('check-circle-fill', ['class' => 'me-1']) ?> Konfirmasi Realisasi Jual
+                                                        </button>
+                                                    </div>
+                                                    <?php ActiveForm::end(); ?>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Modal Cut Loss (Stop Loss) -->
+                                        <div class="modal fade text-start" id="modalCutLossPosition<?= $pos->id ?>" tabindex="-1" aria-hidden="true">
+                                            <div class="modal-dialog modal-dialog-centered">
+                                                <div class="modal-content border-0 shadow">
+                                                    <?php $cutForm = ActiveForm::begin([
+                                                        'action' => ['/portfolio/cut-loss', 'id' => $pos->id],
+                                                        'method' => 'post'
+                                                    ]); ?>
+                                                    <div class="modal-header bg-danger text-white py-3">
+                                                        <h5 class="modal-title fw-bold">
+                                                            <?= \app\helpers\SvgHelper::icon('shield-exclamation', ['class' => 'me-2']) ?> Eksekusi Cut Loss — <?= Html::encode($stock->symbol) ?>
+                                                        </h5>
+                                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <div class="modal-body p-4">
+                                                        <div class="alert alert-danger bg-danger bg-opacity-10 border-danger border-opacity-25 d-flex align-items-center justify-content-between mb-3 py-2 px-3">
+                                                            <div>
+                                                                <span class="small text-muted d-block">Harga Beli Modal</span>
+                                                                <strong class="text-dark"><?= $fmt->asCurrency($pos->buy_price) ?></strong>
+                                                            </div>
+                                                            <div class="text-center">
+                                                                <span class="small text-muted d-block">Harga Pasar Saat Ini</span>
+                                                                <strong class="text-danger fs-5"><?= $fmt->asCurrency($pos->getCurrentPrice()) ?></strong>
+                                                            </div>
+                                                            <div class="text-end">
+                                                                <span class="small text-muted d-block">Floating Rugi</span>
+                                                                <strong class="text-danger"><?= $plPct ?>% (<?= $fmt->asCurrency($plAmount) ?>)</strong>
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="row g-3 mb-3">
+                                                            <div class="col-6">
+                                                                <label class="form-label small fw-bold text-muted">Harga Eksekusi Cut ($)</label>
+                                                                <div class="input-group">
+                                                                    <span class="input-group-text">$</span>
+                                                                    <input type="number" step="0.01" name="exit_price" class="form-control fw-bold text-danger" value="<?= $pos->getCurrentPrice() ?>" required>
+                                                                </div>
+                                                                <div class="form-text small" style="font-size:0.70rem;">Harga jual riil saat order dieksekusi.</div>
+                                                            </div>
+                                                            <div class="col-6">
+                                                                <label class="form-label small fw-bold text-muted">Jumlah Lembar Dipotong</label>
+                                                                <div class="input-group">
+                                                                    <input type="number" step="any" name="cut_shares" class="form-control fw-bold" value="<?= $pos->shares ?>" max="<?= $pos->shares ?>" min="0.0001" required>
+                                                                    <span class="input-group-text">lbr</span>
+                                                                </div>
+                                                                <div class="form-text small" style="font-size:0.70rem;">Maksimal <?= $pos->getFormattedShares() ?> lembar.</div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="mb-3">
+                                                            <label class="form-label small fw-bold text-muted">Alasan Cut Loss (Opsional)</label>
+                                                            <input type="text" name="notes" class="form-control form-control-sm" placeholder="Misal: Breakdown support teknikal MA50 / ganti ke saham momentum lain">
+                                                        </div>
+
+                                                        <div class="p-3 bg-light rounded small text-secondary">
+                                                            <?= \app\helpers\SvgHelper::icon('shield-check', ['class' => 'text-danger me-1']) ?>
+                                                            <strong>Manajemen Modal:</strong> Cut loss secara disiplin adalah langkah tepat seorang trader handal untuk melindungi modal utama dari risiko kejatuhan pasar yang lebih dalam.
+                                                        </div>
+                                                    </div>
+                                                    <div class="modal-footer bg-light py-2">
+                                                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+                                                        <button type="submit" class="btn btn-danger btn-sm px-4 fw-bold">
+                                                            <?= \app\helpers\SvgHelper::icon('shield-x', ['class' => 'me-1']) ?> Konfirmasi Eksekusi Cut Loss
+                                                        </button>
+                                                    </div>
+                                                    <?php ActiveForm::end(); ?>
+                                                </div>
+                                            </div>
                                         </div>
                                     </td>
                                 </tr>

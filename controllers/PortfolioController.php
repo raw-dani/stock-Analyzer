@@ -44,6 +44,8 @@ final class PortfolioController extends Controller
                 'actions' => [
                     'delete' => ['POST'],
                     'apply-average' => ['POST'],
+                    'sell' => ['POST'],
+                    'cut-loss' => ['POST'],
                 ],
             ],
         ];
@@ -181,6 +183,191 @@ final class PortfolioController extends Controller
 
         Yii::$app->session->setFlash('success', "Posisi {$symbol} berhasil dihapus dari portofolio.");
         return $this->redirect(['index']);
+    }
+
+    /**
+     * Aksi Jual Posisi Saham yang Sedang Untung (Take Profit / Realisasi Keuntungan).
+     * Mendukung penjualan seluruhnya (full) atau sebagian (partial).
+     */
+    public function actionSell(int $id): Response
+    {
+        $position = $this->findModel($id);
+        $stock = $position->stock;
+        $symbol = $stock->symbol ?? 'Saham';
+        $req = Yii::$app->request;
+
+        $sellPrice = (float) $req->post('sell_price', $position->getCurrentPrice());
+        if ($sellPrice <= 0) {
+            $sellPrice = $position->getCurrentPrice();
+        }
+
+        $currentShares = (float) $position->shares;
+        $sellShares = (float) $req->post('sell_shares', $currentShares);
+        if ($sellShares <= 0 || $sellShares > $currentShares) {
+            $sellShares = $currentShares;
+        }
+
+        $oldBuyPrice = (float) $position->buy_price;
+        $profitPerShare = $sellPrice - $oldBuyPrice;
+        $realizedProfit = round($profitPerShare * $sellShares, 2);
+        $profitPct = $oldBuyPrice > 0 ? round(($profitPerShare / $oldBuyPrice) * 100, 2) : 0.0;
+        $notes = trim((string) $req->post('notes', ''));
+
+        // Catat riwayat aksi jual / take profit ke PortfolioHistory
+        try {
+            $history = new \app\models\PortfolioHistory([
+                'position_id' => $position->id,
+                'user_id' => (int) $position->user_id,
+                'action_type' => \app\models\PortfolioHistory::ACTION_SELL,
+                'scenario_name' => 'Jual Untung (Take Profit)',
+                'old_price' => $oldBuyPrice,
+                'new_price' => $sellPrice,
+                'old_shares' => $currentShares,
+                'added_shares' => -$sellShares,
+                'new_shares' => max(0.0, $currentShares - $sellShares),
+                'added_price' => $sellPrice,
+                'added_cost' => round($sellPrice * $sellShares, 2),
+                'notes' => sprintf(
+                    "Realisasi Jual Untung (+%s%%). Laba Bersih: +$%s. %s",
+                    $profitPct,
+                    number_format($realizedProfit, 2),
+                    $notes
+                ),
+            ]);
+            $history->save();
+        } catch (\Throwable $e) {
+            Yii::warning('Failed saving sell history: ' . $e->getMessage());
+        }
+
+        // Jika jual seluruhnya, hapus posisi dari daftar aktif
+        if ($sellShares >= $currentShares) {
+            $position->delete();
+            Yii::$app->session->setFlash('success', sprintf(
+                "🎉 Berhasil menjual seluruh posisi %s (%s lembar) di harga $%s! Realisasi Keuntungan Bersih: +$%s (+%s%%).",
+                $symbol,
+                PortfolioPosition::formatShares($sellShares),
+                number_format($sellPrice, 2),
+                number_format($realizedProfit, 2),
+                $profitPct
+            ));
+            return $this->redirect(['index']);
+        }
+
+        // Jika jual sebagian (partial take profit)
+        $position->shares = $currentShares - $sellShares;
+        $position->notes = trim($position->notes . sprintf(
+            "\n[Jual %s] Terjual %s lbr @ $%s (Cuan: +$%s).",
+            date('Y-m-d'),
+            PortfolioPosition::formatShares($sellShares),
+            number_format($sellPrice, 2),
+            number_format($realizedProfit, 2)
+        ));
+        $position->save(false);
+
+        Yii::$app->session->setFlash('success', sprintf(
+            "🎉 Berhasil menjual sebagian posisi %s (%s lembar) di harga $%s! Realisasi Untung: +$%s (+%s%%). Sisa di portofolio: %s lembar.",
+            $symbol,
+            PortfolioPosition::formatShares($sellShares),
+            number_format($sellPrice, 2),
+            number_format($realizedProfit, 2),
+            $profitPct,
+            PortfolioPosition::formatShares($position->shares)
+        ));
+
+        return $this->redirect(Yii::$app->request->referrer ?: ['detail', 'id' => $id]);
+    }
+
+    /**
+     * Aksi Cut Loss Posisi Saham yang Sedang Rugi (Stop Loss / Amankan Modal).
+     * Mendukung pemotongan kerugian seluruhnya (full) atau sebagian (partial).
+     */
+    public function actionCutLoss(int $id): Response
+    {
+        $position = $this->findModel($id);
+        $stock = $position->stock;
+        $symbol = $stock->symbol ?? 'Saham';
+        $req = Yii::$app->request;
+
+        $exitPrice = (float) $req->post('exit_price', $position->getCurrentPrice());
+        if ($exitPrice <= 0) {
+            $exitPrice = $position->getCurrentPrice();
+        }
+
+        $currentShares = (float) $position->shares;
+        $cutShares = (float) $req->post('cut_shares', $currentShares);
+        if ($cutShares <= 0 || $cutShares > $currentShares) {
+            $cutShares = $currentShares;
+        }
+
+        $oldBuyPrice = (float) $position->buy_price;
+        $lossPerShare = $exitPrice - $oldBuyPrice;
+        $realizedLoss = round(abs($lossPerShare * $cutShares), 2);
+        $lossPct = $oldBuyPrice > 0 ? round(($lossPerShare / $oldBuyPrice) * 100, 2) : 0.0;
+        $notes = trim((string) $req->post('notes', ''));
+
+        // Catat riwayat cut loss ke PortfolioHistory
+        try {
+            $history = new \app\models\PortfolioHistory([
+                'position_id' => $position->id,
+                'user_id' => (int) $position->user_id,
+                'action_type' => \app\models\PortfolioHistory::ACTION_CUT_LOSS,
+                'scenario_name' => 'Cut Loss (Proteksi Modal)',
+                'old_price' => $oldBuyPrice,
+                'new_price' => $exitPrice,
+                'old_shares' => $currentShares,
+                'added_shares' => -$cutShares,
+                'new_shares' => max(0.0, $currentShares - $cutShares),
+                'added_price' => $exitPrice,
+                'added_cost' => round($exitPrice * $cutShares, 2),
+                'notes' => sprintf(
+                    "Eksekusi Cut Loss (%s%%). Realisasi Rugi: -$%s. Sisa modal diamankan: $%s. %s",
+                    $lossPct,
+                    number_format($realizedLoss, 2),
+                    number_format($exitPrice * $cutShares, 2),
+                    $notes
+                ),
+            ]);
+            $history->save();
+        } catch (\Throwable $e) {
+            Yii::warning('Failed saving cut loss history: ' . $e->getMessage());
+        }
+
+        // Jika cut loss seluruhnya, hapus posisi dari daftar aktif
+        if ($cutShares >= $currentShares) {
+            $position->delete();
+            Yii::$app->session->setFlash('warning', sprintf(
+                "🛡️ Eksekusi Cut Loss berhasil untuk %s (%s lembar) di harga $%s. Modal terselamatkan: $%s (Realisasi Rugi: -$%s / %s%%).",
+                $symbol,
+                PortfolioPosition::formatShares($cutShares),
+                number_format($exitPrice, 2),
+                number_format($exitPrice * $cutShares, 2),
+                number_format($realizedLoss, 2),
+                $lossPct
+            ));
+            return $this->redirect(['index']);
+        }
+
+        // Jika cut loss sebagian
+        $position->shares = $currentShares - $cutShares;
+        $position->notes = trim($position->notes . sprintf(
+            "\n[Cut Loss %s] Dipotong %s lbr @ $%s (Rugi: -$%s).",
+            date('Y-m-d'),
+            PortfolioPosition::formatShares($cutShares),
+            number_format($exitPrice, 2),
+            number_format($realizedLoss, 2)
+        ));
+        $position->save(false);
+
+        Yii::$app->session->setFlash('warning', sprintf(
+            "🛡️ Berhasil memotong sebagian posisi %s (%s lembar) di harga $%s untuk mengamankan modal $%s. Sisa di portofolio: %s lembar.",
+            $symbol,
+            PortfolioPosition::formatShares($cutShares),
+            number_format($exitPrice, 2),
+            number_format($exitPrice * $cutShares, 2),
+            PortfolioPosition::formatShares($position->shares)
+        ));
+
+        return $this->redirect(Yii::$app->request->referrer ?: ['detail', 'id' => $id]);
     }
 
     /**

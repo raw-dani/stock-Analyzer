@@ -32,24 +32,25 @@ if ($isAdmin) {
 $sideMenuGroups = [
     'Overview' => [
         ['label' => \app\helpers\SvgHelper::icon('speedometer2', ['class' => 'me-2']) . 'Dashboard', 'url' => ['/dashboard/index'], 'active' => $ctrlId === 'dashboard'],
-        ['label' => \app\helpers\SvgHelper::icon('briefcase', ['class' => 'me-2']) . 'Portofolio & Averaging', 'url' => ['/portfolio/index'], 'active' => $ctrlId === 'portfolio', 'badge' => 'New'],
+        ['label' => \app\helpers\SvgHelper::icon('briefcase', ['class' => 'me-2']) . 'Portofolio & Averaging', 'url' => ['/portfolio/index'], 'active' => $ctrlId === 'portfolio'],
         ['label' => \app\helpers\SvgHelper::icon('info-circle', ['class' => 'me-2']) . 'Tentang Aplikasi', 'url' => ['/site/about'], 'active' => $ctrlId === 'site' && $actionId === 'about'],
     ],
     'Crypto Market (24/7)' => [
         ['label' => '<i class="bi bi-search me-2 text-warning fs-6"></i> Volume Scanner & Hub', 'url' => ['/crypto/index'], 'active' => $ctrlId === 'crypto' && in_array($actionId, ['index', 'view'], true), 'badge' => '24/7'],
         ['label' => '<i class="bi bi-bullseye me-2 text-primary fs-6"></i> Confluence Strategy', 'url' => ['/crypto/confluence'], 'active' => $ctrlId === 'crypto' && $actionId === 'confluence', 'badge' => 'PRO'],
-        ['label' => '<i class="bi bi-rocket-takeoff me-2 text-success fs-6"></i> Bullish Patterns', 'url' => ['/crypto/bullish-patterns'], 'active' => $ctrlId === 'crypto' && $actionId === 'bullish-patterns', 'badge' => 'New'],
+        ['label' => '<i class="bi bi-rocket-takeoff me-2 text-success fs-6"></i> Bullish Patterns', 'url' => ['/crypto/bullish-patterns'], 'active' => $ctrlId === 'crypto' && $actionId === 'bullish-patterns'],
     ],
     'Scanners & Patterns' => [
         ['label' => \app\helpers\SvgHelper::icon('bullseye', ['class' => 'me-2']) . 'Confluence Strategy', 'url' => ['/strategy-confluence/index'], 'active' => $ctrlId === 'strategy-confluence', 'badge' => 'PRO'],
-        ['label' => \app\helpers\SvgHelper::icon('rocket-takeoff', ['class' => 'me-2']) . 'Bullish Patterns', 'url' => ['/bullish-pattern/index'], 'active' => $ctrlId === 'bullish-pattern', 'badge' => 'New'],
+        ['label' => \app\helpers\SvgHelper::icon('rocket-takeoff', ['class' => 'me-2']) . 'Bullish Patterns', 'url' => ['/bullish-pattern/index'], 'active' => $ctrlId === 'bullish-pattern'],
         ['label' => \app\helpers\SvgHelper::icon('graph-down', ['class' => 'me-2']) . 'Double Bottom (Core)', 'url' => ['/double-bottom/index'], 'active' => $ctrlId === 'double-bottom', 'badge' => 'Core'],
-        ['label' => \app\helpers\SvgHelper::icon('triangle-half', ['class' => 'me-2']) . 'Triple Bottom Scanner', 'url' => ['/triple-bottom/index'], 'active' => $ctrlId === 'triple-bottom', 'badge' => 'New'],
+        ['label' => \app\helpers\SvgHelper::icon('triangle-half', ['class' => 'me-2']) . 'Triple Bottom Scanner', 'url' => ['/triple-bottom/index'], 'active' => $ctrlId === 'triple-bottom'],
         ['label' => \app\helpers\SvgHelper::icon('activity', ['class' => 'me-2']) . 'RSI Strategy & Signals', 'url' => ['/rsi-double-bottom/index'], 'active' => str_starts_with($ctrlId ?? '', 'rsi-double-bottom')],
         ['label' => \app\helpers\SvgHelper::icon('search', ['class' => 'me-2']) . 'Volume Scanner', 'url' => ['/scanner/index'], 'active' => $ctrlId === 'scanner'],
-        ['label' => \app\helpers\SvgHelper::icon('graph-up', ['class' => 'me-2']) . 'Moving Average Signals', 'url' => ['/moving-average/index'], 'active' => $ctrlId === 'moving-average', 'badge' => 'New'],
-        ['label' => \app\helpers\SvgHelper::icon('layers', ['class' => 'me-2']) . 'Fibonacci Levels', 'url' => ['/fibonacci/index'], 'active' => $ctrlId === 'fibonacci', 'badge' => 'New'],
-        ['label' => \app\helpers\SvgHelper::icon('bar-chart-line', ['class' => 'me-2']) . 'Candlestick Scanner', 'url' => ['/candlestick/index'], 'active' => $ctrlId === 'candlestick', 'badge' => 'New'],
+        ['label' => \app\helpers\SvgHelper::icon('graph-up', ['class' => 'me-2']) . 'Moving Average Signals', 'url' => ['/moving-average/index'], 'active' => $ctrlId === 'moving-average'],
+        ['label' => \app\helpers\SvgHelper::icon('bounding-box', ['class' => 'me-2']) . 'Bollinger Bands Strategy', 'url' => ['/bollinger-band/index'], 'active' => $ctrlId === 'bollinger-band'],
+        ['label' => \app\helpers\SvgHelper::icon('layers', ['class' => 'me-2']) . 'Fibonacci Levels', 'url' => ['/fibonacci/index'], 'active' => $ctrlId === 'fibonacci'],
+        ['label' => \app\helpers\SvgHelper::icon('bar-chart-line', ['class' => 'me-2']) . 'Candlestick Scanner', 'url' => ['/candlestick/index'], 'active' => $ctrlId === 'candlestick'],
     ],
 ];
 
@@ -107,7 +108,7 @@ if (!empty($systemItems)) {
             [
                 'label' => \app\helpers\SvgHelper::icon('filter-square', ['class' => 'me-1']) . ' Scanners & Patterns',
                 'encode' => false,
-                'active' => in_array($ctrlId, ['strategy-confluence', 'bullish-pattern', 'double-bottom', 'triple-bottom', 'rsi-double-bottom', 'scanner', 'moving-average', 'fibonacci', 'candlestick'], true),
+                'active' => in_array($ctrlId, ['strategy-confluence', 'bullish-pattern', 'double-bottom', 'triple-bottom', 'rsi-double-bottom', 'scanner', 'moving-average', 'bollinger-band', 'fibonacci', 'candlestick'], true),
                 'items' => [
                     ['label' => \app\helpers\SvgHelper::icon('bullseye', ['class' => 'me-2 text-warning']) . 'Confluence Strategy (PRO)', 'url' => ['/strategy-confluence/index'], 'encode' => false],
                     '<div class="dropdown-divider"></div>',
@@ -118,6 +119,7 @@ if (!empty($systemItems)) {
                     '<div class="dropdown-divider"></div>',
                     ['label' => \app\helpers\SvgHelper::icon('search', ['class' => 'me-2 text-primary']) . 'Volume Scanner', 'url' => ['/scanner/index'], 'encode' => false],
                     ['label' => \app\helpers\SvgHelper::icon('graph-up', ['class' => 'me-2 text-success']) . 'Moving Average Signals', 'url' => ['/moving-average/index'], 'encode' => false],
+                    ['label' => \app\helpers\SvgHelper::icon('bounding-box', ['class' => 'me-2 text-info']) . 'Bollinger Bands Strategy', 'url' => ['/bollinger-band/index'], 'encode' => false],
                     ['label' => \app\helpers\SvgHelper::icon('layers', ['class' => 'me-2 text-warning']) . 'Fibonacci Levels', 'url' => ['/fibonacci/index'], 'encode' => false],
                     ['label' => \app\helpers\SvgHelper::icon('bar-chart-line', ['class' => 'me-2 text-info']) . 'Candlestick Scanner', 'url' => ['/candlestick/index'], 'encode' => false],
                 ],

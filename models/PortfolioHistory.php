@@ -34,6 +34,8 @@ class PortfolioHistory extends ActiveRecord
     public const ACTION_AVERAGE_DOWN = 'AVERAGE_DOWN';
     public const ACTION_BUY_INITIAL = 'BUY_INITIAL';
     public const ACTION_EDIT = 'EDIT';
+    public const ACTION_SELL = 'SELL';
+    public const ACTION_CUT_LOSS = 'CUT_LOSS';
 
     public static function tableName(): string
     {
