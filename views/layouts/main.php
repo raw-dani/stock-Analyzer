@@ -87,58 +87,55 @@ if (!empty($systemItems)) {
         'options' => ['class' => 'navbar-expand-lg navbar-dark bg-dark fixed-top shadow-sm']
     ]);
     
-    // Top navigation with direct access to all main features
-    $topNavItems = [
-        ['label' => \app\helpers\SvgHelper::icon('speedometer2', ['class' => 'me-1']) . ' Dashboard', 'url' => ['/dashboard/index'], 'active' => $ctrlId === 'dashboard', 'encode' => false],
-        [
-            'label' => '<i class="bi bi-currency-bitcoin text-warning me-1"></i> Crypto <span class="badge bg-warning text-dark ms-1" style="font-size:0.65rem;">24/7</span>',
-            'encode' => false,
-            'active' => $ctrlId === 'crypto',
-            'items' => [
-                ['label' => '<i class="bi bi-search text-warning me-2"></i> Volume Scanner & Hub', 'url' => ['/crypto/index'], 'encode' => false],
-                '<div class="dropdown-divider"></div>',
-                ['label' => '<i class="bi bi-bullseye text-primary me-2"></i> Confluence Strategy (MA, RSI, MACD, Fib)', 'url' => ['/crypto/confluence'], 'encode' => false],
-                ['label' => '<i class="bi bi-rocket-takeoff text-success me-2"></i> Bullish Continuation & Breakouts', 'url' => ['/crypto/bullish-patterns'], 'encode' => false],
+    // Top navigation: jika user login tampilkan semua menu utama, jika guest hanya tampilkan Login / Register / About
+    $topNavItems = [];
+    if (!Yii::$app->user->isGuest) {
+        $topNavItems = [
+            ['label' => \app\helpers\SvgHelper::icon('speedometer2', ['class' => 'me-1']) . ' Dashboard', 'url' => ['/dashboard/index'], 'active' => $ctrlId === 'dashboard', 'encode' => false],
+            [
+                'label' => '<i class="bi bi-currency-bitcoin text-warning me-1"></i> Crypto <span class="badge bg-warning text-dark ms-1" style="font-size:0.65rem;">24/7</span>',
+                'encode' => false,
+                'active' => $ctrlId === 'crypto',
+                'items' => [
+                    ['label' => '<i class="bi bi-search text-warning me-2"></i> Volume Scanner & Hub', 'url' => ['/crypto/index'], 'encode' => false],
+                    '<div class="dropdown-divider"></div>',
+                    ['label' => '<i class="bi bi-bullseye text-primary me-2"></i> Confluence Strategy (MA, RSI, MACD, Fib)', 'url' => ['/crypto/confluence'], 'encode' => false],
+                    ['label' => '<i class="bi bi-rocket-takeoff text-success me-2"></i> Bullish Continuation & Breakouts', 'url' => ['/crypto/bullish-patterns'], 'encode' => false],
+                ],
             ],
-        ],
-        ['label' => \app\helpers\SvgHelper::icon('briefcase', ['class' => 'me-1']) . ' Portofolio', 'url' => ['/portfolio/index'], 'active' => $ctrlId === 'portfolio', 'encode' => false],
-        [
-            'label' => \app\helpers\SvgHelper::icon('filter-square', ['class' => 'me-1']) . ' Scanners & Patterns',
-            'encode' => false,
-            'active' => in_array($ctrlId, ['strategy-confluence', 'bullish-pattern', 'double-bottom', 'triple-bottom', 'rsi-double-bottom', 'scanner', 'moving-average', 'fibonacci', 'candlestick'], true),
-            'items' => [
-                ['label' => \app\helpers\SvgHelper::icon('bullseye', ['class' => 'me-2 text-warning']) . 'Confluence Strategy (PRO)', 'url' => ['/strategy-confluence/index'], 'encode' => false],
-                '<div class="dropdown-divider"></div>',
-                ['label' => \app\helpers\SvgHelper::icon('rocket-takeoff', ['class' => 'me-2 text-success']) . 'Bullish Breakout Patterns', 'url' => ['/bullish-pattern/index'], 'encode' => false],
-                ['label' => \app\helpers\SvgHelper::icon('graph-down', ['class' => 'me-2 text-primary']) . 'Double Bottom Scanner (Core)', 'url' => ['/double-bottom/index'], 'encode' => false],
-                ['label' => \app\helpers\SvgHelper::icon('triangle-half', ['class' => 'me-2 text-info']) . 'Triple Bottom Scanner', 'url' => ['/triple-bottom/index'], 'encode' => false],
-                ['label' => \app\helpers\SvgHelper::icon('activity', ['class' => 'me-2 text-danger']) . 'RSI Strategy & Signals', 'url' => ['/rsi-double-bottom/index'], 'encode' => false],
-                '<div class="dropdown-divider"></div>',
-                ['label' => \app\helpers\SvgHelper::icon('search', ['class' => 'me-2 text-primary']) . 'Volume Scanner', 'url' => ['/scanner/index'], 'encode' => false],
-                ['label' => \app\helpers\SvgHelper::icon('graph-up', ['class' => 'me-2 text-success']) . 'Moving Average Signals', 'url' => ['/moving-average/index'], 'encode' => false],
-                ['label' => \app\helpers\SvgHelper::icon('layers', ['class' => 'me-2 text-warning']) . 'Fibonacci Levels', 'url' => ['/fibonacci/index'], 'encode' => false],
-                ['label' => \app\helpers\SvgHelper::icon('bar-chart-line', ['class' => 'me-2 text-info']) . 'Candlestick Scanner', 'url' => ['/candlestick/index'], 'encode' => false],
-            ],
-        ],
-    ];
-
-    if ($isAdmin) {
-        $topNavItems[] = [
-            'label' => \app\helpers\SvgHelper::icon('gear', ['class' => 'me-1']) . ' Admin',
-            'encode' => false,
-            'active' => in_array($ctrlId, ['settings', 'user'], true),
-            'items' => [
-                ['label' => \app\helpers\SvgHelper::icon('gear', ['class' => 'me-2 text-secondary']) . 'Settings', 'url' => ['/settings/index'], 'encode' => false],
-                ['label' => \app\helpers\SvgHelper::icon('people', ['class' => 'me-2 text-primary']) . 'User Management', 'url' => ['/user/index'], 'encode' => false],
+            ['label' => \app\helpers\SvgHelper::icon('briefcase', ['class' => 'me-1']) . ' Portofolio', 'url' => ['/portfolio/index'], 'active' => $ctrlId === 'portfolio', 'encode' => false],
+            [
+                'label' => \app\helpers\SvgHelper::icon('filter-square', ['class' => 'me-1']) . ' Scanners & Patterns',
+                'encode' => false,
+                'active' => in_array($ctrlId, ['strategy-confluence', 'bullish-pattern', 'double-bottom', 'triple-bottom', 'rsi-double-bottom', 'scanner', 'moving-average', 'fibonacci', 'candlestick'], true),
+                'items' => [
+                    ['label' => \app\helpers\SvgHelper::icon('bullseye', ['class' => 'me-2 text-warning']) . 'Confluence Strategy (PRO)', 'url' => ['/strategy-confluence/index'], 'encode' => false],
+                    '<div class="dropdown-divider"></div>',
+                    ['label' => \app\helpers\SvgHelper::icon('rocket-takeoff', ['class' => 'me-2 text-success']) . 'Bullish Breakout Patterns', 'url' => ['/bullish-pattern/index'], 'encode' => false],
+                    ['label' => \app\helpers\SvgHelper::icon('graph-down', ['class' => 'me-2 text-primary']) . 'Double Bottom Scanner (Core)', 'url' => ['/double-bottom/index'], 'encode' => false],
+                    ['label' => \app\helpers\SvgHelper::icon('triangle-half', ['class' => 'me-2 text-info']) . 'Triple Bottom Scanner', 'url' => ['/triple-bottom/index'], 'encode' => false],
+                    ['label' => \app\helpers\SvgHelper::icon('activity', ['class' => 'me-2 text-danger']) . 'RSI Strategy & Signals', 'url' => ['/rsi-double-bottom/index'], 'encode' => false],
+                    '<div class="dropdown-divider"></div>',
+                    ['label' => \app\helpers\SvgHelper::icon('search', ['class' => 'me-2 text-primary']) . 'Volume Scanner', 'url' => ['/scanner/index'], 'encode' => false],
+                    ['label' => \app\helpers\SvgHelper::icon('graph-up', ['class' => 'me-2 text-success']) . 'Moving Average Signals', 'url' => ['/moving-average/index'], 'encode' => false],
+                    ['label' => \app\helpers\SvgHelper::icon('layers', ['class' => 'me-2 text-warning']) . 'Fibonacci Levels', 'url' => ['/fibonacci/index'], 'encode' => false],
+                    ['label' => \app\helpers\SvgHelper::icon('bar-chart-line', ['class' => 'me-2 text-info']) . 'Candlestick Scanner', 'url' => ['/candlestick/index'], 'encode' => false],
+                ],
             ],
         ];
-    }
 
-    if (Yii::$app->user->isGuest) {
-        $topNavItems[] = ['label' => \app\helpers\SvgHelper::icon('info-circle', ['class' => 'me-1']) . ' About', 'url' => ['/site/about'], 'encode' => false];
-        $topNavItems[] = ['label' => \app\helpers\SvgHelper::icon('pencil-square', ['class' => 'me-1']) . ' Register', 'url' => ['/site/register'], 'encode' => false];
-        $topNavItems[] = ['label' => \app\helpers\SvgHelper::icon('key', ['class' => 'me-1']) . ' Login', 'url' => ['/site/login'], 'encode' => false];
-    } else {
+        if ($isAdmin) {
+            $topNavItems[] = [
+                'label' => \app\helpers\SvgHelper::icon('gear', ['class' => 'me-1']) . ' Admin',
+                'encode' => false,
+                'active' => in_array($ctrlId, ['settings', 'user'], true),
+                'items' => [
+                    ['label' => \app\helpers\SvgHelper::icon('gear', ['class' => 'me-2 text-secondary']) . 'Settings', 'url' => ['/settings/index'], 'encode' => false],
+                    ['label' => \app\helpers\SvgHelper::icon('people', ['class' => 'me-2 text-primary']) . 'User Management', 'url' => ['/user/index'], 'encode' => false],
+                ],
+            ];
+        }
+
         $roleBadge = $isAdmin ? ' <span class="badge bg-danger ms-1">Admin</span>' : ' <span class="badge bg-primary ms-1">User</span>';
         $topNavItems[] = [
             'label' => \app\helpers\SvgHelper::icon('person-circle', ['class' => 'me-1']) . ' ' . Html::encode($currentUser->username) . $roleBadge,
@@ -158,6 +155,9 @@ if (!empty($systemItems)) {
                     . '</li>',
             ],
         ];
+    } else {
+        $topNavItems[] = ['label' => \app\helpers\SvgHelper::icon('pencil-square', ['class' => 'me-1']) . ' Register', 'url' => ['/site/register'], 'encode' => false];
+        $topNavItems[] = ['label' => \app\helpers\SvgHelper::icon('key', ['class' => 'me-1']) . ' Login', 'url' => ['/site/login'], 'encode' => false];
     }
 
     echo Nav::widget([
@@ -171,9 +171,11 @@ if (!empty($systemItems)) {
 <main id="main" class="flex-shrink-0" role="main">
     <div class="container-fluid">
         <?php 
+        $isGuest = Yii::$app->user->isGuest;
         $isAuthPage = ($ctrlId === 'site' && in_array(Yii::$app->controller?->action?->id ?? '', ['login', 'register'], true));
+        $hideSidebar = $isGuest || $isAuthPage;
         ?>
-        <?php if ($isAuthPage): ?>
+        <?php if ($hideSidebar): ?>
             <div class="py-2">
                 <?= Alert::widget() ?>
                 <?= $content ?>

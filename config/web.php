@@ -12,14 +12,24 @@ $config = [
     'basePath' => dirname(__DIR__),
     'bootstrap' => ['log', \app\components\SettingsBootstrap::class],
     'on beforeRequest' => function ($event) {
-        // Hanya auto-login jika dalam mode dev lokal dan bukan sedang mengakses halaman login/register/logout/api
-        if (defined('YII_ENV_DEV') && YII_ENV_DEV && Yii::$app->has('user') && Yii::$app->user->isGuest) {
+        // Enforce login untuk semua halaman web/menu aplikasi
+        // Pengecualian publik: login, register, captcha, error, monitoring health, dan REST API (api/)
+        if (Yii::$app->has('user') && Yii::$app->user->isGuest) {
             $reqUrl = Yii::$app->request->url ?? '';
-            if (!str_contains($reqUrl, 'login') && !str_contains($reqUrl, 'register') && !str_contains($reqUrl, 'logout') && !str_contains($reqUrl, 'api/')) {
-                $user = \app\models\User::findIdentity(100) ?: \app\models\User::find()->orderBy(['id' => SORT_ASC])->one();
-                if ($user !== null) {
-                    Yii::$app->user->login($user);
-                }
+            $pathInfo = trim(Yii::$app->request->getPathInfo(), '/');
+            $isPublic = ($pathInfo === '' || $pathInfo === 'site/index') ||
+                        str_contains($reqUrl, 'site/login') ||
+                        str_contains($reqUrl, 'site/register') ||
+                        str_contains($reqUrl, 'site/captcha') ||
+                        str_contains($reqUrl, 'site/error') ||
+                        str_contains($reqUrl, 'health') ||
+                        str_contains($reqUrl, 'api/');
+
+            if (!$isPublic) {
+                // Simpan URL yang dituju sebagai returnUrl jika bukan root
+                Yii::$app->user->setReturnUrl(Yii::$app->request->url);
+                Yii::$app->response->redirect(['/site/login'])->send();
+                exit;
             }
         }
     },
