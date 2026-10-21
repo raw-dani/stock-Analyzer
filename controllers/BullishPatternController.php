@@ -35,9 +35,11 @@ final class BullishPatternController extends Controller
         $triangleCount = count(array_filter($results, fn($r) => ($r['pattern_type'] ?? '') === BullishPatternService::PATTERN_ASCENDING_TRIANGLE));
 
         $breakoutCount = count(array_filter($results, fn($r) => !empty($r['breakout'])));
+        $shakeoutCount = count(array_filter($results, fn($r) => !empty($r['is_shakeout_low']) || ($r['trade_status'] ?? '') === BullishPatternService::STATUS_SHAKEOUT_LOW));
         $buyZoneCount = count(array_filter($results, fn($r) => in_array($r['trade_status'] ?? '', [
             BullishPatternService::STATUS_BUY_ZONE,
             BullishPatternService::STATUS_RETEST,
+            BullishPatternService::STATUS_SHAKEOUT_LOW,
             BullishPatternService::STATUS_CONSOLIDATION_BOUNCE
         ], true)));
         $bullTrapCount = count(array_filter($results, fn($r) => !empty($r['bull_trap_detected'])));
@@ -59,6 +61,7 @@ final class BullishPatternController extends Controller
             'flagCount' => $flagCount,
             'triangleCount' => $triangleCount,
             'breakoutCount' => $breakoutCount,
+            'shakeoutCount' => $shakeoutCount,
             'buyZoneCount' => $buyZoneCount,
             'bullTrapCount' => $bullTrapCount,
             'highRrCount' => $highRrCount,

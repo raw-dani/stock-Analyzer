@@ -53,6 +53,7 @@ final class MultiIndicatorStrategyService
         return [
             'all' => 'Semua Sinyal Gabungan',
             'confluence_buy' => '💎 High Confluence Buy (Skor ≥ 75)',
+            'shakeout_low' => '⚡ Shakeout Low (Support Sweep Reversal)',
             'golden_fib_rsi' => '🎯 Golden Pocket (61.8%) + RSI Oversold',
             'macd_bullish_cross' => '🚀 MACD Bullish Cross + MA Support',
             'oversold_bounce' => '⚡ RSI Oversold (< 35) Reversal',
@@ -289,7 +290,19 @@ final class MultiIndicatorStrategyService
         }
 
         // Kriteria 2: Support / Moving Average (Bobot 20)
-        if ($currClose >= $nearestSupport * 0.99 && $currClose <= $nearestSupport * 1.03) {
+        $isShakeoutLow = false;
+        $shakeoutUndercutPct = 0.0;
+        if ($currLow < $nearestSupport && $currClose >= $nearestSupport) {
+            $shakeoutUndercutPct = round((($nearestSupport - $currLow) / max(0.01, $nearestSupport)) * 100, 2);
+            if ($shakeoutUndercutPct >= 0.2 && $shakeoutUndercutPct <= 5.0) {
+                $isShakeoutLow = true;
+            }
+        }
+
+        if ($isShakeoutLow) {
+            $score += 25; // Shakeout Low adalah sinyal konfluensi pembalikan sangat kuat
+            $signalsList[] = "⚡ Shakeout Low Terdeteksi (Sweep {$shakeoutUndercutPct}% di bawah Support lalu Rebound)";
+        } elseif ($currClose >= $nearestSupport * 0.99 && $currClose <= $nearestSupport * 1.03) {
             $score += 20;
             $signalsList[] = 'Harga bertengger tepat di Dynamic Support MA';
         } elseif ($maBullish && $priceAboveMa) {
@@ -407,6 +420,8 @@ final class MultiIndicatorStrategyService
             'signals_list' => $signalsList,
             // Multi-Timeframe
             'higher_tf_trend' => $higherTfTrend,
+            'is_shakeout_low' => $isShakeoutLow,
+            'shakeout_undercut_pct' => $shakeoutUndercutPct,
             // Indikator 1: MA & S/R
             'sma_20' => $currSma20 !== null ? round($currSma20, 2) : null,
             'sma_50' => $currSma50 !== null ? round($currSma50, 2) : null,
@@ -461,6 +476,7 @@ final class MultiIndicatorStrategyService
     {
         return match ($preset) {
             'confluence_buy' => ($analysis['confluence_score'] >= 75),
+            'shakeout_low' => !empty($analysis['is_shakeout_low']),
             'golden_fib_rsi' => ($analysis['in_golden_pocket'] && $analysis['rsi'] <= 45),
             'macd_bullish_cross' => ($analysis['macd_cross'] === 'BULLISH_CROSS'),
             'oversold_bounce' => ($analysis['rsi'] <= 35),

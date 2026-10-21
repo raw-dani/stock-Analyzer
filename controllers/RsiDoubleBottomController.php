@@ -93,6 +93,8 @@ final class RsiDoubleBottomController extends Controller
             $results = array_filter($results, fn ($r) => !empty($r['is_golden_pocket']));
         } elseif ($statusFilter === 'breakout') {
             $results = array_filter($results, fn ($r) => !empty($r['breakout']));
+        } elseif ($statusFilter === 'shakeout') {
+            $results = array_filter($results, fn ($r) => !empty($r['is_shakeout_low']) || ($r['signal_type'] ?? '') === 'BUY_SHAKEOUT_LOW');
         } elseif ($statusFilter === 'high_conf') {
             $results = array_filter($results, fn ($r) => ($r['confidence'] ?? 0) >= 75);
         }

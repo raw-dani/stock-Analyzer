@@ -185,6 +185,12 @@ $badgeAction = [
                 ) ?>
 
                 <?= Html::a(
+                    \app\helpers\SvgHelper::icon('lightning-charge-fill', ['class' => 'text-warning']) . ' Shakeout Low (' . ($stats['shakeoutCount'] ?? 0) . ')',
+                    $filterWith(['preset' => 'shakeout_low', 'pattern' => 'SHAKEOUT_LOW']),
+                    ['class' => 'btn btn-sm ' . ($params['preset'] === 'shakeout_low' || $params['pattern'] === 'SHAKEOUT_LOW' ? 'btn-warning text-dark active fw-bold' : 'btn-outline-warning text-dark')]
+                ) ?>
+
+                <?= Html::a(
                     '🟢 Bullish Engulfing',
                     $filterWith(['preset' => 'buy_engulfing']),
                     ['class' => 'btn btn-sm ' . ($params['preset'] === 'buy_engulfing' ? 'btn-success text-white' : 'btn-outline-success')]

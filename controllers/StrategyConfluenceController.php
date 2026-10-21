@@ -45,6 +45,7 @@ final class StrategyConfluenceController extends Controller
             'strongBuyCount' => 0,
             'buyCount' => 0,
             'goldenPocketCount' => 0,
+            'shakeoutCount' => 0,
             'macdCrossCount' => 0,
             'oversoldCount' => 0,
         ];
@@ -60,6 +61,9 @@ final class StrategyConfluenceController extends Controller
             }
             if ($r['action'] === MultiIndicatorStrategyService::ACTION_BUY) {
                 $stats['buyCount']++;
+            }
+            if (!empty($r['is_shakeout_low'])) {
+                $stats['shakeoutCount']++;
             }
             if (!empty($r['in_golden_pocket'])) {
                 $stats['goldenPocketCount']++;

@@ -28,6 +28,7 @@ final class FibonacciService
     public const TIMEFRAME_1H = 1;
 
     public const SIGNAL_GOLDEN_POCKET = 'GOLDEN_POCKET'; // 50% - 61.8% Buy Zone (Waktu Beli Terbaik)
+    public const SIGNAL_SHAKEOUT_LOW   = 'SHAKEOUT_LOW';   // Undercut Golden Pocket / 61.8% lalu rebound cepat (Bear Trap)
     public const SIGNAL_PULLBACK_382   = 'PULLBACK_382';   // 38.2% Strong Trend Dip
     public const SIGNAL_DEEP_DISCOUNT  = 'DEEP_DISCOUNT';  // 78.6% Deep Value Retest
     public const SIGNAL_BREAKOUT_HIGH  = 'BREAKOUT_HIGH';  // Menembus Swing High menuju ekstensi
@@ -212,6 +213,8 @@ final class FibonacciService
             'retrace_ratio' => $currentRetraceRatio,
             'retrace_pct' => $currentRetracePct,
             // Sinyal & Rekomendasi
+            'is_shakeout_low' => $setup['is_shakeout_low'] ?? false,
+            'shakeout_undercut_pct' => $setup['shakeout_undercut_pct'] ?? 0.0,
             'signal' => $setup['signal'],
             'action' => $setup['action'],
             'strategy_name' => $setup['strategy_name'],
@@ -401,6 +404,32 @@ final class FibonacciService
             ];
         }
 
+        // 3b. SHAKEOUT LOW (Liquidity Sweep di Golden Pocket / 61.8% Support)
+        // Karakteristik: Low sempat menembus level 61.8% (0.2% - 4.0% di bawah fib 61.8%),
+        // tetapi ditutup kembali di atas level 61.8% (rejection wick / bear trap pembalikan arah).
+        $fib618 = (float) $fib['fib_618'];
+        $isShakeoutLow = false;
+        $undercutPct = 0.0;
+        if ($low < $fib618 && $close >= $fib618) {
+            $undercutPct = round((($fib618 - $low) / $fib618) * 100, 2);
+            if ($undercutPct >= 0.2 && $undercutPct <= 4.5) {
+                $isShakeoutLow = true;
+            }
+        }
+
+        if ($isShakeoutLow) {
+            return [
+                'signal' => self::SIGNAL_SHAKEOUT_LOW,
+                'action' => 'BUY',
+                'is_shakeout_low' => true,
+                'shakeout_undercut_pct' => $undercutPct,
+                'strategy_name' => '⚡ Shakeout Low (Golden Pocket Sweep)',
+                'strategy_badge' => 'warning text-dark',
+                'timing_recommendation' => 'WAKTU BELI SHAKEOUT (Bear Trap Terkonfirmasi)',
+                'description' => "Harga sempat menembus level rasio emas 61.8% sebesar {$undercutPct}% intraday, namun buyer langsung menarik harga kembali di atas level 61.8%. Indikasi kuat liquidity grab & pembalikan arah naik.",
+            ];
+        }
+
         // 4. GOLDEN POCKET RETEST (50.0% - 61.8%) -> WAKTU BELI TERBAIK
         // Dilengkapi konfirmasi penolakan harga (price rejection / bounce)
         $inGoldenPocket = ($close <= $fib['fib_500'] * 1.015 && $close >= $fib['fib_618'] * 0.985);
@@ -565,6 +594,9 @@ final class FibonacciService
         }
         if ($strategy === 'golden_pocket') {
             return $analysis['signal'] === self::SIGNAL_GOLDEN_POCKET;
+        }
+        if ($strategy === 'shakeout_low') {
+            return !empty($analysis['is_shakeout_low']) || $analysis['signal'] === self::SIGNAL_SHAKEOUT_LOW || str_contains($analysis['strategy_name'], 'Shakeout');
         }
         if ($strategy === 'pullback_382') {
             return $analysis['signal'] === self::SIGNAL_PULLBACK_382;

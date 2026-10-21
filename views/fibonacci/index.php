@@ -121,6 +121,12 @@ $badgeAction = [
                 ) ?>
 
                 <?= Html::a(
+                    \app\helpers\SvgHelper::icon('lightning-charge-fill', ['class' => 'text-warning']) . ' Shakeout Low (' . ($stats['shakeoutCount'] ?? 0) . ')',
+                    $filterWith(['strategy' => 'shakeout_low']),
+                    ['class' => 'btn btn-sm ' . ($params['strategy'] === 'shakeout_low' ? 'btn-warning text-dark active fw-bold' : 'btn-outline-warning text-dark')]
+                ) ?>
+
+                <?= Html::a(
                     \app\helpers\SvgHelper::icon('arrow-down-right') . ' Pullback 38.2% Dip',
                     $filterWith(['strategy' => 'pullback_382']),
                     ['class' => 'btn btn-sm ' . ($params['strategy'] === 'pullback_382' ? 'btn-primary' : 'btn-outline-primary')]
@@ -204,6 +210,7 @@ $badgeAction = [
                     'all' => 'Semua Sinyal',
                     'buy_all' => 'Semua Posisi Beli',
                     'golden_pocket' => '⭐ Golden Pocket (50%-61.8%)',
+                    'shakeout_low' => '⚡ Shakeout Low (Golden Pocket Sweep)',
                     'pullback_382' => 'Pullback 38.2% Dip',
                     'breakout_high' => 'Breakout Swing High',
                     'sell_all' => 'Semua Alert Jual / TP',
@@ -340,6 +347,11 @@ $badgeAction = [
                                     <span class="badge bg-<?= $r['strategy_badge'] ?> text-truncate" style="max-width: 190px;" title="<?= Html::encode($r['strategy_name']) ?>">
                                         <?= Html::encode($r['strategy_name']) ?>
                                     </span>
+                                    <?php if (!empty($r['is_shakeout_low'])): ?>
+                                        <span class="badge bg-warning text-dark border border-warning" style="font-size:0.65rem;" title="Undercut 61.8% by <?= $r['shakeout_undercut_pct'] ?? 0 ?>%">
+                                            <?= \app\helpers\SvgHelper::icon('lightning-charge-fill') ?> Sweep <?= $r['shakeout_undercut_pct'] ?? 0 ?>%
+                                        </span>
+                                    <?php endif; ?>
                                 </div>
                                 <span class="small fw-semibold <?= ($act === 'BUY') ? 'text-success' : (($act === 'TAKE_PROFIT') ? 'text-warning-emphasis' : 'text-danger') ?>">
                                     <?= Html::encode($r['timing_recommendation']) ?>

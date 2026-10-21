@@ -397,6 +397,14 @@ final class RsiDoubleBottomService
             $signalReason = 'Peluang akumulasi terbaik! Bullish Divergence (harga buat lower-low tapi RSI mencetak higher-low)' . ($volumeSupportive ? ' dengan dukungan Volume' : '') . '.';
             $confidence = $isAboveMa50 ? 95 : 85;
             if ($volumeSpike) $confidence = min(98, $confidence + 3);
+        } elseif ($dbPattern !== null && !empty($dbPattern['is_shakeout_low']) && ($curRsi > $prevRsi || !empty($dbPattern['breakout']))) {
+            $signalType = 'BUY_SHAKEOUT_LOW';
+            $action = 'BUY_NOW';
+            $actionLabel = 'BUY (SHAKEOUT LOW)';
+            $actionBadge = 'bg-success';
+            $signalReason = 'Liquidity Sweep Terkonfirmasi! Terjadi Shakeout Low (-' . ($dbPattern['shakeout_pct'] ?? 0) . '%) di mana harga sempat undercut support lalu memantul solid.';
+            $confidence = $isAboveMa50 ? 94 : 86;
+            if ($volumeSpike) $confidence = min(98, $confidence + 3);
         } elseif ($isGoldenPocket && $curRsi > $prevRsi && $curRsi <= 45.0) {
             $signalType = 'BUY_FIB_GOLDEN_POCKET';
             $action = 'BUY_NOW';
@@ -565,6 +573,8 @@ final class RsiDoubleBottomService
             'breakout' => $isBreakout,
             'rsi_distance' => round($curRsi - $necklineRsi, 2),
             'has_db_pattern' => ($dbPattern !== null),
+            'is_shakeout_low' => !empty($dbPattern['is_shakeout_low']),
+            'shakeout_pct' => (float) ($dbPattern['shakeout_pct'] ?? 0.0),
         ];
     }
 
@@ -748,6 +758,18 @@ final class RsiDoubleBottomService
                     $conf += 10;
                 }
 
+                // Deteksi Shakeout Low: Harga Low 2 menusuk di bawah Low 1 (undercut/liquidity sweep terukur 0.2% - 5%)
+                $isShakeoutLow = false;
+                $shakeoutPct = 0.0;
+                if ($p1 > 0 && $p2 < $p1 * 0.998) {
+                    $undercut = ($p1 - $p2) / $p1;
+                    if ($undercut <= 0.05) { // Undercut terukur hingga 5%
+                        $isShakeoutLow = true;
+                        $shakeoutPct = round($undercut * 100, 1);
+                        $conf += 8; // Bonus setup liquidity grab
+                    }
+                }
+
                 $cand = [
                     'rsi1_value' => round($r1, 2),
                     'rsi1_date' => $candles[$i1]['date'],
@@ -760,6 +782,8 @@ final class RsiDoubleBottomService
                     'low2_price' => $p2,
                     'breakout' => $breakout,
                     'confidence' => min(100, $conf),
+                    'is_shakeout_low' => $isShakeoutLow,
+                    'shakeout_pct' => $shakeoutPct,
                 ];
 
                 if ($best === null || $cand['confidence'] > $best['confidence']) {

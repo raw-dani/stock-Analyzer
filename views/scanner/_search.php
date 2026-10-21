@@ -52,6 +52,12 @@ $isPresetMomentum = ($model->maxPrice == 20 && $model->minVolumeGrowth == 0.3);
                     ) ?>
                 <?php else: ?>
                     <?= Html::a(
+                        \app\helpers\SvgHelper::icon('lightning-charge-fill', ['class' => 'text-warning']) . ' Shakeout Low (Pin Reversal)',
+                        ['/candlestick/index', 'preset' => 'shakeout_low'],
+                        ['class' => 'btn btn-sm btn-outline-warning text-dark', 'title' => 'Scan saham dengan pola Shakeout Low / Bear Trap Reversal']
+                    ) ?>
+
+                    <?= Html::a(
                         \app\helpers\SvgHelper::icon('buildings') . ' Akumulasi Institusi',
                         ['/scanner/index', 'minBuyRatio' => '0.7', 'minScore' => '60', 'mode' => 'weekly'],
                         ['class' => 'btn btn-sm ' . ($isPresetInstAcc ? 'btn-primary shadow-sm' : 'btn-outline-primary'), 'title' => 'Buy Ratio ≥ 70%, Skor ≥ 60']

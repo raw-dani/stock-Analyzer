@@ -80,9 +80,14 @@ $badgeAction = [
     <div class="col-6 col-md-3">
         <div class="card border-0 shadow-sm h-100 bg-white border-start border-warning border-4">
             <div class="card-body p-3">
-                <div class="text-muted small text-uppercase fw-semibold">Fibonacci Golden Pocket</div>
-                <div class="h3 fw-bold mb-0 text-warning"><?= number_format($stats['goldenPocketCount']) ?></div>
-                <div class="small text-muted mt-1"><?= \app\helpers\SvgHelper::icon('bullseye', ['class' => 'text-warning']) ?> Area Retracement 50% - 61.8%</div>
+                <div class="text-muted small text-uppercase fw-semibold">Fibonacci / Shakeout Low</div>
+                <div class="h3 fw-bold mb-0 text-warning">
+                    <?= number_format($stats['goldenPocketCount']) ?>
+                    <?php if (($stats['shakeoutCount'] ?? 0) > 0): ?>
+                        <span class="fs-6 fw-normal badge bg-warning text-dark ms-1">⚡ <?= $stats['shakeoutCount'] ?> Shakeout</span>
+                    <?php endif; ?>
+                </div>
+                <div class="small text-muted mt-1"><?= \app\helpers\SvgHelper::icon('bullseye', ['class' => 'text-warning']) ?> Golden Pocket &amp; Liquidity Sweep</div>
             </div>
         </div>
     </div>
@@ -260,7 +265,14 @@ $badgeAction = [
 
                             <!-- Support & MA -->
                             <td>
-                                <div class="small fw-semibold text-dark">$<?= number_format($r['support'], 2) ?></div>
+                                <div class="small fw-semibold text-dark">
+                                    $<?= number_format($r['support'], 2) ?>
+                                    <?php if (!empty($r['is_shakeout_low'])): ?>
+                                        <span class="badge bg-warning text-dark border border-warning ms-1" style="font-size: 0.65rem;" title="Liquidity sweep <?= $r['shakeout_undercut_pct'] ?? 0 ?>% di bawah support">
+                                            ⚡ Sweep <?= $r['shakeout_undercut_pct'] ?? 0 ?>%
+                                        </span>
+                                    <?php endif; ?>
+                                </div>
                                 <div class="small text-muted" style="font-size: 0.72rem;">
                                     EMA20: $<?= $r['ema_20'] ? number_format($r['ema_20'], 2) : '—' ?>
                                 </div>

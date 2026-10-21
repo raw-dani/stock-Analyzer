@@ -134,6 +134,17 @@ $slTightPct = $curPrice > 0 ? round((($curPrice - $slTight) / $curPrice) * 100, 
                             </td>
                         </tr>
                         <tr class="border-bottom">
+                            <td class="text-muted py-2"><?= \app\helpers\SvgHelper::icon('lightning-charge', ['class' => 'text-secondary me-1']) ?> Status Shakeout Low</td>
+                            <td class="text-end py-2">
+                                <?php if (!empty($pattern['is_shakeout_low']) || ($pattern['signal_type'] ?? '') === 'BUY_SHAKEOUT_LOW'): ?>
+                                    <span class="badge bg-secondary text-white"><?= \app\helpers\SvgHelper::icon('lightning-charge') ?> Shakeout Low Terdeteksi (-<?= number_format((float)($pattern['shakeout_pct'] ?? 0), 1) ?>%)</span>
+                                    <small class="text-muted d-block" style="font-size: 0.72rem;">Undercut support Low 1 sebelum memantul kembali (Liquidity Sweep)</small>
+                                <?php else: ?>
+                                    <span class="badge bg-light text-muted border">Normal / Tidak Ada Shakeout</span>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                        <tr class="border-bottom">
                             <td class="text-muted py-2"><?= \app\helpers\SvgHelper::icon('shield-x', ['class' => 'text-danger me-1']) ?> Batas Cut Loss (SL)</td>
                             <td class="text-end py-2">
                                 <span class="text-danger fw-bold fs-6">$<?= number_format($slSwing, 2) ?></span>

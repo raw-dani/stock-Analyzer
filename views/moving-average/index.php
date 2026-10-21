@@ -154,6 +154,12 @@ $badgeAction = [
                 ) ?>
 
                 <?= Html::a(
+                    \app\helpers\SvgHelper::icon('lightning-charge-fill', ['class' => 'text-warning']) . ' Shakeout Low (' . ($stats['shakeoutCount'] ?? 0) . ')',
+                    $filterWith(['strategy' => 'shakeout_low']),
+                    ['class' => 'btn btn-sm ' . ($params['strategy'] === 'shakeout_low' ? 'btn-warning text-dark active fw-bold' : 'btn-outline-warning text-dark')]
+                ) ?>
+
+                <?= Html::a(
                     \app\helpers\SvgHelper::icon('graph-up-arrow') . ' MA Breakout + Vol',
                     $filterWith(['strategy' => 'breakout']),
                     ['class' => 'btn btn-sm ' . ($params['strategy'] === 'breakout' ? 'btn-primary' : 'btn-outline-primary')]
@@ -211,6 +217,7 @@ $badgeAction = [
                     'all' => 'Semua Setup Strategi',
                     'buy_all' => '🟢 Semua Setup BELI (BUY)',
                     'golden_cross' => '⭐ Golden Cross (Persilangan MA)',
+                    'shakeout_low' => '⚡ Shakeout Low (MA Bear Trap)',
                     'candle_bounce' => '🕯️ MA Bounce + Candlestick Reversal',
                     'pullback' => '🎯 Pullback Buy on Dip (MA Support)',
                     'breakout' => '🚀 Breakout di Atas MA',
@@ -403,7 +410,14 @@ $badgeAction = [
                                 </span>
                             </td>
                             <td>
-                                <div class="fw-semibold text-dark small"><?= Html::encode($r['strategy_name']) ?></div>
+                                <div class="fw-semibold text-dark small">
+                                    <?= Html::encode($r['strategy_name']) ?>
+                                    <?php if (!empty($r['is_shakeout_low'])): ?>
+                                        <span class="badge bg-warning text-dark border border-warning ms-1" style="font-size:0.65rem;" title="Liquidity sweep undercuts MA by <?= $r['shakeout_undercut_pct'] ?? 0 ?>%">
+                                            <?= \app\helpers\SvgHelper::icon('lightning-charge-fill') ?> Sweep <?= $r['shakeout_undercut_pct'] ?? 0 ?>%
+                                        </span>
+                                    <?php endif; ?>
+                                </div>
                                 <div class="text-muted small" style="font-size: 0.73rem;">
                                     Jarak MA: <span class="<?= $r['dist_fast_pct'] >= 0 ? 'text-success' : 'text-danger' ?> fw-bold"><?= ($r['dist_fast_pct'] > 0 ? '+' : '') . $r['dist_fast_pct'] ?>%</span>
                                     &bull; Tren: <strong><?= Html::encode($r['trend_status']) ?></strong>
@@ -411,6 +425,11 @@ $badgeAction = [
                             </td>
                             <td class="text-center">
                                 <div class="d-flex flex-column gap-1 align-items-center">
+                                    <?php if (!empty($r['is_shakeout_low'])): ?>
+                                        <span class="badge bg-warning text-dark border border-warning" style="font-size:0.68rem;" title="Bear Trap: Undercut lalu rebound di atas MA">
+                                            <?= \app\helpers\SvgHelper::icon('shield-check') ?> Shakeout Low
+                                        </span>
+                                    <?php endif; ?>
                                     <span class="badge bg-light text-dark border" style="font-size:0.7rem;" title="RSI Momentum (14)">
                                         RSI(14): <strong class="<?= $rsiColor ?>"><?= number_format($rsiVal, 1) ?></strong>
                                     </span>

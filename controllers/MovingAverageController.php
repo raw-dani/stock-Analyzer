@@ -51,6 +51,7 @@ final class MovingAverageController extends Controller
                 'pullbackCount' => 0,
                 'candleBounceCount' => 0,
                 'volumeSurgeCount' => 0,
+                'shakeoutCount' => 0,
                 'sellCount' => 0,
             ];
 
@@ -65,6 +66,9 @@ final class MovingAverageController extends Controller
                 }
                 if ($r['signal'] === MovingAverageService::SIGNAL_PULLBACK_BUY) {
                     $stats['pullbackCount']++;
+                }
+                if (!empty($r['is_shakeout_low']) || ($r['signal'] ?? '') === MovingAverageService::SIGNAL_SHAKEOUT_BUY) {
+                    $stats['shakeoutCount']++;
                 }
                 if (!empty($r['candle_pattern']) && ($r['candle_signal'] ?? '') === 'BULLISH') {
                     $stats['candleBounceCount']++;

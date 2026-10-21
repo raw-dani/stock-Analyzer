@@ -68,9 +68,28 @@ class CryptoController extends Controller
             }
         }
 
+        // Optimasi: Preload 2 bar terakhir per crypto untuk timeframe aktif guna mendeteksi Shakeout Low (Liquidity Sweep)
+        $latestBarsMap = [];
+        if (!empty($assets)) {
+            $assetIds = array_map(fn($a) => $a->id, $assets);
+            $allBars = CryptoPrice::find()
+                ->where(['crypto_id' => $assetIds, 'timeframe' => $timeframe])
+                ->orderBy(['bar_time' => SORT_DESC])
+                ->all();
+            foreach ($allBars as $b) {
+                if (!isset($latestBarsMap[$b->crypto_id])) {
+                    $latestBarsMap[$b->crypto_id] = [];
+                }
+                if (count($latestBarsMap[$b->crypto_id]) < 2) {
+                    $latestBarsMap[$b->crypto_id][] = $b;
+                }
+            }
+        }
+
         $rows = [];
         $strongBuyCount = 0;
         $heavyAccumCount = 0;
+        $shakeoutCount = 0;
         $totalBuyRatio = 0.0;
         $validAnalysisCount = 0;
         $topGainer = null;
@@ -115,8 +134,42 @@ class CryptoController extends Controller
                 }
             }
 
-            // Filter sinyal
-            if ($signalFilter !== '' && $signal !== $signalFilter) {
+            // Evaluasi Shakeout Low (Liquidity Sweep / Bear Trap Rebound)
+            $isShakeoutLow = false;
+            $shakeoutUndercutPct = 0.0;
+            $bars = $latestBarsMap[$asset->id] ?? [];
+            if (count($bars) >= 2) {
+                $latestBar = $bars[0]; // descending order (terbaru)
+                $prevBar = $bars[1];
+                $prevLow = (float)$prevBar->low;
+                $latestLow = (float)$latestBar->low;
+                $isGreen = $currentPrice >= (float)$latestBar->open;
+
+                if ($prevLow > 0 && $latestLow < $prevLow) {
+                    $undercut = (($prevLow - $latestLow) / $prevLow) * 100.0;
+                    if ($undercut >= 0.2 && $undercut <= 5.0 && $currentPrice >= $prevLow && ($isGreen || $buyRatio >= 50.0)) {
+                        $isShakeoutLow = true;
+                        $shakeoutUndercutPct = round($undercut, 2);
+                    }
+                } elseif ($ma20 !== null && $latestLow < $ma20 && $currentPrice >= $ma20) {
+                    $undercutMa = (($ma20 - $latestLow) / $ma20) * 100.0;
+                    if ($undercutMa >= 0.2 && $undercutMa <= 5.0 && ($isGreen || $buyRatio >= 50.0)) {
+                        $isShakeoutLow = true;
+                        $shakeoutUndercutPct = round($undercutMa, 2);
+                    }
+                }
+            }
+
+            if ($isShakeoutLow) {
+                $shakeoutCount++;
+            }
+
+            // Filter sinyal & Shakeout Low
+            if ($signalFilter === 'shakeout_low') {
+                if (!$isShakeoutLow) {
+                    continue;
+                }
+            } elseif ($signalFilter !== '' && $signal !== $signalFilter) {
                 continue;
             }
 
@@ -133,6 +186,8 @@ class CryptoController extends Controller
                 'ma50' => $ma50,
                 'score' => $score,
                 'signal' => $signal,
+                'isShakeoutLow' => $isShakeoutLow,
+                'shakeoutUndercutPct' => $shakeoutUndercutPct,
             ];
         }
 
@@ -163,6 +218,7 @@ class CryptoController extends Controller
                 'filtered' => count($rows),
                 'strongBuy' => $strongBuyCount,
                 'heavyAccum' => $heavyAccumCount,
+                'shakeoutCount' => $shakeoutCount,
                 'avgBuyRatio' => $avgBuyRatio,
                 'topGainer' => $topGainer,
                 'topLoser' => $topLoser,

@@ -34,6 +34,7 @@ final class CandlestickService
     public const TIMEFRAME_1H = 1;
 
     public const PATTERN_HAMMER            = 'HAMMER';
+    public const PATTERN_SHAKEOUT_LOW       = 'SHAKEOUT_LOW';
     public const PATTERN_INVERTED_HAMMER   = 'INVERTED_HAMMER';
     public const PATTERN_SHOOTING_STAR     = 'SHOOTING_STAR';
     public const PATTERN_BULLISH_ENGULFING = 'BULLISH_ENGULFING';
@@ -79,6 +80,7 @@ final class CandlestickService
     {
         return [
             self::PATTERN_HAMMER            => '🔨 Hammer (Bullish Reversal)',
+            self::PATTERN_SHAKEOUT_LOW       => '⚡ Shakeout Low (Liquidity Sweep)',
             self::PATTERN_INVERTED_HAMMER   => '🔨 Inverted Hammer',
             self::PATTERN_SHOOTING_STAR     => '⭐ Shooting Star (Bearish Top)',
             self::PATTERN_BULLISH_ENGULFING => '🟢 Bullish Engulfing (Kuat Beli)',
@@ -514,6 +516,31 @@ final class CandlestickService
                 $entryAdvice = 'HINDARI PEMBELIAN.';
                 $exitAdvice = 'Waktu Jual Tepat: Amankan keuntungan segera (Take Profit) sebelum koreksi tajam berlanjut.';
                 $baseConfidence = 80;
+            }
+        }
+
+        // ---------------------------------------------------------
+        // 2b. POLA SHAKEOUT LOW (LIQUIDITY SWEEP & REJECTION CANDLE)
+        // ---------------------------------------------------------
+        if ($patternCode === null) {
+            // Syarat Shakeout Low Candlestick:
+            // 1. Bar ini menusuk ke bawah low bar sebelumnya ($cLow < $pLow * 0.998)
+            // 2. Memiliki lower shadow panjang (penolakan harga bawah: $lowerRatio >= 0.45 atau lower wick >= 1.5x body)
+            // 3. Ditutup rebound kuat ($cClose >= $pClose atau $isBullish)
+            $isUndercutPrev = ($cLow < $pLow);
+            $undercutPct = $pLow > 0 ? round((($pLow - $cLow) / $pLow) * 100, 2) : 0.0;
+            $hasLongLowerWick = ($lowerRatio >= 0.45 || ($cLowerWick >= (1.5 * $cBody) && $cLowerWick > 0));
+            $isReboundClose = ($cClose >= $pLow && ($isBullish || $cClose >= $pClose * 0.998));
+
+            if ($isUndercutPrev && $undercutPct >= 0.2 && $undercutPct <= 5.0 && $hasLongLowerWick && $isReboundClose) {
+                $patternCode = self::PATTERN_SHAKEOUT_LOW;
+                $patternName = 'Shakeout Low (Liquidity Sweep)';
+                $patternSubtype = 'Bear Trap Pin Rejection';
+                $action = self::ACTION_STRONG_BUY;
+                $patternDescription = "Harga sempat dijatuhkan menembus level terendah bar sebelumnya sebesar {$undercutPct}% untuk membersihkan stop loss (shakeout), namun langsung diserap dengan ekor bawah panjang dan ditutup rebound ke atas.";
+                $entryAdvice = "Waktu Beli Terbaik: Entry saat konfirmasi penolakan sweep terbukti valid (dekat level close saat ini).";
+                $exitAdvice = "Pasang Stop Loss ketat tepat di bawah jarum sweep Low (\${$cLow}).";
+                $baseConfidence = 82;
             }
         }
 
@@ -1119,6 +1146,7 @@ final class CandlestickService
     {
         return match ($code) {
             self::PATTERN_HAMMER, self::PATTERN_INVERTED_HAMMER => 'success',
+            self::PATTERN_SHAKEOUT_LOW => 'warning text-dark',
             self::PATTERN_BULLISH_ENGULFING, self::PATTERN_MORNING_STAR => 'success',
             self::PATTERN_BULLISH_MARUBOZU => 'primary',
             self::PATTERN_SHOOTING_STAR, self::PATTERN_BEARISH_ENGULFING, self::PATTERN_BEARISH_MARUBOZU, self::PATTERN_EVENING_STAR => 'danger',
@@ -1131,6 +1159,7 @@ final class CandlestickService
     {
         return match ($code) {
             self::PATTERN_HAMMER, self::PATTERN_INVERTED_HAMMER => '🔨',
+            self::PATTERN_SHAKEOUT_LOW => '⚡',
             self::PATTERN_SHOOTING_STAR => '⭐',
             self::PATTERN_BULLISH_ENGULFING => '🟢',
             self::PATTERN_BEARISH_ENGULFING => '🔴',

@@ -245,6 +245,26 @@ class CryptoAnalyzerService extends Component
             $score -= 10;
         }
 
+        // Faktor 5: Shakeout Low (Liquidity Sweep / Bear Trap)
+        // Terjadi ketika low menembus ke bawah low bar sebelumnya atau MA20 (0.2% - 5.0%),
+        // lalu harga rebound ditutup kembali ke atas support dan diserap buyer (green candle atau buy ratio >= 50%)
+        $isShakeout = false;
+        $prevBarLow = (float)$prevBar->low;
+        $latestLow = (float)$latestBar->low;
+        if ($prevBarLow > 0 && $latestLow < $prevBarLow) {
+            $undercutPct = (($prevBarLow - $latestLow) / $prevBarLow) * 100.0;
+            if ($undercutPct >= 0.2 && $undercutPct <= 5.0 && $currentPrice >= $prevBarLow && ($isLatestGreen || $finalBuyRatio >= 50.0)) {
+                $isShakeout = true;
+                $score += 12; // Skor reward untuk absorpsi bear trap
+            }
+        } elseif ($ma20 !== null && $latestLow < $ma20 && $currentPrice >= $ma20) {
+            $undercutMaPct = (($ma20 - $latestLow) / $ma20) * 100.0;
+            if ($undercutMaPct >= 0.2 && $undercutMaPct <= 5.0 && ($isLatestGreen || $finalBuyRatio >= 50.0)) {
+                $isShakeout = true;
+                $score += 10;
+            }
+        }
+
         // Clamp 0 - 100
         $score = max(0, min(100, $score));
 

@@ -106,8 +106,13 @@ $tfLabels = CryptoPrice::SUPPORTED_TIMEFRAMES;
                     <div class="h3 mb-0 fw-bold text-success">
                         <?= $stats['strongBuy'] ?> <span class="fs-6 fw-normal text-muted">Koin</span>
                     </div>
-                    <div class="small text-muted mt-1">
-                        <span class="fw-bold text-success"><?= $stats['heavyAccum'] ?> koin</span> Buy Ratio &ge; 65%
+                    <div class="small text-muted mt-1 d-flex flex-wrap align-items-center gap-1">
+                        <span><span class="fw-bold text-success"><?= $stats['heavyAccum'] ?></span> Buy &ge;65%</span>
+                        <?php if (($stats['shakeoutCount'] ?? 0) > 0): ?>
+                            <a href="<?= Url::to(['/crypto/index', 'timeframe' => $timeframe, 'signal' => 'shakeout_low', 'currency' => $currency]) ?>" class="badge bg-warning text-dark text-decoration-none border border-warning" title="Lihat koin yang mengalami Shakeout Low / Liquidity Sweep">
+                                ⚡ <?= $stats['shakeoutCount'] ?> Shakeout
+                            </a>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
@@ -175,6 +180,7 @@ $tfLabels = CryptoPrice::SUPPORTED_TIMEFRAMES;
                 <div class="col-6 col-md-3">
                     <select name="signal" class="form-select form-select-sm" onchange="this.form.submit()">
                         <option value="">Semua Sinyal</option>
+                        <option value="shakeout_low" <?= $signalFilter === 'shakeout_low' ? 'selected' : '' ?>>⚡ Shakeout Low (Liquidity Sweep)</option>
                         <option value="<?= CryptoAnalysis::SIGNAL_STRONG_BUY ?>" <?= $signalFilter === CryptoAnalysis::SIGNAL_STRONG_BUY ? 'selected' : '' ?>>Strong Buy (Akumulasi Tinggi)</option>
                         <option value="<?= CryptoAnalysis::SIGNAL_BUY ?>" <?= $signalFilter === CryptoAnalysis::SIGNAL_BUY ? 'selected' : '' ?>>Buy (Bullish)</option>
                         <option value="<?= CryptoAnalysis::SIGNAL_NEUTRAL ?>" <?= $signalFilter === CryptoAnalysis::SIGNAL_NEUTRAL ? 'selected' : '' ?>>Neutral</option>
@@ -368,6 +374,13 @@ $tfLabels = CryptoPrice::SUPPORTED_TIMEFRAMES;
                                     <?php else: ?>
                                         <span class="text-muted">-</span>
                                     <?php endif; ?>
+                                    <?php if (!empty($row['isShakeoutLow'])): ?>
+                                        <div class="mt-1">
+                                            <span class="badge bg-warning text-dark border border-warning" style="font-size: 0.65rem;" title="Liquidity Sweep / Bear Trap Rebound (Undercut: <?= $row['shakeoutUndercutPct'] ?>%)">
+                                                ⚡ Sweep <?= $row['shakeoutUndercutPct'] ?>%
+                                            </span>
+                                        </div>
+                                    <?php endif; ?>
                                 </td>
 
                                 <td>
@@ -375,9 +388,16 @@ $tfLabels = CryptoPrice::SUPPORTED_TIMEFRAMES;
                                         <div class="score-circle-sm <?= $score >= 75 ? 'border-success text-success' : ($score <= 35 ? 'border-danger text-danger' : 'border-secondary text-secondary') ?>">
                                             <?= $score ?>
                                         </div>
-                                        <span class="badge <?= $badgeClass ?> px-2 py-1" style="font-size: 0.7rem;">
-                                            <?= Html::encode($signal) ?>
-                                        </span>
+                                        <div>
+                                            <span class="badge <?= $badgeClass ?> px-2 py-1" style="font-size: 0.7rem;">
+                                                <?= Html::encode($signal) ?>
+                                            </span>
+                                            <?php if (!empty($row['isShakeoutLow'])): ?>
+                                                <div class="text-warning fw-bold small" style="font-size: 0.65rem;">
+                                                    <i class="bi bi-lightning-charge-fill"></i> Shakeout
+                                                </div>
+                                            <?php endif; ?>
+                                        </div>
                                     </div>
                                 </td>
 

@@ -52,6 +52,7 @@ final class FibonacciController extends Controller
             $stats = [
                 'total' => count($results),
                 'goldenPocketCount' => 0,
+                'shakeoutCount' => 0,
                 'buyCount' => 0,
                 'targetReachedCount' => 0,
                 'breakdownCount' => 0,
@@ -65,6 +66,9 @@ final class FibonacciController extends Controller
 
                 if ($r['signal'] === FibonacciService::SIGNAL_GOLDEN_POCKET) {
                     $stats['goldenPocketCount']++;
+                }
+                if (!empty($r['is_shakeout_low']) || ($r['signal'] ?? '') === FibonacciService::SIGNAL_SHAKEOUT_LOW) {
+                    $stats['shakeoutCount']++;
                 }
                 if ($r['action'] === 'BUY') {
                     $stats['buyCount']++;

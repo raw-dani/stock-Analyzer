@@ -30,6 +30,7 @@ $bearDivCount = count(array_filter($allPatterns, fn($r) => !empty($r['bearish_di
 $volumeSurgeCount = count(array_filter($allPatterns, fn($r) => !empty($r['volume_spike'])));
 $candleReversalCount = count(array_filter($allPatterns, fn($r) => !empty($r['candle_pattern'])));
 $fibPocketCount = count(array_filter($allPatterns, fn($r) => !empty($r['is_golden_pocket'])));
+$shakeoutCount = count(array_filter($allPatterns, fn($r) => !empty($r['is_shakeout_low']) || ($r['signal_type'] ?? '') === 'BUY_SHAKEOUT_LOW'));
 $oversoldWatchCount = count(array_filter($allPatterns, fn($r) => ($r['current_rsi'] ?? 50) <= 35));
 $overboughtWatchCount = count(array_filter($allPatterns, fn($r) => ($r['current_rsi'] ?? 50) >= 65));
 
@@ -184,6 +185,7 @@ $staleDays = $dailyMax ? (int) floor((time() - strtotime($dailyMax . ' 23:59:00'
                     'volume_surge' => ['label' => 'Vol Surge (' . $volumeSurgeCount . ')', 'icon' => 'bar-chart-fill', 'class' => 'btn-outline-info'],
                     'candle_reversal' => ['label' => 'Candle Pattern (' . $candleReversalCount . ')', 'icon' => 'reception-4', 'class' => 'btn-outline-primary'],
                     'fib_pocket' => ['label' => 'Fib Golden Zone (' . $fibPocketCount . ')', 'icon' => 'bullseye', 'class' => 'btn-outline-warning'],
+                    'shakeout' => ['label' => 'Shakeout Low (' . $shakeoutCount . ')', 'icon' => 'lightning-charge', 'class' => 'btn-outline-secondary'],
                     'oversold' => ['label' => 'Oversold &le; 35 (' . $oversoldWatchCount . ')', 'icon' => 'arrow-down-circle', 'class' => 'btn-outline-secondary'],
                     'overbought' => ['label' => 'Overbought &ge; 65 (' . $overboughtWatchCount . ')', 'icon' => 'arrow-up-circle', 'class' => 'btn-outline-secondary'],
                 ];
@@ -362,7 +364,13 @@ $staleDays = $dailyMax ? (int) floor((time() - strtotime($dailyMax . ' 23:59:00'
                                         </span>
                                     <?php endif; ?>
 
-                                    <?php if (empty($r['divergence']) && empty($r['bearish_divergence']) && empty($r['volume_spike']) && empty($r['candle_pattern']) && empty($r['is_golden_pocket'])): ?>
+                                    <?php if (!empty($r['is_shakeout_low']) || ($r['signal_type'] ?? '') === 'BUY_SHAKEOUT_LOW'): ?>
+                                        <span class="badge bg-secondary text-white" title="Shakeout Low: Undercut support lalu memantul kembali">
+                                            <?= \app\helpers\SvgHelper::icon('lightning-charge') ?> Shakeout Low <?= !empty($r['shakeout_pct']) ? '(-' . $r['shakeout_pct'] . '%)' : '' ?>
+                                        </span>
+                                    <?php endif; ?>
+
+                                    <?php if (empty($r['divergence']) && empty($r['bearish_divergence']) && empty($r['volume_spike']) && empty($r['candle_pattern']) && empty($r['is_golden_pocket']) && empty($r['is_shakeout_low']) && ($r['signal_type'] ?? '') !== 'BUY_SHAKEOUT_LOW'): ?>
                                         <span class="text-muted small">—</span>
                                     <?php endif; ?>
                                 </div>

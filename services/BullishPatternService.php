@@ -44,6 +44,7 @@ final class BullishPatternService
     public const STATUS_BUY_ZONE = 'buy_zone';
     public const STATUS_RETEST = 'retest';
     public const STATUS_CONSOLIDATION_BOUNCE = 'consolidation_bounce';
+    public const STATUS_SHAKEOUT_LOW = 'shakeout_low';
     public const STATUS_EXTENDED = 'extended';
     public const STATUS_OVEREXTENDED = 'overextended';
     public const STATUS_APPROACHING = 'approaching';
@@ -831,9 +832,27 @@ final class BullishPatternService
                 $tradeAction = 'PRE-BREAKOUT WATCH';
                 $actionDesc = 'Harga mendekati batas atas resistance. Pasang Buy Stop Order tepat di atas resistance.';
             } elseif ($currentClose <= $supportBase * 1.03) {
-                $tradeStatus = self::STATUS_CONSOLIDATION_BOUNCE;
-                $tradeAction = 'AGGRESSIVE BUY (Support Bounce)';
-                $actionDesc = 'Peluang beli dini di batas bawah pola dengan Stop Loss rapat di bawah support.';
+                // Periksa apakah bar mutakhir melakukan Shakeout Low (liquidity sweep di bawah lantai support)
+                $latestCandle = end($candles);
+                $latestLow = (float) $latestCandle['low'];
+                $isShakeoutLow = false;
+                $undercutPct = 0.0;
+                if ($latestLow < $supportBase && $currentClose >= $supportBase) {
+                    $undercutPct = round((($supportBase - $latestLow) / max(0.01, $supportBase)) * 100, 2);
+                    if ($undercutPct >= 0.2 && $undercutPct <= 5.0) {
+                        $isShakeoutLow = true;
+                    }
+                }
+
+                if ($isShakeoutLow) {
+                    $tradeStatus = self::STATUS_SHAKEOUT_LOW;
+                    $tradeAction = '⚡ SHAKEOUT BUY (Support Sweep)';
+                    $actionDesc = "Terjadi liquidity sweep / shakeout low: harga sempat menusuk ke bawah lantai support pola sebesar {$undercutPct}% lalu ditarik rebound cepat ke atas (Bear Trap). Peluang beli terbaik dengan SL rapat!";
+                } else {
+                    $tradeStatus = self::STATUS_CONSOLIDATION_BOUNCE;
+                    $tradeAction = 'AGGRESSIVE BUY (Support Bounce)';
+                    $actionDesc = 'Peluang beli dini di batas bawah pola dengan Stop Loss rapat di bawah support.';
+                }
             } else {
                 $tradeStatus = self::STATUS_FORMING;
                 $tradeAction = 'FORMING (Sedang Berkembang)';
@@ -898,6 +917,8 @@ final class BullishPatternService
             'entry_zone_min' => round($breakoutResistance, 2),
             'entry_zone_max' => round($breakoutResistance * 1.03, 2),
             'trade_status' => $tradeStatus,
+            'is_shakeout_low' => ($tradeStatus === self::STATUS_SHAKEOUT_LOW),
+            'shakeout_undercut_pct' => ($tradeStatus === self::STATUS_SHAKEOUT_LOW) ? ($undercutPct ?? 0.0) : 0.0,
             'trade_action' => $tradeAction,
             'action_description' => $actionDesc,
             'rvol' => $rvol,
@@ -1231,6 +1252,7 @@ final class BullishPatternService
         return [
             'all' => 'Semua Status Sinyal',
             self::STATUS_BUY_ZONE => '🟢 In Breakout Buy Zone (0-3%)',
+            self::STATUS_SHAKEOUT_LOW => '⚡ Shakeout Low (Support Sweep Reversal)',
             self::STATUS_RETEST => '🔄 Retest Support (Peluang Beli Reversal)',
             self::STATUS_CONSOLIDATION_BOUNCE => '⚡ Support Bounce (Beli Awal di Lantai Pola)',
             'breakout' => '🚀 Terkonfirmasi Breakout',

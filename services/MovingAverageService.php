@@ -33,6 +33,7 @@ final class MovingAverageService
     public const SIGNAL_STRONG_BUY = 'STRONG_BUY';
     public const SIGNAL_BUY = 'BUY';
     public const SIGNAL_PULLBACK_BUY = 'PULLBACK_BUY';
+    public const SIGNAL_SHAKEOUT_BUY = 'SHAKEOUT_BUY';
     public const SIGNAL_SELL = 'SELL';
     public const SIGNAL_TAKE_PROFIT = 'TAKE_PROFIT';
     public const SIGNAL_NEUTRAL = 'NEUTRAL';
@@ -294,6 +295,8 @@ final class MovingAverageService
             'dist_slow_pct' => $distSlowPct,
             'rvol' => $rvol,
             'trend_status' => $trendStatus,
+            'is_shakeout_low' => $setup['is_shakeout_low'] ?? false,
+            'shakeout_undercut_pct' => $setup['shakeout_undercut_pct'] ?? 0.0,
             'signal' => $setup['signal'],
             'action' => $setup['action'],
             'strategy_name' => $setup['strategy_name'],
@@ -420,6 +423,32 @@ final class MovingAverageService
                 'strategy_name' => 'MA Support Breakdown',
                 'strategy_badge' => 'danger',
                 'description' => "Harga gagal bertahan dan menembus garis support Moving Average ke bawah.",
+            ];
+        }
+
+        // 6b. Shakeout Low (Liquidity Sweep di Support Dinamis MA)
+        // Karakteristik: Low sempat menembus / undercut MA support (0.2% - 4.0% di bawah MA),
+        // tetapi harga langsung ditarik rebound cepat dan ditutup kembali di atas MA support (Bear Trap).
+        $maRef = ($currFast > $currSlow) ? $currFast : $currSlow;
+        $isShakeoutLow = false;
+        $undercutPct = 0.0;
+        if ($currLow < $maRef && $currClose >= $maRef) {
+            $undercutPct = round((($maRef - $currLow) / $maRef) * 100, 2);
+            if ($undercutPct >= 0.2 && $undercutPct <= 4.5 && $currRsi >= 35.0 && $currRsi <= 68.0) {
+                $isShakeoutLow = true;
+            }
+        }
+
+        if ($isShakeoutLow) {
+            $hasHighVol = ($rvol >= 1.2);
+            return [
+                'signal' => self::SIGNAL_SHAKEOUT_BUY,
+                'action' => 'BUY',
+                'is_shakeout_low' => true,
+                'shakeout_undercut_pct' => $undercutPct,
+                'strategy_name' => '⚡ Shakeout Low (MA Bear Trap)',
+                'strategy_badge' => 'warning text-dark',
+                'description' => "Terjadi liquidity sweep / shakeout low: harga sempat menembus support MA sebesar {$undercutPct}% namun langsung ditarik rebound dan ditutup di atas MA (RVOL {$rvol}x). Indikasi kuat bear trap & akumulasi bandar.",
             ];
         }
 
@@ -632,6 +661,9 @@ final class MovingAverageService
         }
         if ($strategy === 'pullback') {
             return $analysis['signal'] === self::SIGNAL_PULLBACK_BUY || str_contains($analysis['strategy_name'], 'Pullback');
+        }
+        if ($strategy === 'shakeout_low') {
+            return !empty($analysis['is_shakeout_low']) || $analysis['signal'] === self::SIGNAL_SHAKEOUT_BUY || str_contains($analysis['strategy_name'], 'Shakeout');
         }
         if ($strategy === 'candle_bounce') {
             return !empty($analysis['candle_pattern']) && ($analysis['candle_signal'] ?? '') === 'BULLISH';

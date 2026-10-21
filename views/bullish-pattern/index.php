@@ -151,7 +151,9 @@ $sortLink = fn(string $key, string $label) => Html::a(
             <div class="card-body py-3">
                 <div class="text-uppercase small fw-bold">Zona Beli (Buy Zones)</div>
                 <div class="fs-3 fw-bold"><?= $buyZoneCount ?> <small class="fs-6 fw-normal">siap entri</small></div>
-                <div class="small mt-1 text-muted">Breakout Golden Zone, Retest &amp; Bounce</div>
+                <div class="small mt-1 text-muted">
+                    Breakout, Retest &bull; <span class="badge bg-warning text-dark">⚡ <?= $shakeoutCount ?? 0 ?> Shakeout</span>
+                </div>
             </div>
         </div>
     </div>
@@ -219,6 +221,7 @@ $sortLink = fn(string $key, string $label) => Html::a(
                             $status = $p['trade_status'] ?? '';
                             $badgeClass = 'bg-secondary';
                             if ($status === BullishPatternService::STATUS_BUY_ZONE) $badgeClass = 'bg-success';
+                            elseif ($status === BullishPatternService::STATUS_SHAKEOUT_LOW) $badgeClass = 'bg-warning text-dark border border-warning';
                             elseif ($status === BullishPatternService::STATUS_RETEST) $badgeClass = 'bg-info text-dark';
                             elseif ($status === BullishPatternService::STATUS_CONSOLIDATION_BOUNCE) $badgeClass = 'bg-primary';
                             elseif ($status === BullishPatternService::STATUS_EXTENDED) $badgeClass = 'bg-warning text-dark';

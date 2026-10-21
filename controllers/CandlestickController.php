@@ -55,6 +55,7 @@ final class CandlestickController extends Controller
                 'surgeCount' => 0,
                 'supportiveCount' => 0,
                 'hammerCount' => 0,
+                'shakeoutCount' => 0,
                 'engulfingCount' => 0,
                 'marubozuCount' => 0,
                 'dojiCount' => 0,
@@ -75,6 +76,9 @@ final class CandlestickController extends Controller
                 }
                 if (!empty($r['volume_supports_bullish'])) {
                     $stats['supportiveCount']++;
+                }
+                if ($r['pattern_code'] === CandlestickService::PATTERN_SHAKEOUT_LOW) {
+                    $stats['shakeoutCount']++;
                 }
                 if (in_array($r['pattern_code'], [CandlestickService::PATTERN_HAMMER, CandlestickService::PATTERN_INVERTED_HAMMER], true)) {
                     $stats['hammerCount']++;
@@ -219,7 +223,10 @@ final class CandlestickController extends Controller
         $action = trim((string) $request->get('action', 'all'));
 
         // Handle Quick Presets
-        if ($preset === 'buy_hammer') {
+        if ($preset === 'shakeout_low') {
+            $pattern = CandlestickService::PATTERN_SHAKEOUT_LOW;
+            $action = 'buy_only';
+        } elseif ($preset === 'buy_hammer') {
             $pattern = CandlestickService::PATTERN_HAMMER;
             $action = 'buy_only';
         } elseif ($preset === 'buy_engulfing') {
