@@ -24,7 +24,8 @@ ChartAsset::register($this);
 $patternType = $patternType ?? ($pattern['pattern_type'] ?? TripleBottomService::PATTERN_ALL);
 $patternTypes = $patternTypes ?? TripleBottomService::getPatternTypes();
 $isIhs = ($pattern['pattern_type'] ?? '') === TripleBottomService::PATTERN_INVERSE_HS;
-$patternTitle = $isIhs ? 'Inverted Head & Shoulders' : 'Triple Bottom';
+$isShakeout = ($pattern['pattern_type'] ?? '') === TripleBottomService::PATTERN_SHAKEOUT_LOW || !empty($pattern['is_shakeout_low']);
+$patternTitle = $isIhs ? 'Inverted Head & Shoulders' : ($isShakeout ? 'Triple Bottom (Shakeout Low)' : 'Triple Bottom');
 $this->title = $patternTitle . ' - ' . $stock->symbol;
 $this->params['breadcrumbs'][] = ['label' => 'Reversal Scanner', 'url' => array_merge(['triple-bottom/index'], $filterParams)];
 $this->params['breadcrumbs'][] = $stock->symbol;
@@ -43,6 +44,8 @@ $chartId = 'tb-chart';
         <?php if ($pattern !== null): ?>
             <?php if ($isIhs): ?>
                 <span class="badge" style="background-color: #6f42c1;"><?= \app\helpers\SvgHelper::icon('person-arms-up') ?> Inverted Head &amp; Shoulders</span>
+            <?php elseif ($isShakeout): ?>
+                <span class="badge bg-secondary text-white"><?= \app\helpers\SvgHelper::icon('lightning-charge') ?> Triple Bottom (Shakeout Low)</span>
             <?php else: ?>
                 <span class="badge bg-primary"><?= \app\helpers\SvgHelper::icon('triangle-half') ?> Triple Bottom</span>
             <?php endif; ?>

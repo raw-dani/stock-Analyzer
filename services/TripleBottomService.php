@@ -31,6 +31,7 @@ final class TripleBottomService
     public const PATTERN_ALL = 'ALL';
     public const PATTERN_TRIPLE_BOTTOM = 'TRIPLE_BOTTOM';
     public const PATTERN_INVERSE_HS = 'INVERSE_HEAD_AND_SHOULDERS';
+    public const PATTERN_SHAKEOUT_LOW = 'SHAKEOUT_LOW';
 
     // False Breakout Risk Levels
     public const RISK_ALL = 'ALL';
@@ -272,6 +273,16 @@ final class TripleBottomService
                     $maxDiff = max($diff1, $diff2, $diff3);
                     $isTripleBottom = ($maxDiff <= $tolerance);
 
+                    // 1b. Evaluasi Pola Shakeout Low (Liquidity sweep: Low 3 atau Low 2 undercut support Low 1, lalu cepat rebound)
+                    $shakeoutTolerance = max($tolerance * 1.5, 0.05); // undercut terukur hingga 5-6%
+                    $isL3Shakeout = ($low3['price'] < $low1['price']) &&
+                        (($low1['price'] - $low3['price']) / max($low1['price'], 0.01) <= $shakeoutTolerance) &&
+                        (abs($low1['price'] - $low2['price']) / max($low1['price'], 0.01) <= $tolerance * 1.25);
+                    $isL2Shakeout = ($low2['price'] < $low1['price']) &&
+                        (($low1['price'] - $low2['price']) / max($low1['price'], 0.01) <= $shakeoutTolerance) &&
+                        (abs($low1['price'] - $low3['price']) / max($low1['price'], 0.01) <= $tolerance * 1.25);
+                    $isShakeoutLow = ($isL3Shakeout || $isL2Shakeout);
+
                     // 2. Evaluasi Pola Inverted Head and Shoulders (Bahu Kiri, Kepala Lebih Rendah, Bahu Kanan)
                     $headDropLeft = ($low1['price'] - $low2['price']) / max($low1['price'], 0.01);
                     $headDropRight = ($low3['price'] - $low2['price']) / max($low3['price'], 0.01);
@@ -296,20 +307,28 @@ final class TripleBottomService
                     if ($requestedPatternType === self::PATTERN_INVERSE_HS && !$isInverseHs) {
                         continue;
                     }
-                    if (!$isTripleBottom && !$isInverseHs) {
+                    if ($requestedPatternType === self::PATTERN_SHAKEOUT_LOW && !$isShakeoutLow) {
+                        continue;
+                    }
+                    if (!$isTripleBottom && !$isInverseHs && !$isShakeoutLow) {
                         continue;
                     }
 
                     // Klasifikasikan tipe pola yang terdeteksi
-                    if ($isInverseHs && !$isTripleBottom) {
+                    if ($requestedPatternType === self::PATTERN_SHAKEOUT_LOW && $isShakeoutLow) {
+                        $patternType = self::PATTERN_SHAKEOUT_LOW;
+                    } elseif ($isInverseHs && !$isTripleBottom && !$isShakeoutLow) {
                         $patternType = self::PATTERN_INVERSE_HS;
-                    } elseif ($isTripleBottom && !$isInverseHs) {
+                    } elseif ($isInverseHs && $headDropLeft >= 0.035 && $headDropRight >= 0.035) {
+                        $patternType = self::PATTERN_INVERSE_HS;
+                    } elseif ($isShakeoutLow && ($isL3Shakeout || $low3['price'] < $low1['price'] * 0.99)) {
+                        $patternType = self::PATTERN_SHAKEOUT_LOW;
+                    } elseif ($isTripleBottom) {
                         $patternType = self::PATTERN_TRIPLE_BOTTOM;
+                    } elseif ($isShakeoutLow) {
+                        $patternType = self::PATTERN_SHAKEOUT_LOW;
                     } else {
-                        // Jika memenuhi keduanya, utamakan IHS jika kepala jelas lebih dalam (>= 3.5%)
-                        $patternType = ($headDropLeft >= 0.035 && $headDropRight >= 0.035)
-                            ? self::PATTERN_INVERSE_HS
-                            : self::PATTERN_TRIPLE_BOTTOM;
+                        $patternType = self::PATTERN_INVERSE_HS;
                     }
 
                     // Cari 2 puncak perantara (Peak 1 antara L1 & L2, Peak 2 antara L2 & L3)
@@ -484,9 +503,17 @@ final class TripleBottomService
                     $swingRisk = max($currentClose - $stopLossSwing, 0.01);
                     $rrSwing = round(max($tp2 - $currentClose, 0.0) / $swingRisk, 2);
 
+                    $patternName = match ($patternType) {
+                        self::PATTERN_INVERSE_HS => 'Inverted Head & Shoulders',
+                        self::PATTERN_SHAKEOUT_LOW => 'Triple Bottom (Shakeout Low)',
+                        default => 'Triple Bottom',
+                    };
+
                     $candidate = [
                         'pattern_type' => $patternType,
-                        'pattern_name' => $patternType === self::PATTERN_INVERSE_HS ? 'Inverted Head & Shoulders' : 'Triple Bottom',
+                        'pattern_name' => $patternName,
+                        'is_shakeout_low' => $isShakeoutLow,
+                        'shakeout_low_type' => $isL3Shakeout ? 'L3_undercut' : ($isL2Shakeout ? 'L2_undercut' : null),
                         'low1_price' => $low1['price'],
                         'low1_date' => $low1['date'],
                         'low1_index' => $low1['index'],
@@ -727,6 +754,19 @@ final class TripleBottomService
             if ($headDropLeft >= 0.04 && $headDropRight >= 0.04) {
                 $score += 10;
             }
+        } elseif ($patternType === self::PATTERN_SHAKEOUT_LOW) {
+            // Evaluasi Shakeout Low: Penetrasi di bawah support yang terukur (liquidity sweep yang bersih)
+            $sweepPct = abs($low3['price'] - $low1['price']) / max($low1['price'], 0.01);
+            if ($sweepPct <= 0.03) {
+                $score += 16; // Shakeout sangat terukur & rapi
+            } elseif ($sweepPct <= 0.05) {
+                $score += 12;
+            } else {
+                $score += 6;
+            }
+            if ($low3['price'] < $low1['price']) {
+                $score += 8; // Bonus liquidity grab
+            }
         } else {
             // Kesimetrisan 3 lembah horizontal (Triple Bottom)
             if ($maxDiff <= 0.01) {
@@ -893,9 +933,10 @@ final class TripleBottomService
     public static function getPatternTypes(): array
     {
         return [
-            self::PATTERN_ALL => 'Semua Pola (Triple Bottom & Inverted H&S)',
+            self::PATTERN_ALL => 'Semua Pola (Triple Bottom, IHS & Shakeout)',
             self::PATTERN_TRIPLE_BOTTOM => 'Triple Bottom (3 Lembah Rata)',
             self::PATTERN_INVERSE_HS => 'Inverted Head & Shoulders (Bahu-Kepala-Bahu Terbalik)',
+            self::PATTERN_SHAKEOUT_LOW => 'Triple Bottom (Shakeout Low / Liquidity Sweep)',
         ];
     }
 

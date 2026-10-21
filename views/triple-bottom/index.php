@@ -26,6 +26,7 @@
 /** @var int $lookbackDays */
 /** @var int $tbCount */
 /** @var int $ihsCount */
+/** @var int $shakeoutCount */
 /** @var int $bullTrapCount */
 /** @var int $safeBreakoutCount */
 
@@ -46,6 +47,7 @@ $buyZoneCount = count(array_filter($results, fn($r) => in_array($r['trade_status
 $highRrCount = count(array_filter($results, fn($r) => ((float)($r['best_rr'] ?? 0)) >= 2.0));
 $tbCount = $tbCount ?? count(array_filter($results, fn($r) => ($r['pattern_type'] ?? '') === TripleBottomService::PATTERN_TRIPLE_BOTTOM));
 $ihsCount = $ihsCount ?? count(array_filter($results, fn($r) => ($r['pattern_type'] ?? '') === TripleBottomService::PATTERN_INVERSE_HS));
+$shakeoutCount = $shakeoutCount ?? count(array_filter($results, fn($r) => ($r['pattern_type'] ?? '') === TripleBottomService::PATTERN_SHAKEOUT_LOW || !empty($r['is_shakeout_low'])));
 $bullTrapCount = $bullTrapCount ?? count(array_filter($results, fn($r) => !empty($r['bull_trap_detected'])));
 
 $stockCount = (int) ($stats['stockCount'] ?? 0);
@@ -149,9 +151,10 @@ $sortLink = fn(string $key, string $label) => Html::a($label . ($sort === $key ?
             <div class="card-body py-3">
                 <div class="text-uppercase small fw-bold">Pola Ditemukan</div>
                 <div class="fs-3 fw-bold"><?= count($results) ?> <small class="fs-6 text-muted fw-normal">/ <?= $stockCount ?> saham</small></div>
-                <div class="small mt-1 text-dark">
-                    <span class="badge bg-primary me-1">TB: <?= $tbCount ?></span>
-                    <span class="badge bg-info text-dark">IHS: <?= $ihsCount ?></span>
+                <div class="small mt-1 text-dark d-flex flex-wrap gap-1">
+                    <span class="badge bg-primary" title="Triple Bottom Klasik">TB: <?= $tbCount ?></span>
+                    <span class="badge bg-info text-dark" title="Inverted Head & Shoulders">IHS: <?= $ihsCount ?></span>
+                    <span class="badge bg-secondary text-white" title="Triple Bottom dengan Shakeout Low">Shakeout: <?= $shakeoutCount ?></span>
                 </div>
             </div>
         </div>
@@ -245,6 +248,8 @@ $sortLink = fn(string $key, string $label) => Html::a($label . ($sort === $key ?
                                     <small class="text-muted d-block"><?= Html::encode($p['sector'] ?? '-') ?></small>
                                     <?php if ($isIhs): ?>
                                         <span class="badge" style="background-color: #6f42c1; font-size: 0.7rem;" title="Inverted Head and Shoulders"><?= \app\helpers\SvgHelper::icon('person-arms-up') ?> Inverted H&amp;S</span>
+                                    <?php elseif (($p['pattern_type'] ?? '') === TripleBottomService::PATTERN_SHAKEOUT_LOW || !empty($p['is_shakeout_low'])): ?>
+                                        <span class="badge bg-secondary text-white" style="font-size: 0.7rem;" title="Triple Bottom dengan Shakeout Low (Liquidity Sweep)"><?= \app\helpers\SvgHelper::icon('lightning-charge') ?> Shakeout Low</span>
                                     <?php else: ?>
                                         <span class="badge bg-primary" style="font-size: 0.7rem;" title="Triple Bottom (3 Troughs)"><?= \app\helpers\SvgHelper::icon('triangle-half') ?> Triple Bottom</span>
                                     <?php endif; ?>

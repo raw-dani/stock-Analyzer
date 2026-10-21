@@ -62,6 +62,8 @@ $mitigationStrategies = (array) ($pattern['mitigation_strategies'] ?? []);
                 <span class="text-uppercase small fw-bold" style="letter-spacing: 0.05rem;">Sinyal Eksekusi <?= Html::encode($patternName) ?></span>
                 <?php if ($isIhs): ?>
                     <span class="badge" style="background-color: rgba(255,255,255,0.3); font-size: 0.75rem;"><?= \app\helpers\SvgHelper::icon('person-arms-up') ?> Inverse H&amp;S Reversal</span>
+                <?php elseif (!empty($pattern['is_shakeout_low'])): ?>
+                    <span class="badge" style="background-color: rgba(255,255,255,0.3); font-size: 0.75rem;"><?= \app\helpers\SvgHelper::icon('lightning-charge') ?> Shakeout Low (Liquidity Sweep)</span>
                 <?php else: ?>
                     <span class="badge" style="background-color: rgba(255,255,255,0.3); font-size: 0.75rem;"><?= \app\helpers\SvgHelper::icon('triangle-half') ?> Triple Bottom Reversal</span>
                 <?php endif; ?>
@@ -217,6 +219,8 @@ $mitigationStrategies = (array) ($pattern['mitigation_strategies'] ?? []);
                             <td class="text-end pe-3 fw-bold">
                                 <?php if ($isIhs): ?>
                                     <span class="badge" style="background-color: #6f42c1;">Inverted Head &amp; Shoulders</span>
+                                <?php elseif (!empty($pattern['is_shakeout_low'])): ?>
+                                    <span class="badge bg-secondary text-white"><?= \app\helpers\SvgHelper::icon('lightning-charge') ?> Triple Bottom (Shakeout Low)</span>
                                 <?php else: ?>
                                     <span class="badge bg-primary">Triple Bottom</span>
                                 <?php endif; ?>
@@ -244,6 +248,15 @@ $mitigationStrategies = (array) ($pattern['mitigation_strategies'] ?? []);
                                 <td class="text-end pe-3">
                                     <strong>$<?= number_format($pattern['low3_price'], 2) ?></strong>
                                     <small class="text-muted d-block">Selisih Bahu: <?= $pattern['shoulder_diff_pct'] ?? 0 ?>%</small>
+                                </td>
+                            </tr>
+                        <?php elseif (!empty($pattern['is_shakeout_low'])): ?>
+                            <tr>
+                                <td class="ps-3 text-muted">Level Lembah &amp; Shakeout</td>
+                                <td class="text-end pe-3">
+                                    <div><strong>L1: $<?= number_format($pattern['low1_price'], 2) ?></strong> <small class="text-muted">(Support Acuan)</small></div>
+                                    <div><strong>L2: $<?= number_format($pattern['low2_price'], 2) ?></strong> <?= ($pattern['shakeout_low_type'] ?? '') === 'L2_undercut' ? '<span class="badge bg-danger ms-1">Shakeout Undercut</span>' : '' ?></div>
+                                    <div><strong>L3: $<?= number_format($pattern['low3_price'], 2) ?></strong> <?= ($pattern['shakeout_low_type'] ?? '') === 'L3_undercut' ? '<span class="badge bg-danger ms-1">Shakeout Undercut</span>' : '' ?></div>
                                 </td>
                             </tr>
                         <?php else: ?>

@@ -27,6 +27,7 @@ final class TripleBottomController extends Controller
 
         $tbCount = count(array_filter($results, fn($r) => ($r['pattern_type'] ?? '') === TripleBottomService::PATTERN_TRIPLE_BOTTOM));
         $ihsCount = count(array_filter($results, fn($r) => ($r['pattern_type'] ?? '') === TripleBottomService::PATTERN_INVERSE_HS));
+        $shakeoutCount = count(array_filter($results, fn($r) => ($r['pattern_type'] ?? '') === TripleBottomService::PATTERN_SHAKEOUT_LOW || !empty($r['is_shakeout_low'])));
         $bullTrapCount = count(array_filter($results, fn($r) => !empty($r['bull_trap_detected'])));
         $safeBreakoutCount = count(array_filter($results, fn($r) => ($r['false_breakout_risk'] ?? '') === TripleBottomService::RISK_LOW && !empty($r['breakout'])));
         
@@ -41,6 +42,7 @@ final class TripleBottomController extends Controller
             'lookbackDays' => $params['lookback'],
             'tbCount' => $tbCount,
             'ihsCount' => $ihsCount,
+            'shakeoutCount' => $shakeoutCount,
             'bullTrapCount' => $bullTrapCount,
             'safeBreakoutCount' => $safeBreakoutCount,
         ]));
