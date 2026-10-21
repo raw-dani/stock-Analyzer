@@ -81,6 +81,11 @@ $tfLabels = CryptoPrice::SUPPORTED_TIMEFRAMES;
         </div>
     </div>
 
+    <?= $this->render('//layouts/_crypto_sync_status_badge', [
+        'fromCache' => $fromCache ?? false,
+        'timeframe' => $timeframe,
+    ]) ?>
+
     <!-- KPI Summary Cards -->
     <div class="row g-3 mb-4">
         <div class="col-6 col-md-3">

@@ -165,7 +165,7 @@ final class TripleBottomController extends Controller
             $p['patternType'],
             $p['falseBreakoutFilter']
         ];
-        $key = 'triple-bottom:v2:' . md5(json_encode($args));
+        $key = \app\services\ScannerCacheService::buildCacheKey('triple_bottom', $args, (int) $p['timeframe']);
         $cached = Yii::$app->cache->get($key);
         if (is_array($cached)) {
             return [$cached, true];
@@ -191,7 +191,7 @@ final class TripleBottomController extends Controller
             Yii::$app->session->setFlash('warning', $e->getMessage());
             $results = [];
         }
-        Yii::$app->cache->set($key, $results, self::SCAN_CACHE_TTL);
+        Yii::$app->cache->set($key, $results, \app\services\ScannerCacheService::DEFAULT_TTL);
         return [$results, false];
     }
 

@@ -141,7 +141,7 @@ final class DoubleBottomController extends Controller
     private function cachedScan(array $p): array
     {
         $args = [$p['timeframe'], $p['lookback'], $p['tolerance'], $p['minSeparation'], $p['maxSeparation'], $p['breakoutOnly'], $p['minConfidence'], $p['necklineMinDepth'], $p['statusFilter'], $p['minRr'], $p['volOnly']];
-        $key = 'double-bottom:v2:' . md5(json_encode($args));
+        $key = \app\services\ScannerCacheService::buildCacheKey('double_bottom', $args, (int) $p['timeframe']);
         $cached = Yii::$app->cache->get($key);
         if (is_array($cached)) { return [$cached, true]; }
         $service = new DoubleBottomService();
@@ -163,7 +163,7 @@ final class DoubleBottomController extends Controller
             Yii::$app->session->setFlash('warning', $e->getMessage());
             $results = [];
         }
-        Yii::$app->cache->set($key, $results, self::SCAN_CACHE_TTL);
+        Yii::$app->cache->set($key, $results, \app\services\ScannerCacheService::DEFAULT_TTL);
         return [$results, false];
     }
 

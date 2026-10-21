@@ -164,7 +164,7 @@ final class BullishPatternController extends Controller
             $p['falseBreakoutFilter'],
             $p['minConfidence']
         ];
-        $key = 'bullish-pattern:v1:' . md5(json_encode($args));
+        $key = \app\services\ScannerCacheService::buildCacheKey('bullish_pattern', $args, (int) $p['timeframe']);
         $cached = Yii::$app->cache->get($key);
         if (is_array($cached)) {
             return [$cached, true];
@@ -188,7 +188,7 @@ final class BullishPatternController extends Controller
             $results = [];
         }
 
-        Yii::$app->cache->set($key, $results, self::SCAN_CACHE_TTL);
+        Yii::$app->cache->set($key, $results, \app\services\ScannerCacheService::DEFAULT_TTL);
         return [$results, false];
     }
 

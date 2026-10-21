@@ -53,6 +53,11 @@ $badgeAction = [
     </div>
 </div>
 
+<?= $this->render('//layouts/_sync_status_badge', [
+    'fromCache' => $fromCache ?? false,
+    'timeframe' => (int) ($params['timeframe'] ?? 24),
+]) ?>
+
 <!-- Interactive KPI Metric Summary Cards -->
 <div class="row g-3 mb-4">
     <div class="col-6 col-md-3">

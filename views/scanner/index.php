@@ -338,6 +338,11 @@ $dailyColumns = [
     </div>
 </div>
 
+<?= $this->render('//layouts/_sync_status_badge', [
+    'fromCache' => true,
+    'timeframe' => 24,
+]) ?>
+
 <?php foreach ((array) Yii::$app->session->getFlash('success') as $msg): ?>
     <div class="alert alert-success alert-dismissible fade show" role="alert">
         <?= \app\helpers\SvgHelper::icon('check-circle-fill', ['class' => 'me-1']) ?> <?= Html::encode($msg) ?>

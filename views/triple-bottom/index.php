@@ -59,10 +59,14 @@ $sortLink = fn(string $key, string $label) => Html::a($label . ($sort === $key ?
         <small class="text-muted">Deteksi pola 3 lembah (Triple Bottom &amp; Inverted H&amp;S) dengan timing presisi Beli/Jual dan proteksi risiko False Breakout (Bull Trap)</small>
     </div>
     <div class="d-flex gap-2 align-items-center">
-        <?php if ($fromCache): ?><span class="badge bg-secondary" title="Hasil dari cache 15 menit">Cache 15m</span><?php endif; ?>
         <span class="badge bg-primary px-3 py-2 fs-7"><?= TripleBottomService::getTimeframeLabel($timeframe) ?></span>
     </div>
 </div>
+
+<?= $this->render('//layouts/_sync_status_badge', [
+    'fromCache' => $fromCache ?? false,
+    'timeframe' => (int) ($timeframe ?? 24),
+]) ?>
 
 <!-- Form Filter & Parameter -->
 <div class="card shadow-sm mb-4">

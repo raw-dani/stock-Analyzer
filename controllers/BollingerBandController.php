@@ -31,14 +31,17 @@ final class BollingerBandController extends Controller
     {
         $params = $this->resolveParams();
         $cache = Yii::$app->cache;
-        $cacheKey = 'bb_scan_' . md5(json_encode($params));
+        $cacheKey = \app\services\ScannerCacheService::buildCacheKey('bb_scan', $params, (int) $params['timeframe']);
 
         $cachedData = $cache !== null ? $cache->get($cacheKey) : false;
+        $fromCache = false;
+
         if ($cachedData !== false && is_array($cachedData)) {
             $results = $cachedData['results'];
             $symbols = $cachedData['symbols'];
             $tvSymbols = $cachedData['tvSymbols'];
             $stats = $cachedData['stats'];
+            $fromCache = true;
         } else {
             $rawResults = $this->service->scanAll($params);
             $results = $this->sortResults($rawResults, $params['sort']);
@@ -86,7 +89,7 @@ final class BollingerBandController extends Controller
                     'symbols' => $symbols,
                     'tvSymbols' => $tvSymbols,
                     'stats' => $stats,
-                ], 900); // 15 menit
+                ], \app\services\ScannerCacheService::DEFAULT_TTL);
             }
         }
 
@@ -94,6 +97,7 @@ final class BollingerBandController extends Controller
             'results' => $results,
             'params' => $params,
             'stats' => $stats,
+            'fromCache' => $fromCache,
             'symbols' => $symbols,
             'tvSymbols' => $tvSymbols,
             'timeframes' => BollingerBandService::getTimeframes(),

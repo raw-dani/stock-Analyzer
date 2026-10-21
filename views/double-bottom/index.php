@@ -56,10 +56,14 @@ $sortLink = fn(string $key, string $label) => Html::a($label . ($sort === $key ?
         <small class="text-muted">Pindai pola pembalikan arah W dengan validasi volume, zona entri optimal, dan kalkulasi Risk/Reward</small>
     </div>
     <div class="d-flex gap-2 align-items-center">
-        <?php if ($fromCache): ?><span class="badge bg-secondary" title="Hasil dari cache memori 15 menit">Cache 15m</span><?php endif; ?>
         <span class="badge bg-primary px-3 py-2 fs-7"><?= DoubleBottomService::getTimeframeLabel($timeframe) ?></span>
     </div>
 </div>
+
+<?= $this->render('//layouts/_sync_status_badge', [
+    'fromCache' => $fromCache ?? false,
+    'timeframe' => (int) ($timeframe ?? 24),
+]) ?>
 
 <!-- Form Filter & Parameter -->
 <div class="card shadow-sm mb-4">

@@ -6,6 +6,7 @@ namespace app\commands;
 
 use app\models\CryptoAsset;
 use app\services\crypto\CryptoAnalyzerService;
+use app\services\ScannerCacheService;
 use yii\console\Controller;
 use yii\console\ExitCode;
 use yii\helpers\Console;
@@ -68,6 +69,7 @@ class CryptoController extends Controller
 
             $this->service->analyze($asset, $timeframe);
             $this->stdout("Analisis teknikal {$symbol} ({$timeframe}) selesai diperbarui.\n", Console::FG_GREEN);
+            ScannerCacheService::invalidateCryptoVersions();
             return ExitCode::OK;
         }
 
@@ -89,6 +91,7 @@ class CryptoController extends Controller
             $this->stdout("  -> {$symbol}: {$bars} bar disinkronisasi & dianalisis.\n", Console::FG_GREY);
         });
 
+        ScannerCacheService::invalidateCryptoVersions();
         $this->stdout("\nSelesai! Total koin: {$res['total_coins']}, Berhasil disinkron: {$res['synced']}, Dianalisis: {$res['analyzed']}.\n", Console::FG_GREEN);
         return ExitCode::OK;
     }
@@ -111,6 +114,7 @@ class CryptoController extends Controller
             if ($analysis !== null) {
                 $this->stdout("Analisis {$symbol} ({$timeframe}): Score={$analysis->score}, Signal={$analysis->signal}, BuyRatio={$analysis->buy_ratio}%, RVOL={$analysis->rvol}x\n", Console::FG_GREEN);
             }
+            ScannerCacheService::invalidateCryptoVersions();
             return ExitCode::OK;
         }
 
@@ -119,6 +123,7 @@ class CryptoController extends Controller
         foreach ($coins as $coin) {
             $this->service->analyze($coin, $timeframe);
         }
+        ScannerCacheService::invalidateCryptoVersions();
         $this->stdout("Analisis selesai untuk seluruh koin.\n", Console::FG_GREEN);
         return ExitCode::OK;
     }

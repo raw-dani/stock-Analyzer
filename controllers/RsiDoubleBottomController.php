@@ -47,8 +47,10 @@ final class RsiDoubleBottomController extends Controller
         Yii::info("RSI Strategy Scan: timeframe={$timeframe} lookback={$lookback} tolerance={$tolerance} period={$rsiPeriod} maxRsi={$maxRsi}", $logCat);
 
         $cache = Yii::$app->cache;
-        $cacheKey = sprintf('rsi_scan_%d_%d_%.1f_%d_%.1f_%d_%d_%.1f', $timeframe, $lookback, $tolerance, $rsiPeriod, $maxRsi, $minSeparation, $maxSeparation, $necklineMin);
+        $args = [$timeframe, $lookback, $tolerance, $rsiPeriod, $maxRsi, $minSeparation, $maxSeparation, $necklineMin];
+        $cacheKey = \app\services\ScannerCacheService::buildCacheKey('rsi_scan', $args, $timeframe);
         $results = $cache ? $cache->get($cacheKey) : false;
+        $fromCache = ($results !== false);
 
         if ($results === false) {
             $service = new RsiDoubleBottomService();
@@ -66,7 +68,7 @@ final class RsiDoubleBottomController extends Controller
                 $results = $service->scanAll($timeframe, $lookback, $tolerance, $rsiPeriod, $maxRsi, $minSeparation, $maxSeparation, $necklineMin);
             }
             if ($cache) {
-                $cache->set($cacheKey, $results, 900); // 15 menit
+                $cache->set($cacheKey, $results, \app\services\ScannerCacheService::DEFAULT_TTL);
             }
         }
 
@@ -133,6 +135,7 @@ final class RsiDoubleBottomController extends Controller
             'maxSeparation'  => $maxSeparation,
             'necklineMin'    => $necklineMin,
             'timeframes'     => $timeframes,
+            'fromCache'      => $fromCache,
         ]);
     }
 

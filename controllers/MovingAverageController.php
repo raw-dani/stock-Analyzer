@@ -31,14 +31,17 @@ final class MovingAverageController extends Controller
     {
         $params = $this->resolveParams();
         $cache = Yii::$app->cache;
-        $cacheKey = 'ma_scan_' . md5(json_encode($params));
+        $cacheKey = \app\services\ScannerCacheService::buildCacheKey('ma_scan', $params, (int) $params['timeframe']);
 
         $cachedData = $cache !== null ? $cache->get($cacheKey) : false;
+        $fromCache = false;
+
         if ($cachedData !== false && is_array($cachedData)) {
             $results = $cachedData['results'];
             $symbols = $cachedData['symbols'];
             $tvSymbols = $cachedData['tvSymbols'];
             $stats = $cachedData['stats'];
+            $fromCache = true;
         } else {
             $rawResults = $this->service->scanAll($params);
             $results = $this->sortResults($rawResults, $params['sort']);
@@ -90,7 +93,7 @@ final class MovingAverageController extends Controller
                     'symbols' => $symbols,
                     'tvSymbols' => $tvSymbols,
                     'stats' => $stats,
-                ], 900); // 15 menit
+                ], \app\services\ScannerCacheService::DEFAULT_TTL);
             }
         }
 
@@ -98,6 +101,7 @@ final class MovingAverageController extends Controller
             'results' => $results,
             'params' => $params,
             'stats' => $stats,
+            'fromCache' => $fromCache,
             'symbols' => $symbols,
             'tvSymbols' => $tvSymbols,
             'maPairs' => MovingAverageService::getMaPairs(),

@@ -35,44 +35,70 @@ final class StrategyConfluenceController extends Controller
     public function actionIndex(): string
     {
         $params = $this->resolveParams();
-        $results = $this->service->scanAll($params);
-        $results = $this->sortResults($results, $params['sort']);
+        $cache = Yii::$app->cache;
+        $cacheKey = \app\services\ScannerCacheService::buildCacheKey('confluence_scan', $params, (int) $params['timeframe']);
 
-        $symbols = [];
-        $tvSymbols = [];
-        $stats = [
-            'total' => count($results),
-            'strongBuyCount' => 0,
-            'buyCount' => 0,
-            'goldenPocketCount' => 0,
-            'shakeoutCount' => 0,
-            'macdCrossCount' => 0,
-            'oversoldCount' => 0,
-        ];
+        $cachedData = $cache !== null ? $cache->get($cacheKey) : false;
+        $fromCache = false;
 
-        foreach ($results as $r) {
-            $sym = $r['symbol'];
-            $symbols[] = $sym;
-            $exch = !empty($r['exchange']) ? $r['exchange'] . ':' : '';
-            $tvSymbols[] = $exch . $sym;
+        if ($cachedData !== false && is_array($cachedData)) {
+            $results = $cachedData['results'];
+            $symbols = $cachedData['symbols'];
+            $tvSymbols = $cachedData['tvSymbols'];
+            $stats = $cachedData['stats'];
+            $fromCache = true;
+        } else {
+            $rawResults = $this->service->scanAll($params);
+            $results = $this->sortResults($rawResults, $params['sort']);
 
-            if ($r['action'] === MultiIndicatorStrategyService::ACTION_STRONG_BUY) {
-                $stats['strongBuyCount']++;
+            $symbols = [];
+            $tvSymbols = [];
+            $stats = [
+                'total' => count($results),
+                'strongBuyCount' => 0,
+                'buyCount' => 0,
+                'goldenPocketCount' => 0,
+                'shakeoutCount' => 0,
+                'macdCrossCount' => 0,
+                'oversoldCount' => 0,
+            ];
+
+            foreach ($results as $r) {
+                $sym = $r['symbol'];
+                $symbols[] = $sym;
+                $exch = !empty($r['exchange']) ? $r['exchange'] . ':' : '';
+                $tvSymbols[] = $exch . $sym;
+
+                if ($r['action'] === MultiIndicatorStrategyService::ACTION_STRONG_BUY) {
+                    $stats['strongBuyCount']++;
+                }
+                if ($r['action'] === MultiIndicatorStrategyService::ACTION_BUY) {
+                    $stats['buyCount']++;
+                }
+                if (!empty($r['is_shakeout_low'])) {
+                    $stats['shakeoutCount']++;
+                }
+                if (!empty($r['in_golden_pocket'])) {
+                    $stats['goldenPocketCount']++;
+                }
+                if (($r['macd_cross'] ?? '') === 'BULLISH_CROSS') {
+                    $stats['macdCrossCount']++;
+                }
+                if (($r['rsi_status'] ?? '') === 'OVERSOLD') {
+                    $stats['oversoldCount']++;
+                }
             }
-            if ($r['action'] === MultiIndicatorStrategyService::ACTION_BUY) {
-                $stats['buyCount']++;
-            }
-            if (!empty($r['is_shakeout_low'])) {
-                $stats['shakeoutCount']++;
-            }
-            if (!empty($r['in_golden_pocket'])) {
-                $stats['goldenPocketCount']++;
-            }
-            if (($r['macd_cross'] ?? '') === 'BULLISH_CROSS') {
-                $stats['macdCrossCount']++;
-            }
-            if (($r['rsi_status'] ?? '') === 'OVERSOLD') {
-                $stats['oversoldCount']++;
+
+            $symbols = array_values(array_unique($symbols));
+            $tvSymbols = array_values(array_unique($tvSymbols));
+
+            if ($cache !== null) {
+                $cache->set($cacheKey, [
+                    'results' => $results,
+                    'symbols' => $symbols,
+                    'tvSymbols' => $tvSymbols,
+                    'stats' => $stats,
+                ], \app\services\ScannerCacheService::DEFAULT_TTL);
             }
         }
 
@@ -80,8 +106,9 @@ final class StrategyConfluenceController extends Controller
             'results' => $results,
             'params' => $params,
             'stats' => $stats,
-            'symbols' => array_values(array_unique($symbols)),
-            'tvSymbols' => array_values(array_unique($tvSymbols)),
+            'fromCache' => $fromCache,
+            'symbols' => $symbols,
+            'tvSymbols' => $tvSymbols,
             'timeframes' => MultiIndicatorStrategyService::getTimeframes(),
             'presets' => MultiIndicatorStrategyService::getStrategyPresets(),
         ]);

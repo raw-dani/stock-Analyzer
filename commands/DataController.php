@@ -142,6 +142,9 @@ final class DataController extends Controller
             }
         }
         $this->stdout("Done daily: {$ok} ok, " . count($fail) . ' gagal' . ($fail ? ' (' . implode(',', $fail) . ')' : '') . "\n", $fail ? Console::FG_YELLOW : Console::FG_GREEN);
+        if ($ok > 0) {
+            \app\services\ScannerCacheService::invalidateVersions();
+        }
         return $fail ? ExitCode::UNSPECIFIED_ERROR : ExitCode::OK;
     }
 
@@ -187,6 +190,9 @@ final class DataController extends Controller
             }
         }
         $this->stdout("Done intraday: {$ok} ok, " . count($fail) . ' gagal' . ($fail ? ' (' . implode(',', $fail) . ')' : '') . "\n", $fail ? Console::FG_YELLOW : Console::FG_GREEN);
+        if ($ok > 0) {
+            \app\services\ScannerCacheService::invalidateVersions();
+        }
         return $fail ? ExitCode::UNSPECIFIED_ERROR : ExitCode::OK;
     }
 

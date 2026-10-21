@@ -70,6 +70,11 @@ $staleDays = $dailyMax ? (int) floor((time() - strtotime($dailyMax . ' 23:59:00'
     </div>
 </div>
 
+<?= $this->render('//layouts/_sync_status_badge', [
+    'fromCache' => $fromCache ?? false,
+    'timeframe' => (int) ($timeframe ?? 24),
+]) ?>
+
 <?php if ($staleDays !== null && $staleDays >= 3): ?>
     <div class="alert alert-warning py-2 mb-3 d-flex align-items-center">
         <?= \app\helpers\SvgHelper::icon('exclamation-triangle-fill', ['class' => 'fs-5 me-2 text-warning']) ?>

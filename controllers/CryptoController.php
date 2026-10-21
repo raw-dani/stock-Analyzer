@@ -44,6 +44,31 @@ class CryptoController extends Controller
         $search = trim((string)Yii::$app->request->get('search', ''));
         $sort = Yii::$app->request->get('sort', 'score_desc');
 
+        $cache = Yii::$app->cache;
+        $cacheParams = [
+            'timeframe' => $timeframe,
+            'signal' => $signalFilter,
+            'search' => $search,
+            'sort' => $sort,
+        ];
+        $cacheKey = \app\services\ScannerCacheService::buildCryptoCacheKey('index_hub', $cacheParams, $timeframe);
+        $cachedData = $cache ? $cache->get($cacheKey) : false;
+        $fromCache = false;
+
+        if ($cachedData !== false && is_array($cachedData)) {
+            return $this->render('index', [
+                'timeframe' => $timeframe,
+                'signalFilter' => $signalFilter,
+                'search' => $search,
+                'sort' => $sort,
+                'rows' => $cachedData['rows'],
+                'stats' => $cachedData['stats'],
+                'fromCache' => true,
+                'currency' => $currency,
+                'usdtIdrRate' => $usdtIdrRate,
+            ]);
+        }
+
         // Pastikan koin default sudah ada
         $totalAssets = CryptoAsset::find()->count();
         if ($totalAssets === 0) {
@@ -207,22 +232,32 @@ class CryptoController extends Controller
 
         $avgBuyRatio = $validAnalysisCount > 0 ? round($totalBuyRatio / $validAnalysisCount, 1) : 50.0;
 
+        $stats = [
+            'total' => count($assets),
+            'filtered' => count($rows),
+            'strongBuy' => $strongBuyCount,
+            'heavyAccum' => $heavyAccumCount,
+            'shakeoutCount' => $shakeoutCount,
+            'avgBuyRatio' => $avgBuyRatio,
+            'topGainer' => $topGainer,
+            'topLoser' => $topLoser,
+        ];
+
+        if ($cache) {
+            $cache->set($cacheKey, [
+                'rows' => $rows,
+                'stats' => $stats,
+            ], ScannerCacheService::DEFAULT_TTL);
+        }
+
         return $this->render('index', [
             'timeframe' => $timeframe,
             'signalFilter' => $signalFilter,
             'search' => $search,
             'sort' => $sort,
             'rows' => $rows,
-            'stats' => [
-                'total' => count($assets),
-                'filtered' => count($rows),
-                'strongBuy' => $strongBuyCount,
-                'heavyAccum' => $heavyAccumCount,
-                'shakeoutCount' => $shakeoutCount,
-                'avgBuyRatio' => $avgBuyRatio,
-                'topGainer' => $topGainer,
-                'topLoser' => $topLoser,
-            ],
+            'stats' => $stats,
+            'fromCache' => false,
             'currency' => $currency,
             'usdtIdrRate' => $usdtIdrRate,
         ]);
@@ -490,16 +525,32 @@ class CryptoController extends Controller
         $search = trim((string)Yii::$app->request->get('search', ''));
         $sort = Yii::$app->request->get('sort', 'score_desc');
 
-        $confluenceService = new \app\services\crypto\CryptoConfluenceService();
-        $confluenceService->init();
-
-        $results = $confluenceService->scanAll([
+        $cache = Yii::$app->cache;
+        $params = [
             'timeframe' => $timeframe,
             'strategy' => $strategy,
             'minScore' => $minScore,
             'minRr' => $minRr,
             'search' => $search,
-        ]);
+        ];
+        $cacheKey = \app\services\ScannerCacheService::buildCryptoCacheKey('confluence', $params, $timeframe);
+
+        $cachedData = $cache ? $cache->get($cacheKey) : false;
+        $fromCache = false;
+
+        if ($cachedData !== false && is_array($cachedData)) {
+            $results = $cachedData['results'];
+            $fromCache = true;
+        } else {
+            $confluenceService = new \app\services\crypto\CryptoConfluenceService();
+            $confluenceService->init();
+
+            $results = $confluenceService->scanAll($params);
+
+            if ($cache) {
+                $cache->set($cacheKey, ['results' => $results], \app\services\ScannerCacheService::DEFAULT_TTL);
+            }
+        }
 
         // Sorting
         usort($results, function ($a, $b) use ($sort) {
@@ -534,6 +585,7 @@ class CryptoController extends Controller
             'sort' => $sort,
             'results' => $results,
             'stats' => $stats,
+            'fromCache' => $fromCache,
             'presets' => \app\services\crypto\CryptoConfluenceService::getStrategyPresets(),
             'timeframes' => CryptoPrice::SUPPORTED_TIMEFRAMES,
             'currency' => $currency,
@@ -558,17 +610,33 @@ class CryptoController extends Controller
         $search = trim((string)Yii::$app->request->get('search', ''));
         $sort = Yii::$app->request->get('sort', 'confidence_desc');
 
-        $patternService = new \app\services\crypto\CryptoBullishPatternService();
-        $patternService->init();
-
-        $results = $patternService->scanAll([
+        $cache = Yii::$app->cache;
+        $params = [
             'timeframe' => $timeframe,
             'patternType' => $patternType,
             'status' => $status,
             'minConfidence' => $minConfidence,
             'minRr' => $minRr,
             'search' => $search,
-        ]);
+        ];
+        $cacheKey = \app\services\ScannerCacheService::buildCryptoCacheKey('bullish_patterns', $params, $timeframe);
+
+        $cachedData = $cache ? $cache->get($cacheKey) : false;
+        $fromCache = false;
+
+        if ($cachedData !== false && is_array($cachedData)) {
+            $results = $cachedData['results'];
+            $fromCache = true;
+        } else {
+            $patternService = new \app\services\crypto\CryptoBullishPatternService();
+            $patternService->init();
+
+            $results = $patternService->scanAll($params);
+
+            if ($cache) {
+                $cache->set($cacheKey, ['results' => $results], \app\services\ScannerCacheService::DEFAULT_TTL);
+            }
+        }
 
         // Sorting
         usort($results, function ($a, $b) use ($sort) {
@@ -603,6 +671,7 @@ class CryptoController extends Controller
             'sort' => $sort,
             'results' => $results,
             'stats' => $stats,
+            'fromCache' => $fromCache,
             'patternTypes' => \app\services\crypto\CryptoBullishPatternService::getPatternTypes(),
             'statusOptions' => \app\services\crypto\CryptoBullishPatternService::getStatusOptions(),
             'timeframes' => CryptoPrice::SUPPORTED_TIMEFRAMES,

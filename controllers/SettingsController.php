@@ -396,6 +396,11 @@ final class SettingsController extends Controller
                 'duration' => $duration,
             ];
             @file_put_contents($statusFile, json_encode($statusData, JSON_PRETTY_PRINT));
+
+            // Jika sinkronisasi berhasil, invalidasikan cache versi data pasar
+            if ($success) {
+                \app\services\ScannerCacheService::invalidateVersions();
+            }
         } catch (\Throwable $e) {
             Yii::warning('Failed recording sync log: ' . $e->getMessage());
         }
