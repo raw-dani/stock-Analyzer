@@ -247,7 +247,7 @@ class CryptoController extends Controller
             $cache->set($cacheKey, [
                 'rows' => $rows,
                 'stats' => $stats,
-            ], ScannerCacheService::DEFAULT_TTL);
+            ], \app\services\ScannerCacheService::DEFAULT_TTL);
         }
 
         return $this->render('index', [
