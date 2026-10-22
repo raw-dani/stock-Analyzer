@@ -97,6 +97,29 @@ class CryptoController extends Controller
     }
 
     /**
+     * Sinkronisasi dan analisis seluruh koin crypto untuk SEMUA timeframe aktif (15m, 1h, 2h, 4h, 1d)
+     * Contoh: php yii crypto/sync-all-tf --limit=60
+     */
+    public function actionSyncAllTf(): int
+    {
+        $limit = $this->limit;
+        $timeframes = ['15m', '1h', '2h', '4h', '1d'];
+
+        $this->stdout("Memulai sinkronisasi seluruh koin untuk semua timeframe (" . implode(', ', $timeframes) . ")...\n", Console::FG_YELLOW);
+
+        foreach ($timeframes as $tf) {
+            $this->stdout("\n=== Sinkronisasi Timeframe: [{$tf}] ===\n", Console::FG_CYAN);
+            $this->service->syncAndAnalyzeAll($tf, $limit, function (string $symbol, int $bars) {
+                $this->stdout("  -> {$symbol}: {$bars} bar disinkronisasi & dianalisis.\n", Console::FG_GREY);
+            });
+        }
+
+        ScannerCacheService::invalidateCryptoVersions();
+        $this->stdout("\nSelesai sinkronisasi seluruh timeframe!\n", Console::FG_GREEN);
+        return ExitCode::OK;
+    }
+
+    /**
      * Jalankan analisis teknikal & volume pressure tanpa download ulang
      * Contoh: php yii crypto/analyze BTCUSDT --timeframe=1h
      */

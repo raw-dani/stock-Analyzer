@@ -394,6 +394,7 @@ class CryptoController extends Controller
             }
         }
 
+        \app\services\ScannerCacheService::invalidateCryptoVersions();
         return $this->asJson([
             'success' => true,
             'synced' => $synced,
