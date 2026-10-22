@@ -1,4 +1,23 @@
 RewriteEngine on
+
+# Mitigasi Keamanan: Blokir eksploitasi PHP2Shell / Upload Progress UAF (CVE-2026-109618 / CVE-2026-109619)
+# Jika ada request yang mengirim field atau parameter progress upload PHP, tolak langsung di level web server (403 Forbidden)
+RewriteCond %{THE_REQUEST} (PHP_SESSION_UPLOAD_PROGRESS) [NC,OR]
+RewriteCond %{QUERY_STRING} (PHP_SESSION_UPLOAD_PROGRESS) [NC]
+RewriteRule .* - [F,L]
+
+# Nonaktifkan fitur upload progress PHP jika web server mendukung php_flag (.htaccess / LiteSpeed / Apache)
+<IfModule mod_php.c>
+    php_flag session.upload_progress.enabled Off
+</IfModule>
+<IfModule mod_php7.c>
+    php_flag session.upload_progress.enabled Off
+</IfModule>
+<IfModule mod_php8.c>
+    php_flag session.upload_progress.enabled Off
+</IfModule>
+
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteRule . index.php [L]
+
