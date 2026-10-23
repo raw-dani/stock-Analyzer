@@ -80,54 +80,57 @@ if (!empty($systemItems)) {
         .kpi { font-size: 1.6rem; font-weight: 700; }
         .badge-core { background: linear-gradient(135deg, #0d6efd, #0dcaf0); color: #fff; font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; }
 
-        /* Sleek Modern Dark Navbar */
+        /* Clean Modern Light Navbar */
         .navbar-custom {
-            background: linear-gradient(180deg, #0f172a 0%, #0a0f1d 100%) !important;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
-            padding-top: 0.5rem;
-            padding-bottom: 0.5rem;
+            background: #ffffff !important;
+            border-bottom: 1px solid #e2e8f0;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+            padding-top: 0.55rem;
+            padding-bottom: 0.55rem;
+        }
+        .navbar-custom .navbar-toggler {
+            border-color: #cbd5e1;
         }
         .brand-icon-box {
-            width: 32px;
-            height: 32px;
+            width: 34px;
+            height: 34px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(135deg, #0d6efd 0%, #0dcaf0 100%);
-            border-radius: 8px;
-            color: #fff;
-            box-shadow: 0 2px 8px rgba(13, 110, 253, 0.4);
+            background: linear-gradient(135deg, #0d6efd 0%, #0052cc 100%);
+            border-radius: 9px;
+            color: #ffffff;
+            box-shadow: 0 2px 8px rgba(13, 110, 253, 0.35);
         }
         .brand-text {
-            font-weight: 700;
-            font-size: 1.05rem;
-            letter-spacing: -0.02em;
+            font-weight: 800;
+            font-size: 1.12rem;
+            letter-spacing: -0.025em;
+            color: #0f172a !important; /* High contrast black/slate on white navbar */
         }
         .text-primary-gradient {
-            background: linear-gradient(135deg, #38bdf8 0%, #818cf8 100%);
+            background: linear-gradient(135deg, #0d6efd 0%, #2563eb 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            font-weight: 800;
         }
         .user-avatar-badge {
-            width: 26px;
-            height: 26px;
+            width: 28px;
+            height: 28px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #0d6efd, #6366f1);
-            color: #fff;
+            background: linear-gradient(135deg, #0d6efd, #3b82f6);
+            color: #ffffff;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.75rem;
+            font-size: 0.78rem;
             font-weight: 700;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+            box-shadow: 0 2px 5px rgba(13, 110, 253, 0.25);
         }
         .navbar-custom .nav-link {
             font-size: 0.88rem;
-            font-weight: 500;
-            color: #cbd5e1 !important;
+            font-weight: 600;
+            color: #334155 !important; /* High contrast Slate-700 on white */
             padding: 0.45rem 0.85rem !important;
             border-radius: 8px;
             transition: all 0.18s ease-in-out;
@@ -135,22 +138,22 @@ if (!empty($systemItems)) {
             align-items: center;
         }
         .navbar-custom .nav-link:hover {
-            color: #ffffff !important;
-            background: rgba(255, 255, 255, 0.08);
+            color: #0d6efd !important;
+            background: #f1f5f9;
         }
         .navbar-custom .nav-link.active {
-            color: #38bdf8 !important;
-            background: rgba(56, 189, 248, 0.12);
-            font-weight: 600;
+            color: #0d6efd !important;
+            background: #eff6ff;
+            font-weight: 700;
         }
-        /* Enhanced Dropdown Styling */
+        /* Clean Light Dropdown Sub-Menu */
         .navbar-custom .dropdown-menu {
-            background: #0f172a;
-            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: #ffffff !important;
+            border: 1px solid #e2e8f0;
             border-radius: 14px;
-            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+            box-shadow: 0 16px 36px rgba(15, 23, 42, 0.12);
             padding: 0.5rem;
-            min-width: 270px;
+            min-width: 275px;
             margin-top: 0.5rem;
         }
         .navbar-custom .dropdown-menu-scrollable {
@@ -163,25 +166,29 @@ if (!empty($systemItems)) {
             letter-spacing: 0.06em;
             text-transform: uppercase;
             padding: 0.45rem 0.75rem 0.25rem;
+            background: #f8fafc;
+            border-radius: 6px;
+            margin: 0.2rem 0;
         }
         .navbar-custom .dropdown-item {
             font-size: 0.84rem;
-            color: #e2e8f0;
+            font-weight: 500;
+            color: #1e293b !important;
             border-radius: 8px;
-            padding: 0.45rem 0.75rem;
+            padding: 0.48rem 0.75rem;
             transition: all 0.15s ease-in-out;
         }
         .navbar-custom .dropdown-item:hover {
-            background: rgba(255, 255, 255, 0.08);
-            color: #38bdf8;
+            background: #f1f5f9 !important;
+            color: #0d6efd !important;
             transform: translateX(2px);
         }
         .navbar-custom .dropdown-item.active {
-            background: #0d6efd;
-            color: #ffffff;
+            background: #0d6efd !important;
+            color: #ffffff !important;
         }
         .navbar-custom .dropdown-divider {
-            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            border-top: 1px solid #f1f5f9;
             margin: 0.4rem 0;
         }
     </style>
@@ -195,10 +202,10 @@ if (!empty($systemItems)) {
     NavBar::begin([
         'brandLabel' => '<div class="d-flex align-items-center gap-2 text-decoration-none">'
             . '<span class="brand-icon-box"><i class="bi bi-graph-up-arrow"></i></span>'
-            . '<span class="brand-text text-white">Stock <span class="text-primary-gradient">Volume Analyzer</span></span>'
+            . '<span class="brand-text">Stock <span class="text-primary-gradient">Volume Analyzer</span></span>'
             . '</div>',
         'brandUrl' => Yii::$app->homeUrl,
-        'options' => ['class' => 'navbar-expand-lg navbar-dark navbar-custom fixed-top']
+        'options' => ['class' => 'navbar-expand-lg navbar-light bg-white navbar-custom fixed-top']
     ]);
     
     // Top navigation: jika user login tampilkan struktur modern terpadu
@@ -238,10 +245,10 @@ if (!empty($systemItems)) {
                 'encode' => false,
             ],
             [
-                'label' => '<i class="bi bi-sliders me-1 text-info"></i> Pasar & Scanner <i class="bi bi-chevron-down ms-1 text-white-50 small" style="font-size:0.65rem;"></i>',
+                'label' => '<i class="bi bi-sliders me-1 text-primary"></i> Pasar & Scanner <i class="bi bi-chevron-down ms-1 text-muted small" style="font-size:0.65rem;"></i>',
                 'encode' => false,
                 'active' => $isMarketActive,
-                'dropdownOptions' => ['class' => 'dropdown-menu shadow-lg border-0 dropdown-menu-scrollable'],
+                'dropdownOptions' => ['class' => 'dropdown-menu shadow-lg border dropdown-menu-scrollable'],
                 'items' => $marketItems,
             ],
             [
@@ -264,19 +271,19 @@ if (!empty($systemItems)) {
         $roleTitle = $isAdmin ? 'Admin' : 'User';
 
         $userMenuItems = [
-            '<div class="px-3 py-2 border-bottom mb-1 bg-dark bg-opacity-25">'
+            '<div class="px-3 py-2 border-bottom mb-1 bg-light rounded-top">'
                 . '<div class="d-flex align-items-center gap-2">'
                     . '<span class="user-avatar-badge">' . Html::encode($firstLetter) . '</span>'
                     . '<div class="overflow-hidden">'
-                        . '<div class="fw-bold text-white text-truncate small" style="max-width:160px;">' . Html::encode($currentUser->username) . '</div>'
-                        . '<span class="badge ' . $roleClass . ' bg-opacity-75" style="font-size:0.65rem;">' . $roleTitle . '</span>'
+                        . '<div class="fw-bold text-dark text-truncate small" style="max-width:160px;">' . Html::encode($currentUser->username) . '</div>'
+                        . '<span class="badge ' . $roleClass . ' bg-opacity-90" style="font-size:0.65rem;">' . $roleTitle . '</span>'
                     . '</div>'
                 . '</div>'
             . '</div>',
         ];
 
         if ($isAdmin) {
-            $userMenuItems[] = '<div class="dropdown-header text-info fw-bold"><i class="bi bi-shield-lock me-1"></i> ADMINISTRASI SISTEM</div>';
+            $userMenuItems[] = '<div class="dropdown-header text-primary fw-bold"><i class="bi bi-shield-lock me-1"></i> ADMINISTRASI SISTEM</div>';
             $userMenuItems[] = ['label' => '<i class="bi bi-newspaper text-info me-2"></i> Kelola Blog & Artikel', 'url' => ['/blog/admin'], 'encode' => false];
             $userMenuItems[] = ['label' => '<i class="bi bi-globe text-primary me-2"></i> Pengaturan SEO & Webmaster', 'url' => ['/blog/admin/settings'], 'encode' => false];
             $userMenuItems[] = ['label' => '<i class="bi bi-gear text-secondary me-2"></i> Settings Konfigurasi', 'url' => ['/settings/index'], 'encode' => false];
@@ -302,17 +309,17 @@ if (!empty($systemItems)) {
 
         $topNavItems[] = [
             'label' => '<span class="user-avatar-badge me-1">' . Html::encode($firstLetter) . '</span> ' 
-                     . Html::encode($currentUser->username) 
+                     . '<span class="fw-semibold text-dark">' . Html::encode($currentUser->username) . '</span>'
                      . ' <span class="badge ' . $roleClass . ' ms-1" style="font-size:0.65rem;">' . $roleTitle . '</span>'
-                     . ' <i class="bi bi-chevron-down ms-1 text-white-50 small" style="font-size:0.65rem;"></i>',
+                     . ' <i class="bi bi-chevron-down ms-1 text-muted small" style="font-size:0.65rem;"></i>',
             'encode' => false,
-            'dropdownOptions' => ['class' => 'dropdown-menu dropdown-menu-end shadow-lg border-0'],
+            'dropdownOptions' => ['class' => 'dropdown-menu dropdown-menu-end shadow-lg border'],
             'items' => $userMenuItems,
         ];
     } else {
         $topNavItems[] = ['label' => '<i class="bi bi-newspaper me-1 text-info"></i> Blog Info Saham', 'url' => ['/blog/index'], 'active' => $ctrlId === 'blog', 'encode' => false];
-        $topNavItems[] = ['label' => '<i class="bi bi-pencil-square me-1"></i> Register', 'url' => ['/site/register'], 'encode' => false];
-        $topNavItems[] = ['label' => '<i class="bi bi-key me-1"></i> Login', 'url' => ['/site/login'], 'encode' => false];
+        $topNavItems[] = ['label' => '<i class="bi bi-pencil-square me-1 text-primary"></i> Register', 'url' => ['/site/register'], 'encode' => false];
+        $topNavItems[] = ['label' => '<i class="bi bi-box-arrow-in-right me-1 text-dark"></i> Login', 'url' => ['/site/login'], 'encode' => false];
     }
 
     echo Nav::widget([
