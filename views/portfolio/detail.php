@@ -188,13 +188,155 @@ $fib = $signals['fibonacci'] ?? null;
             <div class="alert alert-info border-0 shadow-sm d-flex align-items-center gap-3 mb-4">
                 <div class="display-6 text-info"><?= \app\helpers\SvgHelper::icon('lightbulb-fill') ?></div>
                 <div>
-                    <h5 class="alert-heading fw-bold mb-1">Bagaimana Strategi Average Down Bisa Mengubah Posisi Minus Jadi Untung Cepat?</h5>
+                    <h5 class="alert-heading fw-bold mb-1">Strategi Smart Averaging: Cukup 1 atau 2 Kali, Keluar Untung!</h5>
                     <p class="mb-0 small text-secondary">
-                        Saat saham turun, membeli tambahan lembar pada harga yang lebih murah akan <strong>menurunkan harga rata-rata modal beli Anda secara drastis</strong>. 
-                        Hasilnya: Anda <strong>tidak perlu menunggu saham naik tinggi</strong> ke harga beli lama untuk impas/cuan, melainkan hanya butuh sedikit pantulan teknikal (+2% s/d +5%) untuk langsung mencetak keuntungan target!
+                        Tidak perlu average down secara membabi buta setiap kali saham turun. Sistem menganalisis titik pantulan teknikal terbaik (Support &amp; Confluence), memandu Anda <strong>membeli di harga support presisi</strong> dan <strong>menjual di harga target/resistance</strong> agar langsung keluar dalam posisi <strong>untung (profit)</strong> hanya dengan pantulan kecil!
                     </p>
                 </div>
             </div>
+
+            <?php $smartPlan = $dcaData['smart_plan'] ?? null; ?>
+            <?php if (!empty($smartPlan)): ?>
+                <!-- ======================================================== -->
+                <!-- PANDUAN PINTAR: SMART 2-STEP RECOVERY & EXIT PLAN       -->
+                <!-- ======================================================== -->
+                <div class="card border-0 shadow-sm mb-4 bg-gradient border-start border-success border-5" style="background: linear-gradient(135deg, #f8fdf9 0%, #ffffff 100%);">
+                    <div class="card-body p-4">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 pb-3 border-bottom">
+                            <div>
+                                <span class="badge bg-success bg-opacity-10 text-success border border-success fw-bold px-2 py-1 mb-1">
+                                    <?= \app\helpers\SvgHelper::icon('stars', ['class' => 'me-1']) ?> REKOMENDASI PINTAR SISTEM (ANTI-BLIND DCA)
+                                </span>
+                                <h4 class="fw-bold text-dark mb-0">Rencana Pemulihan 2 Tahap (Smart 2-Step Recovery)</h4>
+                                <div class="text-muted small">Cukup maksimal 1 atau 2 kali beli bertahap, lalu exit cuan saat rebound teknikal</div>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge bg-<?= $smartPlan['verdict_badge'] ?> fs-6 px-3 py-2">
+                                    <?= Html::encode($smartPlan['verdict']) ?>
+                                </span>
+                                <div class="small text-muted mt-1">Confluence Reversal: <strong><?= $smartPlan['confluence_score'] ?>%</strong></div>
+                            </div>
+                        </div>
+
+                        <!-- 2 Langkah Presisi (Step 1 & Step 2) -->
+                        <div class="row g-3 mb-3">
+                            <!-- STEP 1: Main Recovery (Sekali DCA Saja Cuan) -->
+                            <div class="col-lg-6">
+                                <div class="card h-100 border border-success border-2 shadow-sm rounded-3">
+                                    <div class="card-header bg-success text-white py-2 d-flex justify-content-between align-items-center">
+                                        <span class="fw-bold"><?= \app\helpers\SvgHelper::icon('lightning-charge-fill', ['class' => 'me-1']) ?> LANGKAH 1: Amunisi Utama (Sekali DCA)</span>
+                                        <span class="badge bg-white text-success fw-bold">Paling Disarankan</span>
+                                    </div>
+                                    <div class="card-body p-3">
+                                        <div class="row g-2 mb-2 text-center">
+                                            <div class="col-6 p-2 bg-light rounded border">
+                                                <div class="text-muted small" style="font-size:0.75rem;">BELI DI HARGA</div>
+                                                <div class="h4 mb-0 fw-bold text-primary"><?= $fmt->asCurrency($smartPlan['recommended_buy_price']) ?></div>
+                                                <div class="small text-muted" style="font-size:0.70rem;">Sebanyak <strong>+<?= \app\models\PortfolioPosition::formatShares($smartPlan['recommended_buy_shares']) ?> lbr</strong> (1x modal)</div>
+                                            </div>
+                                            <div class="col-6 p-2 bg-success bg-opacity-10 rounded border border-success border-opacity-25">
+                                                <div class="text-success small fw-bold" style="font-size:0.75rem;">JUAL EXIT DI HARGA</div>
+                                                <div class="h4 mb-0 fw-bold text-success"><?= $fmt->asCurrency($smartPlan['recommended_sell_price']) ?></div>
+                                                <div class="small text-success fw-semibold" style="font-size:0.70rem;">Potensi Cuan: <strong>+<?= $fmt->asCurrency($smartPlan['recommended_sell_profit']) ?></strong></div>
+                                            </div>
+                                        </div>
+
+                                        <ul class="list-unstyled small text-secondary mb-3 space-y-1" style="font-size:0.80rem;">
+                                            <li class="d-flex justify-content-between border-bottom py-1">
+                                                <span>Modal Rata-Rata Baru (Avg):</span>
+                                                <strong class="text-dark"><?= $fmt->asCurrency($smartPlan['new_avg_price']) ?></strong>
+                                            </li>
+                                            <li class="d-flex justify-content-between border-bottom py-1">
+                                                <span>Pantulan yang Dibutuhkan untuk BEP:</span>
+                                                <strong class="text-primary">+<?= $smartPlan['bep_rebound_needed'] ?>%</strong>
+                                            </li>
+                                            <li class="d-flex justify-content-between py-1">
+                                                <span>Pantulan untuk Langsung Exit Cuan:</span>
+                                                <strong class="text-success">+<?= $smartPlan['recommended_rebound_needed'] ?>% saja</strong>
+                                            </li>
+                                        </ul>
+
+                                        <?php $sc1 = $smartPlan['step1_scenario']; ?>
+                                        <?php $formApply1 = ActiveForm::begin(['action' => ['/portfolio/apply-average', 'id' => $position->id], 'method' => 'post']); ?>
+                                            <input type="hidden" name="new_avg_price" value="<?= $sc1['new_avg_price'] ?>">
+                                            <input type="hidden" name="new_total_shares" value="<?= $sc1['new_total_shares'] ?>">
+                                            <input type="hidden" name="scenario_name" value="<?= Html::encode($sc1['title']) ?>">
+                                            <input type="hidden" name="add_price" value="<?= $sc1['add_price'] ?>">
+                                            <input type="hidden" name="add_shares" value="<?= $sc1['add_shares'] ?>">
+                                            <input type="hidden" name="add_cost" value="<?= $sc1['add_cost'] ?>">
+                                            <input type="hidden" name="notes" value="Eksekusi Smart Step 1: Beli di $<?= $sc1['add_price'] ?> (+<?= \app\models\PortfolioPosition::formatShares($sc1['add_shares']) ?> lbr), Target Exit di $<?= number_format($smartPlan['recommended_sell_price'], 2) ?>">
+                                            <button type="submit" class="btn btn-success btn-sm w-100 fw-bold shadow-sm" onclick="return confirm('Terapkan Smart Step 1 ke portofolio Anda?');">
+                                                <?= \app\helpers\SvgHelper::icon('check-circle-fill', ['class' => 'me-1']) ?> Eksekusi Smart Step 1 (Avg Baru: <?= $fmt->asCurrency($sc1['new_avg_price']) ?>)
+                                            </button>
+                                        <?php ActiveForm::end(); ?>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- STEP 2: Defensive Backup (Jika Terjadi Koreksi Tambahan) -->
+                            <div class="col-lg-6">
+                                <div class="card h-100 border border-secondary border-opacity-50 shadow-sm rounded-3">
+                                    <div class="card-header bg-dark text-white py-2 d-flex justify-content-between align-items-center">
+                                        <span class="fw-bold"><?= \app\helpers\SvgHelper::icon('shield-shaded', ['class' => 'me-1']) ?> LANGKAH 2: Amunisi Cadangan Terakhir</span>
+                                        <span class="badge bg-secondary">Hanya jika turun lagi</span>
+                                    </div>
+                                    <div class="card-body p-3">
+                                        <div class="row g-2 mb-2 text-center">
+                                            <div class="col-6 p-2 bg-light rounded border">
+                                                <div class="text-muted small" style="font-size:0.75rem;">BELI DI SUPPORT 2</div>
+                                                <div class="h4 mb-0 fw-bold text-dark"><?= $fmt->asCurrency($smartPlan['step2_price']) ?></div>
+                                                <div class="small text-muted" style="font-size:0.70rem;">Sebanyak <strong>+<?= \app\models\PortfolioPosition::formatShares($smartPlan['step2_shares']) ?> lbr</strong> (1.5x modal)</div>
+                                            </div>
+                                            <div class="col-6 p-2 bg-light rounded border">
+                                                <div class="text-success small fw-bold" style="font-size:0.75rem;">JUAL EXIT DI HARGA</div>
+                                                <div class="h4 mb-0 fw-bold text-success"><?= $fmt->asCurrency($smartPlan['step2_sell_price']) ?></div>
+                                                <div class="small text-success fw-semibold" style="font-size:0.70rem;">Potensi Cuan: <strong>+<?= $fmt->asCurrency($smartPlan['step2_sell_profit']) ?></strong></div>
+                                            </div>
+                                        </div>
+
+                                        <ul class="list-unstyled small text-secondary mb-3 space-y-1" style="font-size:0.80rem;">
+                                            <li class="d-flex justify-content-between border-bottom py-1">
+                                                <span>Modal Rata-Rata Total Akhir:</span>
+                                                <strong class="text-dark"><?= $fmt->asCurrency($smartPlan['step2_new_avg']) ?></strong>
+                                            </li>
+                                            <li class="d-flex justify-content-between border-bottom py-1">
+                                                <span>Pantulan yang Dibutuhkan untuk Cuan:</span>
+                                                <strong class="text-success">+<?= $smartPlan['step2_rebound_needed'] ?>%</strong>
+                                            </li>
+                                            <li class="d-flex justify-content-between py-1">
+                                                <span>Batas Pengaman Disiplin (Hard Stop Loss):</span>
+                                                <strong class="text-danger"><?= $fmt->asCurrency($smartPlan['stop_loss_price']) ?> (<?= $smartPlan['stop_loss_pct'] ?>%)</strong>
+                                            </li>
+                                        </ul>
+
+                                        <?php $sc2 = $smartPlan['step2_scenario']; ?>
+                                        <?php $formApply2 = ActiveForm::begin(['action' => ['/portfolio/apply-average', 'id' => $position->id], 'method' => 'post']); ?>
+                                            <input type="hidden" name="new_avg_price" value="<?= $sc2['new_avg_price'] ?>">
+                                            <input type="hidden" name="new_total_shares" value="<?= $sc2['new_total_shares'] ?>">
+                                            <input type="hidden" name="scenario_name" value="<?= Html::encode($sc2['title']) ?>">
+                                            <input type="hidden" name="add_price" value="<?= $sc2['add_price'] ?>">
+                                            <input type="hidden" name="add_shares" value="<?= $sc2['add_shares'] ?>">
+                                            <input type="hidden" name="add_cost" value="<?= $sc2['add_cost'] ?>">
+                                            <input type="hidden" name="notes" value="Eksekusi Smart Step 2: Beli cadangan di $<?= $sc2['add_price'] ?> (+<?= \app\models\PortfolioPosition::formatShares($sc2['add_shares']) ?> lbr), Target Exit di $<?= number_format($smartPlan['step2_sell_price'], 2) ?>">
+                                            <button type="submit" class="btn btn-outline-dark btn-sm w-100 fw-bold shadow-sm" onclick="return confirm('Terapkan Smart Step 2 ke portofolio Anda?');">
+                                                <?= \app\helpers\SvgHelper::icon('shield-fill', ['class' => 'me-1']) ?> Eksekusi Smart Step 2 (Avg Baru: <?= $fmt->asCurrency($sc2['new_avg_price']) ?>)
+                                            </button>
+                                        <?php ActiveForm::end(); ?>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Banner Edukasi Disiplin -->
+                        <div class="alert alert-warning border-0 mb-0 py-2 px-3 small d-flex align-items-center gap-2">
+                            <?= \app\helpers\SvgHelper::icon('shield-exclamation', ['class' => 'fs-5 text-warning']) ?>
+                            <div>
+                                <strong>Kunci Sukses:</strong> Cukup jalankan <strong>Langkah 1</strong> jika harga langsung memantul. Siapkan <strong>Langkah 2</strong> hanya jika market terkoreksi lebih lanjut ke Support 2. Jika harga menembus ke bawah <strong><?= $fmt->asCurrency($smartPlan['stop_loss_price']) ?></strong>, <strong>JANGAN</strong> average down lagi — disiplin cut loss demi melindungi aset Anda.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
 
             <!-- Tabel Perbandingan Skenario Averaging Down -->
             <div class="card border-0 shadow-sm mb-4">

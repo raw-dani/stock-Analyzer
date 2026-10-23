@@ -66,6 +66,27 @@ final class PortfolioController extends Controller
 
         $allPositions = $query->all();
 
+        // Riwayat Penjualan / Exit Saham (Take Profit & Cut Loss)
+        $sellHistories = \app\models\PortfolioHistory::find()
+            ->where([
+                'user_id' => $userId,
+                'action_type' => [
+                    \app\models\PortfolioHistory::ACTION_SELL,
+                    \app\models\PortfolioHistory::ACTION_CUT_LOSS,
+                ],
+            ])
+            ->with(['position.stock'])
+            ->orderBy(['created_at' => SORT_DESC])
+            ->all();
+
+        // Hitung total realisasi untung / rugi dari riwayat penjualan
+        $totalRealizedPl = 0.0;
+        $totalSellTurnover = 0.0;
+        foreach ($sellHistories as $sh) {
+            $totalRealizedPl += $sh->getRealizedPlAmount();
+            $totalSellTurnover += (float) ($sh->added_cost ?? 0);
+        }
+
         // Hitung Metrik Portofolio Total
         $totalInvested = 0.0;
         $currentValue = 0.0;
@@ -115,6 +136,9 @@ final class PortfolioController extends Controller
             'tab' => $tab,
             'availableStocks' => $availableStocks,
             'newPosition' => $newPosition,
+            'sellHistories' => $sellHistories,
+            'totalRealizedPl' => $totalRealizedPl,
+            'totalSellTurnover' => $totalSellTurnover,
         ]);
     }
 
@@ -219,7 +243,7 @@ final class PortfolioController extends Controller
                 'position_id' => $position->id,
                 'user_id' => (int) $position->user_id,
                 'action_type' => \app\models\PortfolioHistory::ACTION_SELL,
-                'scenario_name' => 'Jual Untung (Take Profit)',
+                'scenario_name' => "Jual Untung [{$symbol}]",
                 'old_price' => $oldBuyPrice,
                 'new_price' => $sellPrice,
                 'old_shares' => $currentShares,
@@ -228,8 +252,9 @@ final class PortfolioController extends Controller
                 'added_price' => $sellPrice,
                 'added_cost' => round($sellPrice * $sellShares, 2),
                 'notes' => sprintf(
-                    "Realisasi Jual Untung (+%s%%). Laba Bersih: +$%s. %s",
+                    "Realisasi Jual Untung (+%s%%) saham %s. Laba Bersih: +$%s. %s",
                     $profitPct,
+                    $symbol,
                     number_format($realizedProfit, 2),
                     $notes
                 ),
@@ -311,7 +336,7 @@ final class PortfolioController extends Controller
                 'position_id' => $position->id,
                 'user_id' => (int) $position->user_id,
                 'action_type' => \app\models\PortfolioHistory::ACTION_CUT_LOSS,
-                'scenario_name' => 'Cut Loss (Proteksi Modal)',
+                'scenario_name' => "Cut Loss [{$symbol}]",
                 'old_price' => $oldBuyPrice,
                 'new_price' => $exitPrice,
                 'old_shares' => $currentShares,
@@ -320,8 +345,9 @@ final class PortfolioController extends Controller
                 'added_price' => $exitPrice,
                 'added_cost' => round($exitPrice * $cutShares, 2),
                 'notes' => sprintf(
-                    "Eksekusi Cut Loss (%s%%). Realisasi Rugi: -$%s. Sisa modal diamankan: $%s. %s",
+                    "Eksekusi Cut Loss (%s%%) saham %s. Realisasi Rugi: -$%s. Sisa modal diamankan: $%s. %s",
                     $lossPct,
+                    $symbol,
                     number_format($realizedLoss, 2),
                     number_format($exitPrice * $cutShares, 2),
                     $notes
@@ -381,8 +407,12 @@ final class PortfolioController extends Controller
         // Analisis Multi-Fitur (Candlestick, Double/Triple Bottom, RSI, Moving Average, Fibonacci, Confluence)
         $multiAnalysis = $this->service->getMultiFeatureAnalysis($stock);
 
-        // Simulasi Skenario Averaging Down
-        $dcaData = $this->service->calculateDcaScenarios($position, $multiAnalysis['best_support_price'] ?? null);
+        // Simulasi Skenario Averaging Down Pintar
+        $dcaData = $this->service->calculateDcaScenarios(
+            $position,
+            $multiAnalysis['best_support_price'] ?? null,
+            $multiAnalysis
+        );
 
         // Riwayat Penerapan Skenario
         $histories = $position->getHistoriesList();

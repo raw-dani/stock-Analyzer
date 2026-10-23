@@ -43,7 +43,15 @@ final class PortfolioAveragingService
      * @param float|null $supportPrice Harga support teknikal alternatif
      * @return array<string, mixed>
      */
-    public function calculateDcaScenarios(PortfolioPosition $position, ?float $supportPrice = null): array
+    /**
+     * Hitung simulasi skenario Averaging Down untuk posisi yang sedang rugi / minus.
+     *
+     * @param PortfolioPosition $position
+     * @param float|null $supportPrice Harga support teknikal alternatif
+     * @param array<string, mixed> $multiAnalysis Data analisis confluence & teknikal
+     * @return array<string, mixed>
+     */
+    public function calculateDcaScenarios(PortfolioPosition $position, ?float $supportPrice = null, array $multiAnalysis = []): array
     {
         $currentPrice = $position->getCurrentPrice();
         $buyPrice = (float) $position->buy_price;
@@ -55,58 +63,61 @@ final class PortfolioAveragingService
         $oldTargetSellPrice = $position->getTargetSellPrice();
         $oldReboundToTarget = $currentPrice > 0 ? round((($oldTargetSellPrice - $currentPrice) / $currentPrice) * 100, 2) : 0.0;
 
+        // Tentukan Target Exit Cuan Cepat (Quick Exit): minimal +2% s/d +3% atau target user
+        $quickExitPct = min(3.0, max(1.5, $targetPct));
+
+        // Resistance terdekat di atas harga pasar saat ini
+        $nearestResistance = $multiAnalysis['nearest_resistance'] ?? null;
+        if ($nearestResistance !== null && $nearestResistance <= $currentPrice) {
+            $nearestResistance = null;
+        }
+
+        // Harga Beli Rekomendasi Pintar (Smart Entry)
+        $smartEntryPrice = ($supportPrice !== null && $supportPrice > 0 && $supportPrice < $currentPrice)
+            ? $supportPrice
+            : $currentPrice;
+
+        // -------------------------------------------------------------
+        // FITUR PINTAR: SMART 2-STEP RECOVERY PLAN (Cukup 1-2x Averaging)
+        // -------------------------------------------------------------
+        // Alokasi Piramida:
+        // - Step 1: 1.0x shares (50% alokasi) di harga rebound terdekat / support 1
+        // - Step 2: 1.5x shares (75% alokasi) jika koreksi menyentuh support kuat
+        $smartPlan = $this->buildSmartRecoveryPlan($position, $smartEntryPrice, $quickExitPct, $nearestResistance, $multiAnalysis);
+
         $scenarios = [];
 
-        // Skenario 1: Beli Rasio 1:1 di Harga Saat Ini
+        // Skenario Unggulan 1: Smart 1-Step Quick Exit (Sekali Averaging Cuan Keluar)
+        if (!empty($smartPlan['step1_scenario'])) {
+            $scenarios['smart_step_1'] = $smartPlan['step1_scenario'];
+        }
+
+        // Skenario Unggulan 2: Smart 2-Step Complete Recovery (Jika Koreksi Lanjutan ke Support Kuat)
+        if (!empty($smartPlan['step2_scenario'])) {
+            $scenarios['smart_step_2'] = $smartPlan['step2_scenario'];
+        }
+
+        // Skenario Standar: Rasio 1:1 di Harga Saat Ini
         $scenarios['ratio_1'] = $this->buildScenario(
             'Rasio 1:1 (Konservatif)',
-            'Beli jumlah lembar yang sama dengan posisi awal di harga saat ini',
+            'Beli porsi yang sama (1x modal awal) di harga pasar saat ini',
             $position,
             $currentPrice,
             $shares,
             'primary'
         );
 
-        // Skenario 2: Beli Rasio 2:1 (Double Down)
+        // Skenario Standar: Rasio 2:1 (Double Down)
         $scenarios['ratio_2'] = $this->buildScenario(
             'Rasio 2:1 (Moderat)',
-            'Beli 2x lipat lembar awal untuk memotong separuh kerugian',
+            'Beli 2x lipat lembar awal untuk memotong kerugian lebih dari separuh',
             $position,
             $currentPrice,
             round($shares * 2, 4),
-            'success'
-        );
-
-        // Skenario 3: Beli Rasio 3:1 (Pemulihan Cepat)
-        $scenarios['ratio_3'] = $this->buildScenario(
-            'Rasio 3:1 (Pemulihan Agresif)',
-            'Beli 3x lipat lembar awal agar harga rata-rata turun drastis mendekati harga pasar',
-            $position,
-            $currentPrice,
-            round($shares * 3, 4),
             'info'
         );
 
-        // Skenario 4: Target Impas Cepat di Pantulan +10% (Bila posisi rugi dalam)
-        if ($buyPrice > $currentPrice * 1.15) {
-            $targetBe = round($currentPrice * 1.10, 2);
-            $denom = $targetBe - $currentPrice;
-            if ($denom > 0) {
-                $neededShares = round($shares * ($buyPrice - $targetBe) / $denom, 4);
-                if ($neededShares > 0 && $neededShares <= $shares * 30) {
-                    $scenarios['target_rebound_10'] = $this->buildScenario(
-                        'Target Impas di Pantulan +10%',
-                        'Beli ' . PortfolioPosition::formatShares($neededShares) . ' lbr agar posisi langsung balik modal (impas) hanya dengan kenaikan +10% dari harga pasar saat ini',
-                        $position,
-                        $currentPrice,
-                        $neededShares,
-                        'dark'
-                    );
-                }
-            }
-        }
-
-        // Skenario 5: Beli di Titik Support Kunci (jika ada support teknikal di bawah harga saat ini)
+        // Skenario Khusus: Beli di Titik Support Kunci Presisi (jika support di bawah harga running)
         if ($supportPrice !== null && $supportPrice > 0 && $supportPrice < $currentPrice) {
             $scenarios['support_buy'] = $this->buildScenario(
                 'Beli di Support Presisi ($' . number_format($supportPrice, 2) . ')',
@@ -123,9 +134,107 @@ final class PortfolioAveragingService
             'buy_price' => $buyPrice,
             'shares' => $shares,
             'target_profit_pct' => $targetPct,
+            'quick_exit_pct' => $quickExitPct,
             'old_rebound_to_breakeven' => $oldReboundToBreakeven,
             'old_rebound_to_target' => $oldReboundToTarget,
+            'smart_plan' => $smartPlan,
             'scenarios' => $scenarios,
+        ];
+    }
+
+    /**
+     * Membangun Smart 2-Step Recovery Plan agar user tidak averaging berkali-kali secara membabi buta.
+     */
+    private function buildSmartRecoveryPlan(
+        PortfolioPosition $position,
+        float $entryPrice,
+        float $quickExitPct,
+        ?float $nearestResistance,
+        array $multiAnalysis
+    ): array {
+        $currentPrice = $position->getCurrentPrice();
+        $buyPrice = (float) $position->buy_price;
+        $shares = (float) $position->shares;
+
+        // STEP 1: Eksekusi Averaging Pertama (1.0x Shares)
+        // Hitung rata-rata baru jika beli 1x shares di $entryPrice
+        $cost1 = round($entryPrice * $shares, 2);
+        $totalShares1 = round($shares * 2, 4);
+        $totalCost1 = round(($buyPrice * $shares) + $cost1, 2);
+        $newAvg1 = $totalShares1 > 0 ? round($totalCost1 / $totalShares1, 2) : $buyPrice;
+
+        // Target Exit Cuan:
+        // Jika ada resistance teknikal terdekat di atas newAvg1 dan realistis, jadikan target exit resistance.
+        // Jika tidak, gunakan $quickExitPct (misal +2% s/d +3%) di atas $newAvg1
+        $exitTarget1 = round($newAvg1 * (1 + ($quickExitPct / 100)), 2);
+        if ($nearestResistance !== null && $nearestResistance > $newAvg1 && $nearestResistance < $exitTarget1 * 1.05) {
+            $exitTarget1 = round($nearestResistance, 2);
+        }
+        $reboundNeeded1 = $entryPrice > 0 ? round((($exitTarget1 - $entryPrice) / $entryPrice) * 100, 2) : 0.0;
+        $bepRebound1 = $entryPrice > 0 ? round((($newAvg1 - $entryPrice) / $entryPrice) * 100, 2) : 0.0;
+        $netProfit1 = round(($exitTarget1 * $totalShares1) - $totalCost1, 2);
+
+        $step1Scenario = $this->buildScenario(
+            '🌟 Smart Step 1: Rebound Exit Plan',
+            'Cukup 1x average down (1x porsi awal). Modal rata-rata turun ke $' . number_format($newAvg1, 2) . '. Begitu saham mantul +' . $reboundNeeded1 . '%, langsung keluar dalam posisi UNTUNG!',
+            $position,
+            $entryPrice,
+            $shares,
+            'success'
+        );
+
+        // STEP 2: Cadangan Averaging Kedua (1.5x Shares) - JIKA harga turun lagi ke support berikutnya
+        // Misal support kedua berada 3% - 5% di bawah support pertama
+        $secondSupport = !empty($multiAnalysis['secondary_support_price'])
+            ? (float) $multiAnalysis['secondary_support_price']
+            : round($entryPrice * 0.95, 2);
+
+        $addShares2 = round($shares * 1.5, 4);
+        $cost2 = round($secondSupport * $addShares2, 2);
+        // Total dari modal awal + step 1 + step 2
+        $totalShares2 = round($totalShares1 + $addShares2, 4);
+        $totalCost2 = round($totalCost1 + $cost2, 2);
+        $newAvg2 = $totalShares2 > 0 ? round($totalCost2 / $totalShares2, 2) : $buyPrice;
+
+        $exitTarget2 = round($newAvg2 * (1 + ($quickExitPct / 100)), 2);
+        $reboundNeeded2 = $secondSupport > 0 ? round((($exitTarget2 - $secondSupport) / $secondSupport) * 100, 2) : 0.0;
+        $bepRebound2 = $secondSupport > 0 ? round((($newAvg2 - $secondSupport) / $secondSupport) * 100, 2) : 0.0;
+        $netProfit2 = round(($exitTarget2 * $totalShares2) - $totalCost2, 2);
+
+        $step2Scenario = $this->buildScenario(
+            '🛡️ Smart Step 2: Final Defensive Exit',
+            'Amunisi terakhir (Maksimal 2x DCA). Beli di support kedua $' . number_format($secondSupport, 2) . ' sebanyak 1.5x lembar awal. Hanya butuh pantulan +' . $reboundNeeded2 . '% untuk keluar cuan.',
+            $position,
+            $secondSupport,
+            $addShares2,
+            'dark'
+        );
+
+        // Disiplin Stop Loss Plan jika breakdown support 2 (misal 2.5% di bawah support 2)
+        $invalidationStopLoss = round($secondSupport * 0.97, 2);
+
+        return [
+            'recommended_buy_price' => $entryPrice,
+            'recommended_buy_shares' => $shares,
+            'recommended_sell_price' => $exitTarget1,
+            'recommended_sell_profit' => $netProfit1,
+            'recommended_rebound_needed' => $reboundNeeded1,
+            'bep_rebound_needed' => $bepRebound1,
+            'new_avg_price' => $newAvg1,
+            'step1_scenario' => $step1Scenario,
+            'step2_price' => $secondSupport,
+            'step2_shares' => $addShares2,
+            'step2_new_avg' => $newAvg2,
+            'step2_sell_price' => $exitTarget2,
+            'step2_sell_profit' => $netProfit2,
+            'step2_rebound_needed' => $reboundNeeded2,
+            'step2_scenario' => $step2Scenario,
+            'stop_loss_price' => $invalidationStopLoss,
+            'stop_loss_pct' => round((($invalidationStopLoss - $currentPrice) / max(0.01, $currentPrice)) * 100, 2),
+            'nearest_resistance' => $nearestResistance,
+            'verdict' => $multiAnalysis['verdict'] ?? 'TUNGGU KONFIRMASI PANTULAN',
+            'verdict_badge' => $multiAnalysis['verdict_badge'] ?? 'warning',
+            'confluence_score' => $multiAnalysis['confluence_score'] ?? 50,
         ];
     }
 
@@ -388,11 +497,36 @@ final class PortfolioAveragingService
             $verdictExplanation = 'Harga masih berada dalam tekanan jual kuat tanpa tanda-tanda support terbentuk. Melakukan averaging saat ini berisiko tinggi ("menangkap pisau jatuh"). Pasang batas Stop Loss ketat.';
         }
 
+        // Kumpulkan Resistance Levels untuk target exit pantulan
+        $resistanceLevels = [];
+        if (!empty($fibAnalysis['fibo_382']) && (float)$fibAnalysis['fibo_382'] > 0) {
+            $resistanceLevels[] = (float) $fibAnalysis['fibo_382'];
+        }
+        if (!empty($fibAnalysis['fibo_236']) && (float)$fibAnalysis['fibo_236'] > 0) {
+            $resistanceLevels[] = (float) $fibAnalysis['fibo_236'];
+        }
+        if (!empty($fibAnalysis['swing_high']) && (float)$fibAnalysis['swing_high'] > 0) {
+            $resistanceLevels[] = (float) $fibAnalysis['swing_high'];
+        }
+        if (!empty($maAnalysis['fast_ma']) && (float)$maAnalysis['fast_ma'] > 0) {
+            $resistanceLevels[] = (float) $maAnalysis['fast_ma'];
+        }
+        if (!empty($maAnalysis['slow_ma']) && (float)$maAnalysis['slow_ma'] > 0) {
+            $resistanceLevels[] = (float) $maAnalysis['slow_ma'];
+        }
+
         // Ambil harga support terdekat yang valid di bawah harga pasar saat ini
         $currentPrice = $stock->getPrice() ?? 0.0;
-        $validSupports = array_filter($supportLevels, fn($p) => $p > 0 && $p <= $currentPrice * 1.01);
+        $validSupports = array_values(array_unique(array_filter($supportLevels, fn($p) => $p > 0 && $p <= $currentPrice * 1.01)));
         sort($validSupports);
-        $bestSupportPrice = end($validSupports) ?: null;
+        $bestSupportPrice = !empty($validSupports) ? end($validSupports) : null;
+        // Secondary support (support lapis kedua untuk Step 2)
+        $secondarySupportPrice = count($validSupports) >= 2 ? $validSupports[count($validSupports) - 2] : null;
+
+        // Ambil resistance terdekat di atas harga pasar saat ini
+        $validResistances = array_values(array_unique(array_filter($resistanceLevels, fn($p) => $p > $currentPrice * 1.005)));
+        sort($validResistances);
+        $nearestResistance = !empty($validResistances) ? $validResistances[0] : null;
 
         return [
             'stock' => $stock,
@@ -402,6 +536,8 @@ final class PortfolioAveragingService
             'verdict_class' => $verdictBadge,
             'verdict_explanation' => $verdictExplanation,
             'best_support_price' => $bestSupportPrice ? round((float) $bestSupportPrice, 2) : null,
+            'secondary_support_price' => $secondarySupportPrice ? round((float) $secondarySupportPrice, 2) : null,
+            'nearest_resistance' => $nearestResistance ? round((float) $nearestResistance, 2) : null,
             'signals' => $signals,
             'features' => $signals,
         ];

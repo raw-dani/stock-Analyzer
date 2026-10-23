@@ -12,6 +12,9 @@
 /** @var string $tab */
 /** @var app\models\Stock[] $availableStocks */
 /** @var app\models\PortfolioPosition $newPosition */
+/** @var app\models\PortfolioHistory[] $sellHistories */
+/** @var float $totalRealizedPl */
+/** @var float $totalSellTurnover */
 
 use yii\bootstrap5\ActiveForm;
 use yii\bootstrap5\Html;
@@ -21,6 +24,7 @@ $this->title = 'Portofolio & Strategi Averaging';
 $this->params['breadcrumbs'][] = $this->title;
 
 $fmt = Yii::$app->formatter;
+$sellHistoryCount = count($sellHistories);
 ?>
 
 <div class="portfolio-index">
@@ -88,14 +92,18 @@ $fmt = Yii::$app->formatter;
             </a>
         </div>
 
-        <!-- Posisi Sedang Minus (Butuh Averaging) -->
+        <!-- Riwayat Jual Saham (Realized P/L) -->
         <div class="col-6 col-md-3">
-            <a href="<?= Url::to(['/portfolio/index', 'tab' => 'loss']) ?>" class="text-decoration-none">
-                <div class="card border-0 shadow-sm bg-light text-center h-100 py-2 hover-card <?= $tab === 'loss' ? 'border border-danger border-2' : '' ?>">
+            <a href="<?= Url::to(['/portfolio/index', 'tab' => 'history']) ?>" class="text-decoration-none">
+                <div class="card border-0 shadow-sm bg-light text-center h-100 py-2 hover-card <?= $tab === 'history' ? 'border border-primary border-2' : '' ?>">
                     <div class="card-body p-3">
-                        <div class="text-danger small fw-semibold text-uppercase">Posisi Minus (Perlu Average)</div>
-                        <div class="h3 mb-0 fw-bold text-danger"><?= $lossCount ?> Saham</div>
-                        <div class="small text-muted mt-1"><?= \app\helpers\SvgHelper::icon('tools', ['class' => 'text-danger']) ?> Hitung Averaging Down</div>
+                        <div class="text-primary small fw-semibold text-uppercase">Riwayat Jual Saham</div>
+                        <div class="h3 mb-0 fw-bold <?= $totalRealizedPl >= 0 ? 'text-success' : 'text-danger' ?>">
+                            <?= ($totalRealizedPl >= 0 ? '+' : '') . $fmt->asCurrency($totalRealizedPl) ?>
+                        </div>
+                        <div class="small text-muted mt-1">
+                            <?= \app\helpers\SvgHelper::icon('clock-history', ['class' => 'me-1']) ?><?= $sellHistoryCount ?> Transaksi Jual / Exit
+                        </div>
                     </div>
                 </div>
             </a>
@@ -107,7 +115,7 @@ $fmt = Yii::$app->formatter;
         <ul class="nav nav-pills small">
             <li class="nav-item">
                 <a class="nav-link <?= $tab === 'all' ? 'active' : '' ?>" href="<?= Url::to(['/portfolio/index', 'tab' => 'all']) ?>">
-                    Semua Posisi (<?= $allCount ?>)
+                    Semua Posisi Aktif (<?= $allCount ?>)
                 </a>
             </li>
             <li class="nav-item">
@@ -120,9 +128,15 @@ $fmt = Yii::$app->formatter;
                     🔴 Sedang Minus / Butuh Average (<?= $lossCount ?>)
                 </a>
             </li>
+            <li class="nav-item">
+                <a class="nav-link <?= $tab === 'history' ? 'active bg-primary' : 'text-primary' ?>" href="<?= Url::to(['/portfolio/index', 'tab' => 'history']) ?>">
+                    📜 Riwayat Realisasi Jual (<?= $sellHistoryCount ?>)
+                </a>
+            </li>
         </ul>
     </div>
 
+    <?php if ($tab !== 'history'): ?>
     <!-- Tabel Daftar Posisi Portofolio -->
     <div class="card border-0 shadow-sm">
         <div class="card-body p-0">
@@ -432,6 +446,135 @@ $fmt = Yii::$app->formatter;
             </div>
         </div>
     </div>
+    <?php else: ?>
+    <!-- Tabel Riwayat Realisasi Jual Saham (Take Profit & Cut Loss) -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <div>
+                <h5 class="fw-bold mb-0 text-dark">
+                    <?= \app\helpers\SvgHelper::icon('clock-history', ['class' => 'text-primary me-2']) ?>Histori Realisasi Penjualan Saham
+                </h5>
+                <p class="text-muted small mb-0">Catatan riwayat transaksi penjualan saham (Take Profit dan Cut Loss) yang sudah direalisasikan.</p>
+            </div>
+            <div class="d-flex gap-2 align-items-center">
+                <span class="badge bg-light text-secondary border px-3 py-2 fs-6">
+                    Total Omset Penjualan: <strong class="text-dark"><?= $fmt->asCurrency($totalSellTurnover) ?></strong>
+                </span>
+                <span class="badge bg-<?= $totalRealizedPl >= 0 ? 'success' : 'danger' ?> bg-opacity-10 text-<?= $totalRealizedPl >= 0 ? 'success' : 'danger' ?> border border-<?= $totalRealizedPl >= 0 ? 'success' : 'danger' ?> px-3 py-2 fs-6">
+                    Total Realisasi P/L: 
+                    <strong><?= ($totalRealizedPl >= 0 ? '+' : '') . $fmt->asCurrency($totalRealizedPl) ?></strong>
+                </span>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light small text-uppercase text-muted">
+                        <tr>
+                            <th style="width: 40px;">#</th>
+                            <th>Tanggal & Waktu</th>
+                            <th>Simbol Saham</th>
+                            <th class="text-center">Aksi / Skenario</th>
+                            <th class="text-end">Harga Beli Modal</th>
+                            <th class="text-end">Harga Jual / Exit</th>
+                            <th class="text-center">Lembar Terjual</th>
+                            <th class="text-end">Nilai Penjualan</th>
+                            <th class="text-center">Realisasi P/L (%)</th>
+                            <th class="text-end">Realisasi P/L ($)</th>
+                            <th>Catatan / Keterangan</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($sellHistories)): ?>
+                            <tr>
+                                <td colspan="11" class="text-center py-5">
+                                    <div class="display-6 text-muted mb-2"><?= \app\helpers\SvgHelper::icon('clock-history') ?></div>
+                                    <h5 class="fw-bold text-secondary">Belum ada riwayat transaksi jual saham</h5>
+                                    <p class="text-muted small mb-0">Riwayat penjualan saham (Take Profit atau Cut Loss) akan otomatis tercatat di sini saat Anda mengeksekusi tombol jual.</p>
+                                </td>
+                            </tr>
+                        <?php else: ?>
+                            <?php foreach ($sellHistories as $hIdx => $h): ?>
+                                <?php
+                                $actionType = $h->action_type;
+                                $symbol = $h->getStockSymbol();
+                                $buyPrice = (float) $h->old_price;
+                                $sellPrice = (float) ($h->added_price ?: $h->new_price);
+                                $sharesSold = abs((float) $h->added_shares);
+                                if ($sharesSold <= 0 && (float) $h->old_shares > 0) {
+                                    $sharesSold = (float) $h->old_shares - (float) $h->new_shares;
+                                }
+                                $turnover = (float) ($h->added_cost ?: ($sellPrice * $sharesSold));
+                                $realizedPl = $h->getRealizedPlAmount();
+                                $realizedPct = $h->getRealizedPlPct();
+                                $isProfit = $realizedPl >= 0;
+                                $badgeClass = match ($actionType) {
+                                    \app\models\PortfolioHistory::ACTION_SELL => 'bg-success text-white',
+                                    \app\models\PortfolioHistory::ACTION_CUT_LOSS => 'bg-danger text-white',
+                                    default => 'bg-secondary text-white',
+                                };
+                                ?>
+                                <tr>
+                                    <td class="text-muted small"><?= $hIdx + 1 ?></td>
+                                    <td>
+                                        <div class="fw-bold text-dark"><?= date('d M Y', (int) $h->created_at) ?></div>
+                                        <div class="small text-muted" style="font-size: 0.72rem;"><?= date('H:i:s', (int) $h->created_at) ?> WIB</div>
+                                    </td>
+                                    <td>
+                                        <div class="fw-bold fs-6 text-primary">
+                                            <?= Html::encode($symbol) ?>
+                                        </div>
+                                        <?php if ($h->position && $h->position->stock): ?>
+                                            <div class="small text-muted text-truncate" style="max-width: 140px; font-size: 0.72rem;">
+                                                <?= Html::encode($h->position->stock->name) ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge <?= $badgeClass ?> px-2 py-1 shadow-xs">
+                                            <?= $actionType === \app\models\PortfolioHistory::ACTION_SELL ? '💰 Take Profit' : '🛡️ Cut Loss' ?>
+                                        </span>
+                                        <div class="small text-muted mt-1" style="font-size:0.70rem;">
+                                            <?= Html::encode($h->scenario_name) ?>
+                                        </div>
+                                    </td>
+                                    <td class="text-end text-muted">
+                                        $<?= number_format($buyPrice, 2) ?>
+                                    </td>
+                                    <td class="text-end fw-bold text-dark fs-6">
+                                        $<?= number_format($sellPrice, 2) ?>
+                                    </td>
+                                    <td class="text-center fw-semibold">
+                                        <?= \app\models\PortfolioPosition::formatShares($sharesSold) ?> lbr
+                                        <?php if ((float) $h->new_shares > 0): ?>
+                                            <div class="small text-muted" style="font-size:0.68rem;">(Sisa: <?= \app\models\PortfolioPosition::formatShares((float) $h->new_shares) ?>)</div>
+                                        <?php else: ?>
+                                            <div class="small text-secondary" style="font-size:0.68rem;">(Habis / Closed)</div>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="text-end fw-semibold text-dark">
+                                        <?= $fmt->asCurrency($turnover) ?>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-<?= $isProfit ? 'success' : 'danger' ?> px-2 py-1 shadow-sm">
+                                            <?= ($realizedPct >= 0 ? '+' : '') . $realizedPct ?>%
+                                        </span>
+                                    </td>
+                                    <td class="text-end fw-bold fs-6 <?= $isProfit ? 'text-success' : 'text-danger' ?>">
+                                        <?= ($realizedPl >= 0 ? '+' : '') . $fmt->asCurrency($realizedPl) ?>
+                                    </td>
+                                    <td class="small text-muted" style="max-width: 250px;">
+                                        <?= Html::encode($h->notes ?: '—') ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
 </div>
 
 <!-- Modal Tambah Posisi Saham Baru -->
