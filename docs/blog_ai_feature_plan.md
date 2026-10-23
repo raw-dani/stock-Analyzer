@@ -58,6 +58,10 @@ CREATE TABLE {{%blog_post}} (
     featured_image VARCHAR(255) NULL,
     trading_plan JSON NULL,               -- Support, resistance, TP, SL, signal, time frame
     tags VARCHAR(255) NULL,               -- e.g. "CMCSA, Double Bottom, 2H, Bullish"
+    meta_title_id VARCHAR(255) NULL,      -- SEO Title Tag (50-60 karakter)
+    meta_title_en VARCHAR(255) NULL,
+    meta_desc_id VARCHAR(320) NULL,       -- Meta Description (150-160 karakter)
+    meta_desc_en VARCHAR(320) NULL,
     author_id INT NOT NULL,
     status VARCHAR(20) DEFAULT 'published', -- 'draft', 'published', 'archived'
     views_count INT DEFAULT 0,
@@ -186,18 +190,110 @@ sequenceDiagram
 
 ---
 
-## 7. Rencana Tahapan Eksekusi (Implementation Steps)
+## 7. Standar Optimasi Google Search SEO & Rich Snippets
+
+Untuk menjamin setiap artikel blog yang dipublish terindeks optimal di halaman pertama Google Search dan memunculkan Rich Results finansial yang menarik:
+
+1. **Struktur Tag Metadata & Open Graph Dinamis**:
+   - `<title>`: Judul presisi 50-60 karakter, memuat simbol saham, strategi, time frame, dan brand (Cth: `CMCSA Double Bottom (2H) - Analisis Saham & Trading Plan | StockAnalyzer`).
+   - `<meta name="description">`: Ringkasan padat 140-160 karakter memuat level krusial support/resistance dan bias pasar.
+   - `<link rel="canonical">`: Menunjuk ke URL kanonikal artikel untuk mencegah duplikasi konten antar-bahasa.
+   - `<link rel="alternate" hreflang="id" ...>` dan `<link rel="alternate" hreflang="en" ...>` serta `hreflang="x-default"` untuk multi-bahasa resmi Google Search.
+   - Open Graph (`og:title`, `og:description`, `og:image`, `og:type="article"`) dan Twitter Card (`summary_large_image`) agar cuplikan artikel tampil sempurna saat dibagikan di WhatsApp, Telegram, X/Twitter, dan LinkedIn.
+
+2. **Schema.org Structured Data (JSON-LD)**:
+   Setiap artikel dilengkapi skrip Schema JSON-LD berstandar Google:
+   - `Article` / `NewsArticle`: Memuat `headline`, `image`, `datePublished`, `dateModified`, `author` (Organization/Analyst), dan `publisher`.
+   - `FinancialProduct` / `Stock`: Mengaitkan ticker saham (`tickerSymbol: CMCSA`) dan bursa (`exchange: NASDAQ`).
+   - `BreadcrumbList`: Menghasilkan jalur navigasi hierarkis pada cuplikan hasil pencarian Google (*Home > Blog > CMCSA*).
+
+3. **Hierarki Semantic HTML5**:
+   - Tepat **satu tag `<h1>`** per halaman artikel.
+   - Tag sub-bagian terstruktur rapi: `<h2>` untuk Ringkasan & Setup Pola, `<h3>` untuk Level Kunci (Support/Resistance/Risk-Reward), dan `<p>` dengan keterbacaan tinggi.
+   - Tag gambar `<img>` wajib memiliki atribut `alt` deskriptif (Cth: `alt="Chart Analisis Teknikal CMCSA Timeframe 2H Strategi Double Bottom"`).
+
+4. **Sitemap XML & Feed**:
+   - Endpoint `/blog/sitemap.xml` yang secara otomatis mendaftarkan URL artikel blog versi Indonesia dan Inggris agar langsung dirayapi (*crawled*) oleh Googlebot.
+
+---
+
+## 8. Standar Kecepatan & Kinerja Google PageSpeed Insights (Core Web Vitals)
+
+Target skor **90-100 (Hijau)** pada uji Google PageSpeed Insights (Mobile & Desktop) dengan mematuhi Core Web Vitals (LCP, INP, CLS):
+
+1. **Largest Contentful Paint (LCP < 2.5s)**:
+   - **Modern Image WebP Compression**: Screenshot chart otomatis dikompresi ke format `.webp` yang ringan dengan kompresi kualitas optimal (~75-80%), memangkas ukuran berkas hingga 60-80% dibanding PNG murni.
+   - **Ukuran Dimensi Eksplisit**: Setiap tag gambar `<img>` wajib memiliki atribut `width` dan `height` serta `srcset` responsif.
+   - **Hero Image Preload**: Gambar screenshot utama diberi atribut `loading="eager"` dan `fetchpriority="high"`, sementara gambar di bawah layar menggunakan `loading="lazy"`.
+
+2. **Cumulative Layout Shift (CLS < 0.1 - Nol Pergeseran Layar)**:
+   - Area kontainer gambar chart, banner hero, dan widget trading plan memiliki rasio aspek CSS terdefinisi (`aspect-ratio: 16/9` atau `min-height`) sehingga tidak menyebabkan pergeseran layout mendadak saat gambar selesai diunduh.
+   - Font modern sistem atau Google Font dengan CSS `font-display: swap`.
+
+3. **Interaction to Next Paint (INP < 200ms) & Kecepatan Eksekusi**:
+   - **Bilingual Client Switcher Ringan**: Perpindahan bahasa ID $\leftrightarrow$ EN menggunakan atribut data HTML (`data-lang-content`) dan manipulasi DOM instan tanpa request HTTP bolak-balik, memberikan respon klik < 50ms.
+   - **CSS/JS Minimalis**: Memanfaatkan vanilla CSS dan Bootstrap 5 yang sudah ter-bundle, tanpa pustaka eksternal pihak ketiga yang membebani browser pengunjung.
+   - **Browser Caching**: Konfigurasi header cache pada `.htaccess` untuk aset gambar, WebP, CSS, dan JS statis (`Cache-Control: public, max-age=31536000`).
+
+## 9. Modul Pengaturan Webmaster, SEO & Tracking Analytics (Admin Settings)
+
+Agar admin tidak perlu menyentuh kode program (*zero-code configuration*) saat mendaftarkan situs ke Google atau alat analitik lainnya, disediakan halaman **Pengaturan Webmaster & Tracking (`/blog/admin/settings`)**:
+
+### 9.1. Skema Tabel Penyimpanan Pengaturan: `{{%site_setting}}`
+Dibuat tabel dinamis berbasis *key-value* berindeks cepat:
+```sql
+CREATE TABLE {{%site_setting}} (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    category VARCHAR(64) NOT NULL DEFAULT 'seo', -- 'seo', 'analytics', 'general'
+    setting_key VARCHAR(128) NOT NULL UNIQUE,
+    setting_value LONGTEXT NULL,
+    description VARCHAR(255) NULL,
+    updated_at INT NOT NULL,
+    INDEX idx_setting_category (category)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+### 9.2. Bidang-Bidang Pengaturan yang Disediakan:
+
+1. **Google Search Console & Webmaster Verification**:
+   - **Google Site Verification Token**: Kode meta verifikasi kepemilikan Google (`google-site-verification` tag).
+   - **Bing Webmaster Tools Verification**: Kode meta verifikasi Bing (`msvalidate.01`).
+   - **Yandex / Baidu / Pinterest Verification**: Opsi meta verifikasi mesin pencari lainnya.
+
+2. **Google Analytics 4 (GA4) & Google Tag (gtag.js)**:
+   - **Measurement ID**: Input ID pengukuran GA4 (Cth: `G-XXXXXXXXXX`).
+   - Sistem otomatis menanamkan script resmi `googletagmanager.com/gtag/js` secara asynchronous (`async`) berstandar Google PageSpeed tanpa memblokir rendering halaman.
+
+3. **Google Tag Manager (GTM)**:
+   - **GTM Container ID**: Input ID kontainer GTM (Cth: `GTM-XXXXXXX`).
+   - Sistem otomatis menyisipkan:
+     - Snippet `<script>` di dalam tag `<head>` secara optimal.
+     - Snippet `<noscript><iframe ...>` tepat setelah pembuka tag `<body>`.
+
+4. **Custom Tracking & Analytics Scripts (Fleksibilitas Tambahan)**:
+   - **Custom Head Scripts**: Kolom textarea untuk menambahkan script tambahan sebelum penutup `</head>` (misal: Meta Pixel / Facebook Pixel, Twitter/X Tag, Clarity Heatmap).
+   - **Custom Body/Footer Scripts**: Kolom textarea untuk script pelacak sebelum penutup `</body>`.
+
+### 9.3. Integrasi Otomatis & Kinerja PageSpeed:
+- Skrip tracking hanya dimuat pada halaman publik (`/blog/*` atau seluruh halaman aplikasi jika diaktifkan), dan secara cerdas **dikecualikan/dinonaktifkan** saat admin sedang mengedit di backend agar tidak mengotori data statistik kunjungan (*filter internal traffic*).
+- Seluruh script pelacak diinjeksi dengan atribut `async` atau `defer` agar **tidak menurunkan skor Google PageSpeed Insights**.
+
+---
+
+## 10. Rencana Tahapan Eksekusi (Implementation Steps)
 
 | Tahap | Aktivitas Utama | Output |
 | :--- | :--- | :--- |
-| **Tahap 1** | Migrasi Database | File migrasi skema tabel `{{%blog_post}}` dan indexing |
-| **Tahap 2** | Model & Validasi | Model `app\models\BlogPost` dengan fungsi slug, relasi, dan helper bahasa |
-| **Tahap 3** | Service OpenAI | `OpenAiBlogService` untuk prompting analisis saham dwibahasa |
-| **Tahap 4** | Controller & Logic | `BlogController` (tindakan publik & tindakan admin ber-auth RBAC) |
-| **Tahap 5** | Integrasi di Detail Saham | Tombol conditional admin di `views/stock/view.php` + skrip screenshot capture |
-| **Tahap 6** | Halaman Tampilan Blog | View index, view detail (bilingual switcher), dan view admin editor |
-| **Tahap 7** | Pengujian & Verifikasi | Uji role non-admin vs admin, capture gambar, API ChatGPT, dan rendering dwibahasa |
+| **Tahap 1** | Migrasi Database | Tabel `{{%blog_post}}` dan tabel pengaturan `{{%site_setting}}` |
+| **Tahap 2** | Model & Validasi | Model `app\models\BlogPost` dan `app\models\SiteSetting` dengan cache helper |
+| **Tahap 3** | Service OpenAI | `OpenAiBlogService` untuk prompt analisis saham dwibahasa + SEO meta generator |
+| **Tahap 4** | Controller & Logic | `BlogController` (akses publik, sitemap XML, dan admin action ber-auth RBAC) |
+| **Tahap 5** | Integrasi di Detail Saham | Tombol conditional admin di `views/stock/view.php` + html2canvas screenshot + AJAX |
+| **Tahap 6** | Halaman Blog Publik (SEO & PageSpeed) | View index & view detail dengan Semantic HTML5, JSON-LD Schema, WebP, dan switcher ID/EN |
+| **Tahap 7** | Halaman Setting Admin | Form UI `/blog/admin/settings` untuk input kode Google Search Console, GA4, GTM, dll. |
+| **Tahap 8** | Pengujian & Verifikasi | Verifikasi tracking script, duplikasi granular, uji Lighthouse PageSpeed, dan validator schema.org |
 
 ---
 
 *Catatan: Dokumen rencana ini tersimpan untuk ditinjau. Silakan berikan masukan atau konfirmasi untuk memulai langkah implementasi.*
+
