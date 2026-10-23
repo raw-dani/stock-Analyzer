@@ -387,23 +387,89 @@ if (!empty($systemItems)) {
     </div>
 </main>
 
-<footer id="footer" class="mt-auto py-2 bg-light">
+<footer id="footer" class="mt-auto bg-white border-top text-muted">
     <?php
     $mkt = Yii::$container->get(app\services\MarketStatusService::class)->footerSummary();
     ?>
-    <div class="container-fluid text-center text-muted small">
-        US Stock Volume Analyzer &copy; <?= date('Y') ?> — <?= Yii::powered() ?>
-        <span class="ms-2">•</span>
-        Provider: <?= yii\helpers\Html::encode($mkt['providerLabel']) ?>
-        <?= $mkt['providerConfigured']
-            ? '<span class="text-success">✓</span>'
-            : '<span class="text-danger">✗</span>' ?>
-        <span class="ms-2">•</span>
-        Data: <?= $mkt['lastDataAt'] ? Yii::$app->formatter->asRelativeTime($mkt['lastDataAt']) : '—' ?>
-        <span class="ms-2">•</span>
-        Sinyal: <?= yii\helpers\Html::encode((string) ($mkt['lastSignalDate'] ?? '—')) ?>
-        <span class="ms-2">•</span>
-        <?= Html::a(\app\helpers\SvgHelper::icon('info-circle', ['class' => 'me-1']) . 'About', ['/site/about'], ['class' => 'text-decoration-none text-muted']) ?>
+    <div class="container-fluid py-4 px-md-4">
+        <div class="row g-4 justify-content-between">
+            <!-- Kolom 1: Brand & Powered by -->
+            <div class="col-lg-4 col-md-6">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="brand-icon-box" style="width: 28px; height: 28px; font-size: 0.85rem;">
+                        <i class="bi bi-graph-up-arrow"></i>
+                    </span>
+                    <span class="fw-bold text-dark fs-6 tracking-tight">Stock Volume Analyzer</span>
+                </div>
+                <p class="small text-muted mb-3" style="max-width: 360px; line-height: 1.6;">
+                    Platform intelijen kuantitatif pasar modal US dan Crypto 24/7. Menyajikan deteksi anomali volume akumulasi, konfluensi indikator teknikal presisi, dan kalkulator trading plan terstruktur.
+                </p>
+                <div class="small d-flex align-items-center gap-1">
+                    <span class="text-secondary">Powered by</span> 
+                    <a href="https://gmteknologi.com" target="_blank" rel="noopener noreferrer" class="fw-bold text-primary text-decoration-none">
+                        gmteknologi.com <i class="bi bi-box-arrow-up-right ms-1" style="font-size: 0.7rem;"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Kolom 2: Menu Scanner Saham -->
+            <div class="col-lg-2 col-md-3 col-6">
+                <h6 class="fw-bold text-dark text-uppercase small mb-3 tracking-wider" style="font-size: 0.75rem;">Pasar Saham US</h6>
+                <ul class="list-unstyled small mb-0 d-flex flex-column gap-2">
+                    <li><a href="<?= yii\helpers\Url::to(['/strategy-confluence/index']) ?>" class="text-decoration-none text-muted hover-primary">Confluence Strategy</a></li>
+                    <li><a href="<?= yii\helpers\Url::to(['/bullish-pattern/index']) ?>" class="text-decoration-none text-muted hover-primary">Bullish Breakouts</a></li>
+                    <li><a href="<?= yii\helpers\Url::to(['/double-bottom/index']) ?>" class="text-decoration-none text-muted hover-primary">Double Bottom Core</a></li>
+                    <li><a href="<?= yii\helpers\Url::to(['/scanner/index']) ?>" class="text-decoration-none text-muted hover-primary">Volume &amp; RVOL Scanner</a></li>
+                    <li><a href="<?= yii\helpers\Url::to(['/rsi-double-bottom/index']) ?>" class="text-decoration-none text-muted hover-primary">RSI &amp; Signals</a></li>
+                </ul>
+            </div>
+
+            <!-- Kolom 3: Crypto & Riset AI -->
+            <div class="col-lg-2 col-md-3 col-6">
+                <h6 class="fw-bold text-dark text-uppercase small mb-3 tracking-wider" style="font-size: 0.75rem;">Crypto &amp; Riset</h6>
+                <ul class="list-unstyled small mb-0 d-flex flex-column gap-2">
+                    <li><a href="<?= yii\helpers\Url::to(['/crypto/index']) ?>" class="text-decoration-none text-muted hover-primary"><i class="bi bi-currency-bitcoin text-warning me-1"></i> Crypto Hub 24/7</a></li>
+                    <li><a href="<?= yii\helpers\Url::to(['/crypto/confluence']) ?>" class="text-decoration-none text-muted hover-primary">Crypto Confluence</a></li>
+                    <li><a href="<?= yii\helpers\Url::to(['/portfolio/index']) ?>" class="text-decoration-none text-muted hover-primary">Portofolio &amp; DCA</a></li>
+                    <li><a href="<?= yii\helpers\Url::to(['/blog/index']) ?>" class="text-decoration-none text-muted hover-primary"><i class="bi bi-newspaper text-info me-1"></i> Blog Info AI</a></li>
+                    <li><a href="<?= yii\helpers\Url::to(['/site/about']) ?>" class="text-decoration-none text-muted hover-primary">Tentang Aplikasi</a></li>
+                </ul>
+            </div>
+
+            <!-- Kolom 4: Status Pasar & Provider Data -->
+            <div class="col-lg-3 col-md-6">
+                <h6 class="fw-bold text-dark text-uppercase small mb-3 tracking-wider" style="font-size: 0.75rem;">Status Sistem &amp; Feed</h6>
+                <div class="card border border-light-subtle rounded-3 bg-light p-3 small shadow-none">
+                    <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom border-light-subtle">
+                        <span class="text-muted">Data Provider:</span>
+                        <span class="fw-semibold text-dark">
+                            <?= yii\helpers\Html::encode($mkt['providerLabel']) ?>
+                            <?= $mkt['providerConfigured'] ? '<i class="bi bi-check-circle-fill text-success ms-1"></i>' : '<i class="bi bi-x-circle-fill text-danger ms-1"></i>' ?>
+                        </span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom border-light-subtle">
+                        <span class="text-muted">Pembaruan:</span>
+                        <span class="fw-medium text-dark"><?= $mkt['lastDataAt'] ? Yii::$app->formatter->asRelativeTime($mkt['lastDataAt']) : '—' ?></span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted">Sinyal Terakhir:</span>
+                        <span class="fw-medium text-dark"><?= yii\helpers\Html::encode((string) ($mkt['lastSignalDate'] ?? '—')) ?></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Disclaimer & Copyright Bar -->
+        <div class="border-top mt-4 pt-3">
+            <div class="row align-items-center gy-2">
+                <div class="col-md-7 small text-muted" style="font-size: 0.75rem; line-height: 1.5;">
+                    <span class="fw-bold text-secondary">Disclaimer:</span> Seluruh data volume dan analisa teknikal disediakan semata-mata untuk tujuan riset dan edukasi kuantitatif, bukan rekomendasi investasi finansial langsung.
+                </div>
+                <div class="col-md-5 text-md-end small text-muted">
+                    <span>&copy; <?= date('Y') ?> <strong>Stock Volume Analyzer</strong> &bull; Powered by <a href="https://gmteknologi.com" target="_blank" rel="noopener noreferrer" class="text-decoration-none fw-semibold text-primary">gmteknologi.com</a></span>
+                </div>
+            </div>
+        </div>
     </div>
 </footer>
 
