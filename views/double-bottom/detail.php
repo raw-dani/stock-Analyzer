@@ -36,8 +36,28 @@ $chartId = 'db-chart';
         <span class="badge bg-secondary"><?= Html::encode($stock->sector ?? 'Stock') ?></span>
         <span class="badge bg-light text-dark border"><?= Html::encode($stock->exchange ?? '-') ?></span>
     </div>
-    <div class="d-flex gap-2">
+    <div class="d-flex align-items-center gap-2">
         <?= Html::a(\app\helpers\SvgHelper::icon('arrow-left') . ' Kembali ke Scanner', array_merge(['double-bottom/index'], $filterParams), ['class' => 'btn btn-outline-secondary']) ?>
+        <?= \app\widgets\BlogQuickPostWidget::widget([
+            'symbol' => $stock->symbol,
+            'stockName' => $stock->name,
+            'timeFrame' => ($timeframe === 24 ? '1D' : "{$timeframe}H"),
+            'strategyName' => 'double-bottom',
+            'category' => 'Double Bottom',
+            'analysisDate' => date('Y-m-d'),
+            'targetElementId' => $chartId,
+            'metrics' => [
+                'current_price' => $pattern['current_price'] ?? null,
+                'neckline' => $pattern['neckline'] ?? null,
+                'bottom1' => $pattern['low1_price'] ?? ($pattern['bottom1'] ?? null),
+                'bottom2' => $pattern['low2_price'] ?? ($pattern['bottom2'] ?? null),
+                'target_1' => $pattern['tp1_price'] ?? null,
+                'target_2' => $pattern['tp2_price'] ?? ($pattern['target_price'] ?? null),
+                'stop_loss' => $pattern['stop_loss_tight'] ?? ($pattern['stop_loss'] ?? null),
+                'trade_status' => $pattern['trade_status'] ?? null,
+                'rvol' => $pattern['rvol'] ?? null,
+            ],
+        ]) ?>
     </div>
 </div>
 

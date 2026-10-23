@@ -147,6 +147,27 @@ $markPoints = [
             ['/candlestick/index', 'timeframe' => $params['timeframe']],
             ['class' => 'btn btn-sm btn-outline-secondary shadow-sm']
         ) ?>
+        <?= \app\widgets\BlogQuickPostWidget::widget([
+            'symbol' => $stock->symbol,
+            'stockName' => $stock->name,
+            'timeFrame' => (((int) $params['timeframe'] === 24) ? '1D' : "{$params['timeframe']}H"),
+            'strategyName' => 'candlestick',
+            'category' => 'Candlestick Pattern',
+            'analysisDate' => date('Y-m-d'),
+            'targetElementId' => 'candlestick-echart',
+            'metrics' => [
+                'action' => $action,
+                'pattern_name' => $analysis['pattern_name'] ?? null,
+                'entry_price' => $analysis['entry_price'] ?? null,
+                'stop_loss' => $analysis['stop_loss'] ?? null,
+                'target_1' => $analysis['target_1'] ?? null,
+                'target_2' => $analysis['target_2'] ?? null,
+                'risk_reward' => $analysis['risk_reward'] ?? null,
+                'last_price' => $analysis['last_price'] ?? null,
+                'rvol' => $analysis['rvol'] ?? null,
+                'reliability' => $analysis['reliability'] ?? null,
+            ],
+        ]) ?>
     </div>
 </div>
 

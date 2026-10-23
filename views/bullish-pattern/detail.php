@@ -60,8 +60,28 @@ $chartId = 'bullish-pattern-chart';
             <?php endif; ?>
         </div>
     </div>
-    <div class="d-flex gap-2">
+    <div class="d-flex align-items-center gap-2">
         <?= Html::a(\app\helpers\SvgHelper::icon('arrow-left') . ' Kembali ke Scanner', array_merge(['bullish-pattern/index'], $filterParams), ['class' => 'btn btn-outline-secondary']) ?>
+        <?= \app\widgets\BlogQuickPostWidget::widget([
+            'symbol' => $stock->symbol,
+            'stockName' => $stock->name,
+            'timeFrame' => ($timeframe === 24 ? '1D' : "{$timeframe}H"),
+            'strategyName' => 'bullish-pattern',
+            'category' => 'Bullish Pattern',
+            'analysisDate' => date('Y-m-d'),
+            'targetElementId' => $chartId,
+            'metrics' => [
+                'pattern_name' => $pattern['pattern_name'] ?? 'Bullish Pattern',
+                'breakout' => !empty($pattern['breakout']),
+                'current_price' => $pattern['current_price'] ?? null,
+                'resistance' => $pattern['resistance_line'] ?? null,
+                'support' => $pattern['support_base'] ?? null,
+                'target_1' => $pattern['tp1_price'] ?? null,
+                'target_2' => $pattern['tp2_price'] ?? null,
+                'stop_loss' => $pattern['stop_loss_swing'] ?? ($pattern['stop_loss_tight'] ?? null),
+                'quality_score' => $pattern['quality_score'] ?? null,
+            ],
+        ]) ?>
     </div>
 </div>
 

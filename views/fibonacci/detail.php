@@ -140,6 +140,29 @@ $markLines = [
         <a href="<?= Url::to(['/stock/view', 'symbol' => $stock->symbol]) ?>" class="btn btn-outline-primary btn-sm shadow-sm">
             <?= \app\helpers\SvgHelper::icon('box-arrow-up-right') ?> Detail Saham
         </a>
+        <?= \app\widgets\BlogQuickPostWidget::widget([
+            'symbol' => $stock->symbol,
+            'stockName' => $stock->name,
+            'timeFrame' => (((int) $params['timeframe'] === 24) ? '1D' : "{$params['timeframe']}H"),
+            'strategyName' => 'fibonacci',
+            'category' => 'Fibonacci Retracement',
+            'analysisDate' => date('Y-m-d'),
+            'targetElementId' => 'fib-echart',
+            'metrics' => [
+                'action' => $action,
+                'current_price' => $analysis['current_price'] ?? null,
+                'retrace_pct' => $analysis['retrace_pct'] ?? null,
+                'entry_price' => $analysis['entry_price'] ?? null,
+                'stop_loss' => $analysis['stop_loss'] ?? null,
+                'target_1' => $analysis['target_1'] ?? null,
+                'target_2' => $analysis['target_2'] ?? null,
+                'target_3' => $analysis['target_3'] ?? null,
+                'rr_ratio' => $analysis['rr_ratio'] ?? null,
+                'rvol' => $analysis['rvol'] ?? null,
+                'swing_high' => $analysis['swing_high'] ?? null,
+                'swing_low' => $analysis['swing_low'] ?? null,
+            ],
+        ]) ?>
     </div>
 </div>
 

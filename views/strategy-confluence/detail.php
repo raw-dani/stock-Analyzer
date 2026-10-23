@@ -104,8 +104,8 @@ $markLines = [
         </p>
     </div>
 
-    <!-- Pilihan Timeframe -->
-    <div class="d-flex flex-wrap gap-2">
+    <!-- Pilihan Timeframe & Actions -->
+    <div class="d-flex flex-wrap align-items-center gap-2">
         <div class="btn-group btn-group-sm shadow-sm" role="group">
             <?php foreach ($timeframes as $tfKey => $tfLabel): ?>
                 <a href="<?= Url::to(['detail', 'symbol' => $stock->symbol, 'timeframe' => $tfKey]) ?>"
@@ -117,6 +117,26 @@ $markLines = [
         <a href="<?= Url::to(['index']) ?>" class="btn btn-sm btn-outline-secondary">
             <?= \app\helpers\SvgHelper::icon('arrow-left') ?> Kembali ke Scanner
         </a>
+        <?= \app\widgets\BlogQuickPostWidget::widget([
+            'symbol' => $stock->symbol,
+            'stockName' => $stock->name,
+            'timeFrame' => (((int) $params['timeframe'] === 24) ? '1D' : "{$params['timeframe']}H"),
+            'strategyName' => 'strategy-confluence',
+            'category' => 'Confluence Strategy',
+            'analysisDate' => date('Y-m-d'),
+            'targetElementId' => 'confluenceChart',
+            'metrics' => [
+                'action' => $analysis['action'] ?? null,
+                'confluence_score' => $analysis['confluence_score'] ?? null,
+                'current_price' => $analysis['current_price'] ?? null,
+                'entry_price' => $analysis['entry_price'] ?? null,
+                'stop_loss' => $analysis['stop_loss'] ?? null,
+                'target_1' => $analysis['target_1'] ?? null,
+                'target_2' => $analysis['target_2'] ?? null,
+                'risk_reward_ratio' => $analysis['risk_reward_ratio'] ?? null,
+                'higher_tf_trend' => $analysis['higher_tf_trend'] ?? null,
+            ],
+        ]) ?>
     </div>
 </div>
 
