@@ -70,8 +70,8 @@ if (!empty($systemItems)) {
     <?= \app\helpers\TrackingHelper::renderHeadScripts() ?>
     <?php $this->head() ?>
     <style>
-        body { padding-top: 58px; }
-        .sidebar { height: calc(100vh - 58px); position: sticky; top: 58px; overflow-y: auto; border-right: 1px solid #dee2e6; background-color: #f8f9fa; }
+        body { padding-top: 60px; }
+        .sidebar { height: calc(100vh - 60px); position: sticky; top: 60px; overflow-y: auto; border-right: 1px solid #dee2e6; background-color: #f8f9fa; }
         .sidebar .nav-link { color: #495057; border-radius: .375rem; font-weight: 500; padding: .5rem .75rem; display: flex; align-items: center; }
         .sidebar .nav-link svg { flex-shrink: 0; }
         .sidebar .nav-link:hover { background: #e9ecef; color: #0d6efd; }
@@ -79,6 +79,111 @@ if (!empty($systemItems)) {
         .sidebar-heading { font-size: .72rem; font-weight: 700; text-transform: uppercase; color: #6c757d; letter-spacing: .05rem; padding: .6rem .75rem .25rem; }
         .kpi { font-size: 1.6rem; font-weight: 700; }
         .badge-core { background: linear-gradient(135deg, #0d6efd, #0dcaf0); color: #fff; font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; }
+
+        /* Sleek Modern Dark Navbar */
+        .navbar-custom {
+            background: linear-gradient(180deg, #0f172a 0%, #0a0f1d 100%) !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+        }
+        .brand-icon-box {
+            width: 32px;
+            height: 32px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #0d6efd 0%, #0dcaf0 100%);
+            border-radius: 8px;
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(13, 110, 253, 0.4);
+        }
+        .brand-text {
+            font-weight: 700;
+            font-size: 1.05rem;
+            letter-spacing: -0.02em;
+        }
+        .text-primary-gradient {
+            background: linear-gradient(135deg, #38bdf8 0%, #818cf8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .user-avatar-badge {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #0d6efd, #6366f1);
+            color: #fff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 700;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+        }
+        .navbar-custom .nav-link {
+            font-size: 0.88rem;
+            font-weight: 500;
+            color: #cbd5e1 !important;
+            padding: 0.45rem 0.85rem !important;
+            border-radius: 8px;
+            transition: all 0.18s ease-in-out;
+            display: inline-flex;
+            align-items: center;
+        }
+        .navbar-custom .nav-link:hover {
+            color: #ffffff !important;
+            background: rgba(255, 255, 255, 0.08);
+        }
+        .navbar-custom .nav-link.active {
+            color: #38bdf8 !important;
+            background: rgba(56, 189, 248, 0.12);
+            font-weight: 600;
+        }
+        /* Enhanced Dropdown Styling */
+        .navbar-custom .dropdown-menu {
+            background: #0f172a;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 14px;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+            padding: 0.5rem;
+            min-width: 270px;
+            margin-top: 0.5rem;
+        }
+        .navbar-custom .dropdown-menu-scrollable {
+            max-height: calc(100vh - 85px);
+            overflow-y: auto;
+        }
+        .navbar-custom .dropdown-header {
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            padding: 0.45rem 0.75rem 0.25rem;
+        }
+        .navbar-custom .dropdown-item {
+            font-size: 0.84rem;
+            color: #e2e8f0;
+            border-radius: 8px;
+            padding: 0.45rem 0.75rem;
+            transition: all 0.15s ease-in-out;
+        }
+        .navbar-custom .dropdown-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: #38bdf8;
+            transform: translateX(2px);
+        }
+        .navbar-custom .dropdown-item.active {
+            background: #0d6efd;
+            color: #ffffff;
+        }
+        .navbar-custom .dropdown-divider {
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            margin: 0.4rem 0;
+        }
     </style>
 </head>
 <body class="d-flex flex-column h-100">
@@ -88,91 +193,130 @@ if (!empty($systemItems)) {
 <header id="header">
     <?php
     NavBar::begin([
-        'brandLabel' => \app\helpers\SvgHelper::icon('graph-up-arrow', ['class' => 'me-2 text-primary']) . 'Stock Volume Analyzer',
+        'brandLabel' => '<div class="d-flex align-items-center gap-2 text-decoration-none">'
+            . '<span class="brand-icon-box"><i class="bi bi-graph-up-arrow"></i></span>'
+            . '<span class="brand-text text-white">Stock <span class="text-primary-gradient">Volume Analyzer</span></span>'
+            . '</div>',
         'brandUrl' => Yii::$app->homeUrl,
-        'options' => ['class' => 'navbar-expand-lg navbar-dark bg-dark fixed-top shadow-sm']
+        'options' => ['class' => 'navbar-expand-lg navbar-dark navbar-custom fixed-top']
     ]);
     
-    // Top navigation: jika user login tampilkan semua menu utama, jika guest hanya tampilkan Login / Register / About
+    // Top navigation: jika user login tampilkan struktur modern terpadu
     $topNavItems = [];
     if (!Yii::$app->user->isGuest) {
+        $isMarketActive = in_array($ctrlId, [
+            'strategy-confluence', 'bullish-pattern', 'double-bottom', 'triple-bottom', 
+            'rsi-double-bottom', 'scanner', 'moving-average', 'bollinger-band', 
+            'fibonacci', 'candlestick', 'crypto'
+        ], true);
+
+        // Grouped Items untuk "Pasar & Scanner"
+        $marketItems = [
+            '<div class="dropdown-header text-primary fw-bold d-flex align-items-center gap-1"><i class="bi bi-graph-up"></i> PASAR SAHAM US</div>',
+            ['label' => '<i class="bi bi-bullseye text-warning me-2"></i> Confluence Strategy (PRO)', 'url' => ['/strategy-confluence/index'], 'encode' => false],
+            ['label' => '<i class="bi bi-rocket-takeoff text-success me-2"></i> Bullish Breakout Patterns', 'url' => ['/bullish-pattern/index'], 'encode' => false],
+            ['label' => '<i class="bi bi-graph-down text-primary me-2"></i> Double Bottom Scanner (Core)', 'url' => ['/double-bottom/index'], 'encode' => false],
+            ['label' => '<i class="bi bi-triangle-half text-info me-2"></i> Triple Bottom Scanner', 'url' => ['/triple-bottom/index'], 'encode' => false],
+            ['label' => '<i class="bi bi-activity text-danger me-2"></i> RSI Strategy & Signals', 'url' => ['/rsi-double-bottom/index'], 'encode' => false],
+            ['label' => '<i class="bi bi-search text-primary me-2"></i> Volume Scanner', 'url' => ['/scanner/index'], 'encode' => false],
+            ['label' => '<i class="bi bi-graph-up text-success me-2"></i> Moving Average Signals', 'url' => ['/moving-average/index'], 'encode' => false],
+            ['label' => '<i class="bi bi-bounding-box text-info me-2"></i> Bollinger Bands Strategy', 'url' => ['/bollinger-band/index'], 'encode' => false],
+            ['label' => '<i class="bi bi-layers text-warning me-2"></i> Fibonacci Levels', 'url' => ['/fibonacci/index'], 'encode' => false],
+            ['label' => '<i class="bi bi-bar-chart-line text-info me-2"></i> Candlestick Scanner', 'url' => ['/candlestick/index'], 'encode' => false],
+            '<div class="dropdown-divider"></div>',
+            '<div class="dropdown-header text-warning fw-bold d-flex align-items-center gap-1"><i class="bi bi-currency-bitcoin"></i> PASAR KRIPTO 24/7 <span class="badge bg-warning text-dark ms-auto" style="font-size:0.6rem;">LIVE</span></div>',
+            ['label' => '<i class="bi bi-search text-warning me-2"></i> Volume Scanner & Hub', 'url' => ['/crypto/index'], 'encode' => false],
+            ['label' => '<i class="bi bi-bullseye text-primary me-2"></i> Confluence Strategy (MA, RSI, Fib)', 'url' => ['/crypto/confluence'], 'encode' => false],
+            ['label' => '<i class="bi bi-rocket-takeoff text-success me-2"></i> Bullish Continuation & Breakouts', 'url' => ['/crypto/bullish-patterns'], 'encode' => false],
+        ];
+
         $topNavItems = [
-            ['label' => \app\helpers\SvgHelper::icon('speedometer2', ['class' => 'me-1']) . ' Dashboard', 'url' => ['/dashboard/index'], 'active' => $ctrlId === 'dashboard', 'encode' => false],
             [
-                'label' => '<i class="bi bi-currency-bitcoin text-warning me-1"></i> Crypto <span class="badge bg-warning text-dark ms-1" style="font-size:0.65rem;">24/7</span>',
+                'label' => '<i class="bi bi-speedometer2 me-1 text-primary"></i> Dashboard',
+                'url' => ['/dashboard/index'],
+                'active' => $ctrlId === 'dashboard',
                 'encode' => false,
-                'active' => $ctrlId === 'crypto',
-                'items' => [
-                    ['label' => '<i class="bi bi-search text-warning me-2"></i> Volume Scanner & Hub', 'url' => ['/crypto/index'], 'encode' => false],
-                    '<div class="dropdown-divider"></div>',
-                    ['label' => '<i class="bi bi-bullseye text-primary me-2"></i> Confluence Strategy (MA, RSI, MACD, Fib)', 'url' => ['/crypto/confluence'], 'encode' => false],
-                    ['label' => '<i class="bi bi-rocket-takeoff text-success me-2"></i> Bullish Continuation & Breakouts', 'url' => ['/crypto/bullish-patterns'], 'encode' => false],
-                ],
             ],
-            ['label' => \app\helpers\SvgHelper::icon('briefcase', ['class' => 'me-1']) . ' Portofolio', 'url' => ['/portfolio/index'], 'active' => $ctrlId === 'portfolio', 'encode' => false],
-            ['label' => \app\helpers\SvgHelper::icon('newspaper', ['class' => 'me-1 text-info']) . ' Blog Info', 'url' => ['/blog/index'], 'active' => $ctrlId === 'blog' && !in_array($actionId, ['admin', 'settings', 'create', 'update']), 'encode' => false],
             [
-                'label' => \app\helpers\SvgHelper::icon('filter-square', ['class' => 'me-1']) . ' Scanners & Patterns',
+                'label' => '<i class="bi bi-sliders me-1 text-info"></i> Pasar & Scanner <i class="bi bi-chevron-down ms-1 text-white-50 small" style="font-size:0.65rem;"></i>',
                 'encode' => false,
-                'active' => in_array($ctrlId, ['strategy-confluence', 'bullish-pattern', 'double-bottom', 'triple-bottom', 'rsi-double-bottom', 'scanner', 'moving-average', 'bollinger-band', 'fibonacci', 'candlestick'], true),
-                'items' => [
-                    ['label' => \app\helpers\SvgHelper::icon('bullseye', ['class' => 'me-2 text-warning']) . 'Confluence Strategy (PRO)', 'url' => ['/strategy-confluence/index'], 'encode' => false],
-                    '<div class="dropdown-divider"></div>',
-                    ['label' => \app\helpers\SvgHelper::icon('rocket-takeoff', ['class' => 'me-2 text-success']) . 'Bullish Breakout Patterns', 'url' => ['/bullish-pattern/index'], 'encode' => false],
-                    ['label' => \app\helpers\SvgHelper::icon('graph-down', ['class' => 'me-2 text-primary']) . 'Double Bottom Scanner (Core)', 'url' => ['/double-bottom/index'], 'encode' => false],
-                    ['label' => \app\helpers\SvgHelper::icon('triangle-half', ['class' => 'me-2 text-info']) . 'Triple Bottom Scanner', 'url' => ['/triple-bottom/index'], 'encode' => false],
-                    ['label' => \app\helpers\SvgHelper::icon('activity', ['class' => 'me-2 text-danger']) . 'RSI Strategy & Signals', 'url' => ['/rsi-double-bottom/index'], 'encode' => false],
-                    '<div class="dropdown-divider"></div>',
-                    ['label' => \app\helpers\SvgHelper::icon('search', ['class' => 'me-2 text-primary']) . 'Volume Scanner', 'url' => ['/scanner/index'], 'encode' => false],
-                    ['label' => \app\helpers\SvgHelper::icon('graph-up', ['class' => 'me-2 text-success']) . 'Moving Average Signals', 'url' => ['/moving-average/index'], 'encode' => false],
-                    ['label' => \app\helpers\SvgHelper::icon('bounding-box', ['class' => 'me-2 text-info']) . 'Bollinger Bands Strategy', 'url' => ['/bollinger-band/index'], 'encode' => false],
-                    ['label' => \app\helpers\SvgHelper::icon('layers', ['class' => 'me-2 text-warning']) . 'Fibonacci Levels', 'url' => ['/fibonacci/index'], 'encode' => false],
-                    ['label' => \app\helpers\SvgHelper::icon('bar-chart-line', ['class' => 'me-2 text-info']) . 'Candlestick Scanner', 'url' => ['/candlestick/index'], 'encode' => false],
-                ],
+                'active' => $isMarketActive,
+                'dropdownOptions' => ['class' => 'dropdown-menu shadow-lg border-0 dropdown-menu-scrollable'],
+                'items' => $marketItems,
             ],
+            [
+                'label' => '<i class="bi bi-briefcase me-1 text-warning"></i> Portofolio',
+                'url' => ['/portfolio/index'],
+                'active' => $ctrlId === 'portfolio',
+                'encode' => false,
+            ],
+            [
+                'label' => '<i class="bi bi-newspaper me-1 text-info"></i> Blog Info <span class="badge bg-info bg-opacity-25 text-info border border-info border-opacity-25 ms-1" style="font-size:0.65rem;">AI</span>',
+                'url' => ['/blog/index'],
+                'active' => $ctrlId === 'blog' && !in_array($actionId, ['admin', 'settings', 'create', 'update']),
+                'encode' => false,
+            ],
+        ];
+
+        // User & Admin Hub Menu
+        $firstLetter = strtoupper(substr((string) ($currentUser->username ?? 'U'), 0, 1));
+        $roleClass = $isAdmin ? 'bg-danger' : 'bg-primary';
+        $roleTitle = $isAdmin ? 'Admin' : 'User';
+
+        $userMenuItems = [
+            '<div class="px-3 py-2 border-bottom mb-1 bg-dark bg-opacity-25">'
+                . '<div class="d-flex align-items-center gap-2">'
+                    . '<span class="user-avatar-badge">' . Html::encode($firstLetter) . '</span>'
+                    . '<div class="overflow-hidden">'
+                        . '<div class="fw-bold text-white text-truncate small" style="max-width:160px;">' . Html::encode($currentUser->username) . '</div>'
+                        . '<span class="badge ' . $roleClass . ' bg-opacity-75" style="font-size:0.65rem;">' . $roleTitle . '</span>'
+                    . '</div>'
+                . '</div>'
+            . '</div>',
         ];
 
         if ($isAdmin) {
-            $topNavItems[] = [
-                'label' => \app\helpers\SvgHelper::icon('gear', ['class' => 'me-1']) . ' Admin',
-                'encode' => false,
-                'active' => in_array($ctrlId, ['settings', 'user'], true),
-                'items' => [
-                    ['label' => \app\helpers\SvgHelper::icon('newspaper', ['class' => 'me-2 text-info']) . 'Kelola Blog & Artikel', 'url' => ['/blog/admin'], 'encode' => false],
-                    ['label' => \app\helpers\SvgHelper::icon('globe', ['class' => 'me-2 text-primary']) . 'Pengaturan SEO & Webmaster', 'url' => ['/blog/admin/settings'], 'encode' => false],
-                    ['label' => \app\helpers\SvgHelper::icon('gear', ['class' => 'me-2 text-secondary']) . 'Settings', 'url' => ['/settings/index'], 'encode' => false],
-                    ['label' => \app\helpers\SvgHelper::icon('people', ['class' => 'me-2 text-primary']) . 'User Management', 'url' => ['/user/index'], 'encode' => false],
-                ],
-            ];
+            $userMenuItems[] = '<div class="dropdown-header text-info fw-bold"><i class="bi bi-shield-lock me-1"></i> ADMINISTRASI SISTEM</div>';
+            $userMenuItems[] = ['label' => '<i class="bi bi-newspaper text-info me-2"></i> Kelola Blog & Artikel', 'url' => ['/blog/admin'], 'encode' => false];
+            $userMenuItems[] = ['label' => '<i class="bi bi-globe text-primary me-2"></i> Pengaturan SEO & Webmaster', 'url' => ['/blog/admin/settings'], 'encode' => false];
+            $userMenuItems[] = ['label' => '<i class="bi bi-gear text-secondary me-2"></i> Settings Konfigurasi', 'url' => ['/settings/index'], 'encode' => false];
+            $userMenuItems[] = ['label' => '<i class="bi bi-people text-primary me-2"></i> User Management', 'url' => ['/user/index'], 'encode' => false];
+            $userMenuItems[] = '<div class="dropdown-divider"></div>';
         }
 
-        $roleBadge = $isAdmin ? ' <span class="badge bg-danger ms-1">Admin</span>' : ' <span class="badge bg-primary ms-1">User</span>';
-        $topNavItems[] = [
-            'label' => \app\helpers\SvgHelper::icon('person-circle', ['class' => 'me-1']) . ' ' . Html::encode($currentUser->username) . $roleBadge,
-            'encode' => false,
-            'items' => [
-                ['label' => \app\helpers\SvgHelper::icon('person-vcard', ['class' => 'me-2 text-primary']) . 'Profil Saya & Ganti Password', 'url' => ['/site/profile'], 'encode' => false],
-                ['label' => \app\helpers\SvgHelper::icon('info-circle', ['class' => 'me-2 text-info']) . 'Tentang Aplikasi & Developer', 'url' => ['/site/about'], 'encode' => false],
-                $isAdmin ? ['label' => \app\helpers\SvgHelper::icon('people', ['class' => 'me-2 text-primary']) . 'User Management', 'url' => ['/user/index'], 'encode' => false] : '',
-                '<div class="dropdown-divider"></div>',
-                '<li class="px-2">'
-                    . Html::beginForm(['/site/logout'])
-                    . Html::submitButton(
-                        \app\helpers\SvgHelper::icon('box-arrow-right', ['class' => 'me-1 text-danger']) . ' Keluar (Logout)',
-                        ['class' => 'dropdown-item text-danger rounded-2 py-1']
-                    )
-                    . Html::endForm()
-                    . '</li>',
+        $userMenuItems[] = '<div class="dropdown-header text-muted fw-bold"><i class="bi bi-person me-1"></i> AKUN SAYA</div>';
+        $userMenuItems[] = ['label' => '<i class="bi bi-person-vcard text-primary me-2"></i> Profil & Ganti Password', 'url' => ['/site/profile'], 'encode' => false];
+        $userMenuItems[] = ['label' => '<i class="bi bi-info-circle text-info me-2"></i> Tentang Aplikasi', 'url' => ['/site/about'], 'encode' => false];
+        $userMenuItems[] = '<div class="dropdown-divider"></div>';
+
+        // Logout via POST data-method (cleanly inside dropdown, no leaking form button)
+        $userMenuItems[] = [
+            'label' => '<i class="bi bi-box-arrow-right me-2 text-danger"></i> <span class="text-danger fw-semibold">Keluar (Logout)</span>',
+            'url' => ['/site/logout'],
+            'linkOptions' => [
+                'data-method' => 'post',
+                'class' => 'dropdown-item d-flex align-items-center',
             ],
+            'encode' => false,
+        ];
+
+        $topNavItems[] = [
+            'label' => '<span class="user-avatar-badge me-1">' . Html::encode($firstLetter) . '</span> ' 
+                     . Html::encode($currentUser->username) 
+                     . ' <span class="badge ' . $roleClass . ' ms-1" style="font-size:0.65rem;">' . $roleTitle . '</span>'
+                     . ' <i class="bi bi-chevron-down ms-1 text-white-50 small" style="font-size:0.65rem;"></i>',
+            'encode' => false,
+            'dropdownOptions' => ['class' => 'dropdown-menu dropdown-menu-end shadow-lg border-0'],
+            'items' => $userMenuItems,
         ];
     } else {
-        $topNavItems[] = ['label' => \app\helpers\SvgHelper::icon('newspaper', ['class' => 'me-1 text-info']) . ' Blog Info Saham', 'url' => ['/blog/index'], 'active' => $ctrlId === 'blog', 'encode' => false];
-        $topNavItems[] = ['label' => \app\helpers\SvgHelper::icon('pencil-square', ['class' => 'me-1']) . ' Register', 'url' => ['/site/register'], 'encode' => false];
-        $topNavItems[] = ['label' => \app\helpers\SvgHelper::icon('key', ['class' => 'me-1']) . ' Login', 'url' => ['/site/login'], 'encode' => false];
+        $topNavItems[] = ['label' => '<i class="bi bi-newspaper me-1 text-info"></i> Blog Info Saham', 'url' => ['/blog/index'], 'active' => $ctrlId === 'blog', 'encode' => false];
+        $topNavItems[] = ['label' => '<i class="bi bi-pencil-square me-1"></i> Register', 'url' => ['/site/register'], 'encode' => false];
+        $topNavItems[] = ['label' => '<i class="bi bi-key me-1"></i> Login', 'url' => ['/site/login'], 'encode' => false];
     }
 
     echo Nav::widget([
-        'options' => ['class' => 'navbar-nav ms-auto align-items-lg-center'],
+        'options' => ['class' => 'navbar-nav ms-auto align-items-lg-center gap-1'],
         'items' => $topNavItems,
     ]);
     NavBar::end();
