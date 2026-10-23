@@ -51,8 +51,25 @@ $chartId = 'tb-chart';
             <?php endif; ?>
         <?php endif; ?>
     </div>
-    <div class="d-flex gap-2">
+    <div class="d-flex gap-2 align-items-center">
         <?= Html::a(\app\helpers\SvgHelper::icon('arrow-left') . ' Kembali ke Scanner', array_merge(['triple-bottom/index'], $filterParams), ['class' => 'btn btn-outline-secondary']) ?>
+        <?= \app\widgets\BlogQuickPostWidget::widget([
+            'symbol' => $stock->symbol,
+            'stockName' => $stock->name,
+            'timeFrame' => ($timeframe === 24 ? '1D' : "{$timeframe}H"),
+            'strategyName' => 'triple-bottom',
+            'analysisDate' => date('Y-m-d'),
+            'targetElementId' => 'tb-chart',
+            'metrics' => [
+                'current_price' => $pattern['current_price'] ?? null,
+                'neckline' => $pattern['neckline'] ?? null,
+                'bottom1' => $pattern['bottom1'] ?? null,
+                'bottom2' => $pattern['bottom2'] ?? null,
+                'bottom3' => $pattern['bottom3'] ?? null,
+                'pattern_type' => $patternTitle,
+            ],
+            'buttonClass' => 'btn btn-outline-warning text-dark btn-sm shadow-sm fw-bold',
+        ]) ?>
     </div>
 </div>
 

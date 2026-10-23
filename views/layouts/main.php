@@ -25,6 +25,8 @@ $isAdmin = $currentUser !== null && $currentUser->isAdmin();
 
 $systemItems = [];
 if ($isAdmin) {
+    $systemItems[] = ['label' => \app\helpers\SvgHelper::icon('newspaper', ['class' => 'me-2 text-info']) . 'Kelola Blog', 'url' => ['/blog/admin'], 'active' => $ctrlId === 'blog' && in_array($actionId, ['admin', 'create', 'update']), 'badge' => 'Admin'];
+    $systemItems[] = ['label' => \app\helpers\SvgHelper::icon('globe', ['class' => 'me-2 text-primary']) . 'SEO & Webmaster', 'url' => ['/blog/admin/settings'], 'active' => $ctrlId === 'blog' && $actionId === 'settings', 'badge' => 'Admin'];
     $systemItems[] = ['label' => \app\helpers\SvgHelper::icon('gear', ['class' => 'me-2']) . 'Settings', 'url' => ['/settings/index'], 'active' => $ctrlId === 'settings'];
     $systemItems[] = ['label' => \app\helpers\SvgHelper::icon('people', ['class' => 'me-2']) . 'User Management', 'url' => ['/user/index'], 'active' => $ctrlId === 'user', 'badge' => 'Admin'];
 }
@@ -32,6 +34,7 @@ if ($isAdmin) {
 $sideMenuGroups = [
     'Overview' => [
         ['label' => \app\helpers\SvgHelper::icon('speedometer2', ['class' => 'me-2']) . 'Dashboard', 'url' => ['/dashboard/index'], 'active' => $ctrlId === 'dashboard'],
+        ['label' => \app\helpers\SvgHelper::icon('newspaper', ['class' => 'me-2 text-info']) . 'Blog Info Saham', 'url' => ['/blog/index'], 'active' => $ctrlId === 'blog' && !in_array($actionId, ['admin', 'settings', 'create', 'update']), 'badge' => 'AI'],
         ['label' => \app\helpers\SvgHelper::icon('briefcase', ['class' => 'me-2']) . 'Portofolio & Averaging', 'url' => ['/portfolio/index'], 'active' => $ctrlId === 'portfolio'],
         ['label' => \app\helpers\SvgHelper::icon('info-circle', ['class' => 'me-2']) . 'Tentang Aplikasi', 'url' => ['/site/about'], 'active' => $ctrlId === 'site' && $actionId === 'about'],
     ],
@@ -64,6 +67,7 @@ if (!empty($systemItems)) {
 <head>
     <title><?= Html::encode($this->title) ?></title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <?= \app\helpers\TrackingHelper::renderHeadScripts() ?>
     <?php $this->head() ?>
     <style>
         body { padding-top: 58px; }
@@ -78,6 +82,7 @@ if (!empty($systemItems)) {
     </style>
 </head>
 <body class="d-flex flex-column h-100">
+<?= \app\helpers\TrackingHelper::renderBodyStart() ?>
 <?php $this->beginBody() ?>
 
 <header id="header">
@@ -105,6 +110,7 @@ if (!empty($systemItems)) {
                 ],
             ],
             ['label' => \app\helpers\SvgHelper::icon('briefcase', ['class' => 'me-1']) . ' Portofolio', 'url' => ['/portfolio/index'], 'active' => $ctrlId === 'portfolio', 'encode' => false],
+            ['label' => \app\helpers\SvgHelper::icon('newspaper', ['class' => 'me-1 text-info']) . ' Blog Info', 'url' => ['/blog/index'], 'active' => $ctrlId === 'blog' && !in_array($actionId, ['admin', 'settings', 'create', 'update']), 'encode' => false],
             [
                 'label' => \app\helpers\SvgHelper::icon('filter-square', ['class' => 'me-1']) . ' Scanners & Patterns',
                 'encode' => false,
@@ -132,6 +138,8 @@ if (!empty($systemItems)) {
                 'encode' => false,
                 'active' => in_array($ctrlId, ['settings', 'user'], true),
                 'items' => [
+                    ['label' => \app\helpers\SvgHelper::icon('newspaper', ['class' => 'me-2 text-info']) . 'Kelola Blog & Artikel', 'url' => ['/blog/admin'], 'encode' => false],
+                    ['label' => \app\helpers\SvgHelper::icon('globe', ['class' => 'me-2 text-primary']) . 'Pengaturan SEO & Webmaster', 'url' => ['/blog/admin/settings'], 'encode' => false],
                     ['label' => \app\helpers\SvgHelper::icon('gear', ['class' => 'me-2 text-secondary']) . 'Settings', 'url' => ['/settings/index'], 'encode' => false],
                     ['label' => \app\helpers\SvgHelper::icon('people', ['class' => 'me-2 text-primary']) . 'User Management', 'url' => ['/user/index'], 'encode' => false],
                 ],
@@ -158,6 +166,7 @@ if (!empty($systemItems)) {
             ],
         ];
     } else {
+        $topNavItems[] = ['label' => \app\helpers\SvgHelper::icon('newspaper', ['class' => 'me-1 text-info']) . ' Blog Info Saham', 'url' => ['/blog/index'], 'active' => $ctrlId === 'blog', 'encode' => false];
         $topNavItems[] = ['label' => \app\helpers\SvgHelper::icon('pencil-square', ['class' => 'me-1']) . ' Register', 'url' => ['/site/register'], 'encode' => false];
         $topNavItems[] = ['label' => \app\helpers\SvgHelper::icon('key', ['class' => 'me-1']) . ' Login', 'url' => ['/site/login'], 'encode' => false];
     }
@@ -286,6 +295,7 @@ function updateSidebarToggleUI(isCollapsed) {
 })();
 </script>
 
+<?= \app\helpers\TrackingHelper::renderBodyEnd() ?>
 <?php $this->endBody() ?>
 </body>
 </html>

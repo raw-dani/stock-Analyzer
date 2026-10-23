@@ -23,7 +23,9 @@ $config = [
                         str_contains($reqUrl, 'site/captcha') ||
                         str_contains($reqUrl, 'site/error') ||
                         str_contains($reqUrl, 'health') ||
-                        str_contains($reqUrl, 'api/');
+                        str_contains($reqUrl, 'api/') ||
+                        str_contains($pathInfo, 'sitemap') ||
+                        (str_starts_with($pathInfo, 'blog') && !str_starts_with($pathInfo, 'blog/admin') && !str_starts_with($pathInfo, 'blog/generate') && !str_starts_with($pathInfo, 'blog/check'));
 
             if (!$isPublic) {
                 // Simpan URL yang dituju sebagai returnUrl jika bukan root
@@ -36,6 +38,7 @@ $config = [
     'aliases' => [
         '@bower' => '@vendor/bower-asset',
         '@npm'   => '@vendor/npm-asset',
+        '@webroot' => dirname(__DIR__) . '/web',
     ],
     'components' => [
         'request' => [
@@ -93,6 +96,18 @@ $config = [
             'enablePrettyUrl' => true,
             'showScriptName' => false,
             'rules' => [
+                'blog/sitemap.xml' => 'blog/sitemap',
+                'blog/sitemap' => 'blog/sitemap',
+                'sitemap.xml' => 'blog/sitemap',
+                'blog/admin/settings' => 'blog/settings',
+                'blog/admin/create' => 'blog/create',
+                'blog/admin/update/<id:\d+>' => 'blog/update',
+                'blog/admin/delete/<id:\d+>' => 'blog/delete',
+                'blog/admin' => 'blog/admin',
+                'blog/generate-from-stock' => 'blog/generate-from-stock',
+                'blog/check-existing' => 'blog/check-existing',
+                'blog/<slug:[\w-]+>' => 'blog/view',
+                'blog' => 'blog/index',
                 'crypto/confluence' => 'crypto/confluence',
                 'crypto/bullish-patterns' => 'crypto/bullish-patterns',
                 'crypto/index' => 'crypto/index',

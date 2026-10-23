@@ -62,6 +62,29 @@ $changeIcon = $isUp ? 'arrow-up' : 'arrow-down';
         <a href="<?= Url::to(['/scanner/index', 'symbol' => $stock->symbol]) ?>" class="btn btn-outline-secondary btn-sm shadow-sm">
             <?= \app\helpers\SvgHelper::icon('search') ?> Scanner
         </a>
+        <?= \app\widgets\BlogQuickPostWidget::widget([
+            'symbol' => $stock->symbol,
+            'stockName' => $stock->name,
+            'timeFrame' => '1D',
+            'strategyName' => 'volume-breakout',
+            'analysisDate' => $priceStats['date'] ?? date('Y-m-d'),
+            'targetElementId' => 'chart-stock',
+            'metrics' => [
+                'current_price' => $currentPrice,
+                'change' => $change,
+                'change_pct' => $changePct,
+                'high' => $priceStats['high'] ?? null,
+                'low' => $priceStats['low'] ?? null,
+                'open' => $priceStats['open'] ?? null,
+                'volume' => $priceStats['volume'] ?? null,
+                'rvol' => $currentWeekly?->rvol ?? null,
+                'buy_ratio' => $currentWeekly?->buy_ratio ? round($currentWeekly->buy_ratio * 100, 1) : null,
+                'sell_ratio' => $currentWeekly?->sell_ratio ? round($currentWeekly->sell_ratio * 100, 1) : null,
+                'score' => $currentWeekly?->score ?? 60,
+                'signal' => $currentWeekly?->signal ?? 'ACCUMULATION',
+            ],
+            'buttonClass' => 'btn btn-outline-warning text-dark btn-sm shadow-sm fw-bold',
+        ]) ?>
     </div>
 </div>
 

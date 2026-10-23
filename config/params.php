@@ -5,6 +5,10 @@ return [
     'senderEmail' => 'noreply@example.com',
     'senderName' => 'Stock Volume Analyzer',
 
+    // OpenAI AI Blog Generator
+    'openaiApiKey' => getenv('OPENAI_API_KEY') ?: '',
+    'openaiModel' => 'gpt-6-luna',
+
     // ==== US Stock Volume Analyzer ====
     // Provider data pasar: alpha_vantage | polygon | yahoo_finance | csv (dev/backfill)
     'marketDataProvider' => 'yahoo_finance',

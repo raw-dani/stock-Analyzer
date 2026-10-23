@@ -124,6 +124,24 @@ $markLines = [
             ['/bollinger-band/index', 'timeframe' => $params['timeframe']],
             ['class' => 'btn btn-sm btn-outline-secondary shadow-sm']
         ) ?>
+        <?= \app\widgets\BlogQuickPostWidget::widget([
+            'symbol' => $stock->symbol,
+            'stockName' => $stock->name,
+            'timeFrame' => ((int)$params['timeframe'] === 24 ? '1D' : ((int)$params['timeframe'] . 'H')),
+            'strategyName' => 'bollinger-bands',
+            'analysisDate' => substr((string) ($analysis['date'] ?? date('Y-m-d')), 0, 10),
+            'targetElementId' => 'bb-chart',
+            'metrics' => [
+                'current_price' => $analysis['entry_price'] ?? null,
+                'stop_loss' => $analysis['stop_loss'] ?? null,
+                'target_1' => $analysis['target_1'] ?? null,
+                'target_2' => $analysis['target_2'] ?? null,
+                'rsi' => $analysis['rsi'] ?? null,
+                'action' => $action ?? 'BUY',
+                'candle_pattern' => $analysis['candle_pattern'] ?? null,
+            ],
+            'buttonClass' => 'btn btn-outline-warning text-dark btn-sm shadow-sm fw-bold',
+        ]) ?>
     </div>
 </div>
 

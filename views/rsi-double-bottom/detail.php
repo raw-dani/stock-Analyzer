@@ -96,6 +96,23 @@ $ma50Series = $pattern['ma50_series'] ?? [];
             ], 
             ['class' => 'btn btn-sm btn-outline-secondary']
         ) ?>
+        <?= \app\widgets\BlogQuickPostWidget::widget([
+            'symbol' => $stock->symbol,
+            'stockName' => $stock->name,
+            'timeFrame' => ($timeframe === 24 ? '1D' : "{$timeframe}H"),
+            'strategyName' => 'rsi-double-bottom',
+            'analysisDate' => date('Y-m-d'),
+            'targetElementId' => 'rsi-signal-chart',
+            'metrics' => [
+                'current_price' => $pattern['current_price'] ?? null,
+                'neckline' => $pattern['neckline'] ?? null,
+                'bottom1' => $pattern['bottom1'] ?? null,
+                'bottom2' => $pattern['bottom2'] ?? null,
+                'confidence' => $pattern['confidence'] ?? null,
+                'action_label' => $pattern['action_label'] ?? null,
+            ],
+            'buttonClass' => 'btn btn-outline-warning text-dark btn-sm shadow-sm fw-bold',
+        ]) ?>
     </div>
 </div>
 
