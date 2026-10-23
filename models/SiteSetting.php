@@ -65,14 +65,20 @@ class SiteSetting extends ActiveRecord
             return self::$runtimeCache[$key] !== null ? self::$runtimeCache[$key] : $default;
         }
 
-        $val = static::find()->select(['setting_value'])->where(['setting_key' => $key])->scalar();
-        if ($val === false || $val === null) {
+        try {
+            $val = static::find()->select(['setting_value'])->where(['setting_key' => $key])->scalar();
+            if ($val === false || $val === null) {
+                self::$runtimeCache[$key] = null;
+                return $default;
+            }
+
+            self::$runtimeCache[$key] = (string) $val;
+            return (string) $val;
+        } catch (\Throwable $e) {
+            // Fail-safe: jika tabel site_setting belum dimigrasikan pada database, jangan gagalkan aplikasi
             self::$runtimeCache[$key] = null;
             return $default;
         }
-
-        self::$runtimeCache[$key] = (string) $val;
-        return (string) $val;
     }
 
     /**
@@ -80,23 +86,27 @@ class SiteSetting extends ActiveRecord
      */
     public static function set(string $key, ?string $value, string $category = self::CATEGORY_SEO, ?string $desc = null): bool
     {
-        $model = static::findOne(['setting_key' => $key]);
-        if ($model === null) {
-            $model = new static();
-            $model->setting_key = $key;
-            $model->category = $category;
-            $model->description = $desc;
-        }
-        $model->setting_value = $value;
-        if ($desc !== null) {
-            $model->description = $desc;
-        }
+        try {
+            $model = static::findOne(['setting_key' => $key]);
+            if ($model === null) {
+                $model = new static();
+                $model->setting_key = $key;
+                $model->category = $category;
+                $model->description = $desc;
+            }
+            $model->setting_value = $value;
+            if ($desc !== null) {
+                $model->description = $desc;
+            }
 
-        $saved = $model->save();
-        if ($saved) {
-            self::$runtimeCache[$key] = $value;
+            $saved = $model->save();
+            if ($saved) {
+                self::$runtimeCache[$key] = $value;
+            }
+            return $saved;
+        } catch (\Throwable $e) {
+            return false;
         }
-        return $saved;
     }
 
     /**
@@ -104,12 +114,16 @@ class SiteSetting extends ActiveRecord
      */
     public static function getAllByCategory(string $category): array
     {
-        $rows = static::find()->where(['category' => $category])->all();
-        $result = [];
-        foreach ($rows as $row) {
-            $result[$row->setting_key] = $row->setting_value;
+        try {
+            $rows = static::find()->where(['category' => $category])->all();
+            $result = [];
+            foreach ($rows as $row) {
+                $result[$row->setting_key] = $row->setting_value;
+            }
+            return $result;
+        } catch (\Throwable $e) {
+            return [];
         }
-        return $result;
     }
 
     /**

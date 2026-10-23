@@ -194,14 +194,18 @@ class BlogPost extends ActiveRecord
      */
     public static function findExisting(string $symbol, string $timeFrame, string $strategyName, string $analysisDate): ?self
     {
-        return static::find()
-            ->where([
-                'symbol' => strtoupper(trim($symbol)),
-                'time_frame' => strtoupper(trim($timeFrame)),
-                'strategy_name' => strtolower(trim($strategyName)),
-                'analysis_date' => $analysisDate,
-            ])
-            ->one();
+        try {
+            return static::find()
+                ->where([
+                    'symbol' => strtoupper(trim($symbol)),
+                    'time_frame' => strtoupper(trim($timeFrame)),
+                    'strategy_name' => strtolower(trim($strategyName)),
+                    'analysis_date' => $analysisDate,
+                ])
+                ->one();
+        } catch (\Throwable $e) {
+            return null;
+        }
     }
 
     /**

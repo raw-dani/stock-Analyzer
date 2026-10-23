@@ -38,7 +38,6 @@ $config = [
     'aliases' => [
         '@bower' => '@vendor/bower-asset',
         '@npm'   => '@vendor/npm-asset',
-        '@webroot' => dirname(__DIR__) . '/web',
     ],
     'components' => [
         'request' => [

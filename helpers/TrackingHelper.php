@@ -34,28 +34,32 @@ class TrackingHelper
      */
     public static function renderVerificationMeta(): string
     {
-        $html = '';
+        try {
+            $html = '';
 
-        $googleToken = SiteSetting::get('google_site_verification');
-        if (!empty($googleToken)) {
-            $cleanToken = trim($googleToken);
-            // Ekstrak nilai jika admin memasukkan seluruh tag <meta ...>
-            if (preg_match('/content=["\']([^"\']+)["\']/', $cleanToken, $matches)) {
-                $cleanToken = $matches[1];
+            $googleToken = SiteSetting::get('google_site_verification');
+            if (!empty($googleToken)) {
+                $cleanToken = trim($googleToken);
+                // Ekstrak nilai jika admin memasukkan seluruh tag <meta ...>
+                if (preg_match('/content=["\']([^"\']+)["\']/', $cleanToken, $matches)) {
+                    $cleanToken = $matches[1];
+                }
+                $html .= Html::tag('meta', '', ['name' => 'google-site-verification', 'content' => $cleanToken]) . "\n";
             }
-            $html .= Html::tag('meta', '', ['name' => 'google-site-verification', 'content' => $cleanToken]) . "\n";
-        }
 
-        $bingToken = SiteSetting::get('bing_site_verification');
-        if (!empty($bingToken)) {
-            $cleanBing = trim($bingToken);
-            if (preg_match('/content=["\']([^"\']+)["\']/', $cleanBing, $matches)) {
-                $cleanBing = $matches[1];
+            $bingToken = SiteSetting::get('bing_site_verification');
+            if (!empty($bingToken)) {
+                $cleanBing = trim($bingToken);
+                if (preg_match('/content=["\']([^"\']+)["\']/', $cleanBing, $matches)) {
+                    $cleanBing = $matches[1];
+                }
+                $html .= Html::tag('meta', '', ['name' => 'msvalidate.01', 'content' => $cleanBing]) . "\n";
             }
-            $html .= Html::tag('meta', '', ['name' => 'msvalidate.01', 'content' => $cleanBing]) . "\n";
-        }
 
-        return $html;
+            return $html;
+        } catch (\Throwable $e) {
+            return '';
+        }
     }
 
     /**
@@ -63,16 +67,17 @@ class TrackingHelper
      */
     public static function renderHeadScripts(): string
     {
-        $html = self::renderVerificationMeta();
+        try {
+            $html = self::renderVerificationMeta();
 
-        if (!self::shouldTrack()) {
-            return $html;
-        }
+            if (!self::shouldTrack()) {
+                return $html;
+            }
 
-        $gtmId = SiteSetting::get('gtm_container_id');
-        if (!empty($gtmId)) {
-            $cleanGtm = preg_replace('/[^a-zA-Z0-9_\-]/', '', trim($gtmId));
-            $html .= <<<HTML
+            $gtmId = SiteSetting::get('gtm_container_id');
+            if (!empty($gtmId)) {
+                $cleanGtm = preg_replace('/[^a-zA-Z0-9_\-]/', '', trim($gtmId));
+                $html .= <<<HTML
 <!-- Google Tag Manager -->
 <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
 new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -82,13 +87,13 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 <!-- End Google Tag Manager -->
 
 HTML;
-        }
+            }
 
-        $ga4Id = SiteSetting::get('ga4_measurement_id');
-        if (!empty($ga4Id) && empty($gtmId)) {
-            // Jika GTM belum dipasang, gunakan gtag.js langsung
-            $cleanGa4 = preg_replace('/[^a-zA-Z0-9_\-]/', '', trim($ga4Id));
-            $html .= <<<HTML
+            $ga4Id = SiteSetting::get('ga4_measurement_id');
+            if (!empty($ga4Id) && empty($gtmId)) {
+                // Jika GTM belum dipasang, gunakan gtag.js langsung
+                $cleanGa4 = preg_replace('/[^a-zA-Z0-9_\-]/', '', trim($ga4Id));
+                $html .= <<<HTML
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id={$cleanGa4}"></script>
 <script>
@@ -99,14 +104,17 @@ HTML;
 </script>
 
 HTML;
-        }
+            }
 
-        $customHead = SiteSetting::get('custom_head_scripts');
-        if (!empty($customHead)) {
-            $html .= trim($customHead) . "\n";
-        }
+            $customHead = SiteSetting::get('custom_head_scripts');
+            if (!empty($customHead)) {
+                $html .= trim($customHead) . "\n";
+            }
 
-        return $html;
+            return $html;
+        } catch (\Throwable $e) {
+            return '';
+        }
     }
 
     /**
@@ -114,23 +122,27 @@ HTML;
      */
     public static function renderBodyStart(): string
     {
-        if (!self::shouldTrack()) {
-            return '';
-        }
+        try {
+            if (!self::shouldTrack()) {
+                return '';
+            }
 
-        $gtmId = SiteSetting::get('gtm_container_id');
-        if (!empty($gtmId)) {
-            $cleanGtm = preg_replace('/[^a-zA-Z0-9_\-]/', '', trim($gtmId));
-            return <<<HTML
+            $gtmId = SiteSetting::get('gtm_container_id');
+            if (!empty($gtmId)) {
+                $cleanGtm = preg_replace('/[^a-zA-Z0-9_\-]/', '', trim($gtmId));
+                return <<<HTML
 <!-- Google Tag Manager (noscript) -->
 <noscript><iframe src="https://www.googletagmanager.com/ns.html?id={$cleanGtm}"
 height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <!-- End Google Tag Manager (noscript) -->
 
 HTML;
-        }
+            }
 
-        return '';
+            return '';
+        } catch (\Throwable $e) {
+            return '';
+        }
     }
 
     /**
@@ -138,11 +150,15 @@ HTML;
      */
     public static function renderBodyEnd(): string
     {
-        if (!self::shouldTrack()) {
+        try {
+            if (!self::shouldTrack()) {
+                return '';
+            }
+
+            $customBody = SiteSetting::get('custom_body_scripts');
+            return !empty($customBody) ? (trim($customBody) . "\n") : '';
+        } catch (\Throwable $e) {
             return '';
         }
-
-        $customBody = SiteSetting::get('custom_body_scripts');
-        return !empty($customBody) ? (trim($customBody) . "\n") : '';
     }
 }
