@@ -694,9 +694,9 @@ PROMPT;
                 continue;
             }
 
-            // Filter model whisper audio dan prompt guard di Groq agar tidak membingungkan pengguna chat
+            // Filter model whisper audio, orpheus TTS, prompt guard, dan safeguard di Groq agar hanya menyajikan model generator teks/chat
             if ($provider === self::PROVIDER_GROQ) {
-                if (str_contains($id, 'whisper') || str_contains($id, 'prompt-guard')) {
+                if (str_contains($id, 'whisper') || str_contains($id, 'prompt-guard') || str_contains($id, 'orpheus') || str_contains($id, 'safeguard')) {
                     continue;
                 }
             }
