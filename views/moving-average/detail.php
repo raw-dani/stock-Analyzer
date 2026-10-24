@@ -146,7 +146,7 @@ $markLines = [
         <?= \app\widgets\BlogQuickPostWidget::widget([
             'symbol' => $stock->symbol,
             'stockName' => $stock->name,
-            'timeFrame' => ((int)$params['timeframe'] === 24 ? '1D' : ((int)$params['timeframe'] . 'H')),
+            'timeFrame' => (((int)$params['timeframe'] === 24 || (int)$params['timeframe'] === 0) ? '1D' : ((int)$params['timeframe'] . 'H')),
             'strategyName' => 'moving-average',
             'analysisDate' => substr((string) ($analysis['date'] ?? date('Y-m-d')), 0, 10),
             'targetElementId' => 'ma-chart',

@@ -150,7 +150,7 @@ $markPoints = [
         <?= \app\widgets\BlogQuickPostWidget::widget([
             'symbol' => $stock->symbol,
             'stockName' => $stock->name,
-            'timeFrame' => (((int) $params['timeframe'] === 24) ? '1D' : "{$params['timeframe']}H"),
+            'timeFrame' => (((int) $params['timeframe'] === 24 || (int) $params['timeframe'] === 0) ? '1D' : "{$params['timeframe']}H"),
             'strategyName' => 'candlestick',
             'category' => 'Candlestick Pattern',
             'analysisDate' => date('Y-m-d'),

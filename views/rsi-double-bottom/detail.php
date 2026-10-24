@@ -99,7 +99,7 @@ $ma50Series = $pattern['ma50_series'] ?? [];
         <?= \app\widgets\BlogQuickPostWidget::widget([
             'symbol' => $stock->symbol,
             'stockName' => $stock->name,
-            'timeFrame' => ($timeframe === 24 ? '1D' : "{$timeframe}H"),
+            'timeFrame' => ($timeframe === 24 || $timeframe === 0 ? '1D' : "{$timeframe}H"),
             'strategyName' => 'rsi-double-bottom',
             'analysisDate' => date('Y-m-d'),
             'targetElementId' => 'rsi-signal-chart',

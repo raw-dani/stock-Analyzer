@@ -65,7 +65,7 @@ $chartId = 'bullish-pattern-chart';
         <?= \app\widgets\BlogQuickPostWidget::widget([
             'symbol' => $stock->symbol,
             'stockName' => $stock->name,
-            'timeFrame' => ($timeframe === 24 ? '1D' : "{$timeframe}H"),
+            'timeFrame' => ($timeframe === 24 || $timeframe === 0 ? '1D' : "{$timeframe}H"),
             'strategyName' => 'bullish-pattern',
             'category' => 'Bullish Pattern',
             'analysisDate' => date('Y-m-d'),

@@ -56,7 +56,7 @@ $chartId = 'tb-chart';
         <?= \app\widgets\BlogQuickPostWidget::widget([
             'symbol' => $stock->symbol,
             'stockName' => $stock->name,
-            'timeFrame' => ($timeframe === 24 ? '1D' : "{$timeframe}H"),
+            'timeFrame' => ($timeframe === 24 || $timeframe === 0 ? '1D' : "{$timeframe}H"),
             'strategyName' => 'triple-bottom',
             'analysisDate' => date('Y-m-d'),
             'targetElementId' => 'tb-chart',
