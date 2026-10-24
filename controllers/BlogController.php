@@ -693,6 +693,14 @@ class BlogController extends Controller
             ]);
         }
 
+        $engine = $generated['_engine'] ?? 'zero_cost';
+        $engineModel = $generated['_model'] ?? 'local_template';
+        $fallbackReason = $generated['_fallback_reason'] ?? '';
+
+        $message = ($engine === 'ai')
+            ? "Artikel {$symbol} [{$timeFrame}] berhasil digenerate menggunakan AI ({$engineModel}) - 100% Unik!"
+            : "Artikel {$symbol} [{$timeFrame}] dibuat dengan Template Kuantitatif Lokal (Zero-Cost)" . (!empty($fallbackReason) ? " (Penyebab AI fallback: {$fallbackReason})" : "") . ".";
+
         return $this->asJson([
             'success' => true,
             'id' => $post->id,
@@ -701,7 +709,10 @@ class BlogController extends Controller
             'title' => $post->title_id,
             'url' => Url::to(['/blog/view', 'slug' => $post->slug_id]),
             'editUrl' => Url::to(['/blog/update', 'id' => $post->id]),
-            'message' => "Artikel analisis {$symbol} [{$timeFrame}] berhasil dibuat dan dipublikasikan!",
+            'engine' => $engine,
+            'model' => $engineModel,
+            'fallback_reason' => $fallbackReason,
+            'message' => $message,
         ]);
     }
 }

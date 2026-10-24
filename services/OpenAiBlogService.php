@@ -304,6 +304,8 @@ class OpenAiBlogService
         if ($mode === self::MODE_ZERO_COST) {
             Yii::info("Menggunakan Mode Zero-Cost ($0 Biaya API / 0 Token) untuk {$symbol}.", __METHOD__);
             $result = $this->generateAnalyticalFallback($symbol, $timeFrame, $strategyName, $analysisDate, $metrics, $stockName);
+            $result['_engine'] = 'zero_cost';
+            $result['_model'] = 'local_template';
             if (self::isCacheEnabled() && Yii::$app->has('cache')) {
                 Yii::$app->cache->set($cacheKey, $result, 86400); // 24 jam
             }
@@ -317,6 +319,9 @@ class OpenAiBlogService
         if (empty($apiKey) && !$isLocalEndpoint) {
             Yii::info("OpenAI API key belum dikonfigurasi. Mengalihkan ke generator kuantitatif E-E-A-T Zero-Cost.", __METHOD__);
             $result = $this->generateAnalyticalFallback($symbol, $timeFrame, $strategyName, $analysisDate, $metrics, $stockName);
+            $result['_engine'] = 'zero_cost';
+            $result['_model'] = 'local_template';
+            $result['_fallback_reason'] = 'API Key AI belum dikonfigurasi di Pengaturan Blog.';
             if (self::isCacheEnabled() && Yii::$app->has('cache')) {
                 Yii::$app->cache->set($cacheKey, $result, 86400);
             }
@@ -363,6 +368,8 @@ class OpenAiBlogService
                 if (!empty($response)) {
                     $parsed = $this->parseResponse($response);
                     if ($this->validateGeneratedData($parsed)) {
+                        $parsed['_engine'] = 'ai';
+                        $parsed['_model'] = $currentModel;
                         Yii::info("Berhasil men-generate artikel analisis via model {$currentModel} (Token-Optimized).", __METHOD__);
                         if (self::isCacheEnabled() && Yii::$app->has('cache')) {
                             Yii::$app->cache->set($cacheKey, $parsed, 86400);
@@ -378,6 +385,9 @@ class OpenAiBlogService
 
         Yii::error("Semua percobaan Cloud AI gagal ({$lastError}). Beralih ke generator kuantitatif E-E-A-T Zero-Cost bawaan.", __METHOD__);
         $fallback = $this->generateAnalyticalFallback($symbol, $timeFrame, $strategyName, $analysisDate, $metrics, $stockName);
+        $fallback['_engine'] = 'zero_cost';
+        $fallback['_model'] = 'local_template';
+        $fallback['_fallback_reason'] = "AI error: " . ($lastError ?: 'Koneksi AI gagal');
         if (self::isCacheEnabled() && Yii::$app->has('cache')) {
             Yii::$app->cache->set($cacheKey, $fallback, 86400);
         }
@@ -400,26 +410,39 @@ class OpenAiBlogService
         $compressedMetrics = self::compressMetrics($metrics);
 
         $systemPrompt = <<<PROMPT
-Anda adalah Managing Director of Quantitative Equities & Chief Technical Strategist Wall Street.
+Anda adalah Managing Director of Quantitative Equities & Chief Technical Strategist Wall Street terkemuka.
 Tulis artikel riset analisis saham SANGAT PROFESIONAL, MENDALAM, BERNILAI TINGGI, dan DIPERCAYA GOOGLE (E-E-A-T: Experience, Expertise, Authoritativeness, Trustworthiness) dalam DUA BAHASA (Bahasa Indonesia & Bahasa Inggris).
 
-STANDAR GOOGLE E-E-A-T:
-1. Bahasa institusional analitis, objektif, tanpa janji kepastian profit klise.
-2. Wajib memuat:
+PRINSIP KEUNIKAN MUTLAK & ANTI-TEMPLATE (GOOGLE HELPFUL CONTENT COMPLIANT):
+1. DILARANG KERAS menggunakan judul atau kalimat pembuka template yang monoton antar emiten. Setiap artikel HARUS terasa ditulis khusus oleh analis Wall Street untuk emiten tersebut secara unik dan segar.
+2. JUDUL (title_id & title_en) HARUS UNIK, DINAMIS, & SPESIFIK:
+   - Buat judul yang memadukan dinamika aksi harga saham {$symbol}, katalis teknikal, dan zona harga penting.
+   - JANGAN PERNAH gunakan formula klise "Analisis Saham [SYMBOL] ([TF]) - Setup [STRATEGY] & Prospek Pasar".
+   - Contoh variasi judul berkualitas tinggi:
+     * "Akumulasi Masif Saham {$symbol}: Sinyal {$strategyName} di Zona Rebound Kritis"
+     * "Bedah Teknikal {$symbol}: Konvergensi Indikator Buka Peluang Reli Menuju Target Baru"
+     * "Ulasan Kuantitatif {$symbol}: Dominasi Volume Smart Money Menguji Level Kunci"
+     * "Setup {$strategyName} pada {$symbol}: Analisis Asimetri Risk-to-Reward dan Titik Validasi"
+3. STRUKTUR SUB-BAB (<h2>, <h3>) KONTEKSTUAL & DINAMIS:
+   - Sesuaikan judul sub-bab secara kreatif dengan emiten {$symbol} dan data metrik riilnya.
+   - Hindari penomoran kaku monoton seperti "1. Ringkasan Eksekutif, 2. Konfirmasi Likuiditas".
+   - Integrasikan nama saham dan metrik utama ke dalam sub-judul (contoh: "Dinamika Order Flow & Footprint Smart Money pada {$symbol}", "Konvergensi Moving Average & RSI Mengonfirmasi Tren Penguatan").
+4. KONTEN MENDALAM & BERBOBOT E-E-A-T:
+   - Ulas konteks profil industri atau bisnis emiten secara singkat (1-2 kalimat) untuk memperkuat relevansi fundamental.
    - Evaluasi Aksi Harga & Kondisi Pasar Terkini (Price Action & Market Context).
    - Analisis Likuiditas & Dinamika Akumulasi Volume (RVOL, Buy/Sell Ratio, Institutional Smart Money).
-   - Konfirmasi Setup Indikator Teknikal (MA20/50/200, RSI, Candlestick).
+   - Konfirmasi Setup Indikator Teknikal (MA20/50/200, RSI, Candlestick, Volatilitas).
    - Pemetaan Skenario Ganda: Skenario Bullish (katalis konfirmasi) vs Skenario Invalidasi/Bearish (level kegagalan setup).
    - Rencana Trading Terstruktur (Support, Resistance, Stop-Loss terukur, Take-Profit, Risk-to-Reward).
    - Catatan Kepatuhan & Manajemen Risiko (Disclaimer kepatuhan pasar modal).
-3. Gunakan tag HTML semantik: <h2>, <h3>, <p>, <ul>, <li>, <strong>, <div class="table-responsive">, <table class="table">, <blockquote>. Panjang konten mendalam 950 - 1150 kata per bahasa dengan struktur 8 bab institusional lengkap (Ringkasan Eksekutif, Order Flow & RVOL, Konvergensi Indikator, Bedah Setup Strategi, Skenario Ganda Bullish/Bearish, Manajemen Risiko & Position Sizing, Matriks Rencana Trading Terstruktur, Penafian Regulasi).
+5. Gunakan tag HTML semantik: <h2>, <h3>, <p>, <ul>, <li>, <strong>, <div class="table-responsive">, <table class="table">, <blockquote>. Panjang konten 950 - 1200 kata per bahasa.
 
 FORMAT OUTPUT WAJIB JSON MURNI:
 {
-  "title_id": "Judul SEO ID (50-65 karakter)",
-  "title_en": "High-Authority SEO Title EN (50-65 characters)",
-  "excerpt_id": "Ringkasan eksekutif ID 2-3 kalimat",
-  "excerpt_en": "High-value executive summary EN in 2-3 sentences",
+  "title_id": "Judul SEO ID Dinamis & Unik (50-70 karakter)",
+  "title_en": "Dynamic High-Authority SEO Title EN (50-70 characters)",
+  "excerpt_id": "Ringkasan eksekutif ID 2-3 kalimat tajam",
+  "excerpt_en": "Executive summary EN in 2-3 compelling sentences",
   "content_id": "Artikel lengkap HTML semantik ID",
   "content_en": "Complete article semantic HTML EN",
   "trading_plan": {
@@ -431,8 +454,8 @@ FORMAT OUTPUT WAJIB JSON MURNI:
     "risk_reward_ratio": "1:2.5"
   },
   "tags": ["{$symbol}", "Stock Analysis", "Technical", "Trading Plan"],
-  "meta_title_id": "SEO Title ID (max 60 karakter)",
-  "meta_title_en": "SEO Title EN (max 60 characters)",
+  "meta_title_id": "SEO Meta Title ID (max 60 karakter)",
+  "meta_title_en": "SEO Meta Title EN (max 60 characters)",
   "meta_desc_id": "Meta Description ID (140-160 karakter)",
   "meta_desc_en": "Meta Description EN (140-160 characters)"
 }
@@ -448,7 +471,7 @@ Riset analisis teknikal kuantitatif E-E-A-T untuk emiten:
 - Data Metrik Terkompresi:
 {$compressedMetrics}
 
-Hitung level support, resistance, take-profit, stop-loss realistis berdasarkan data di atas.
+Hitung level support, resistance, take-profit, stop-loss realistis berdasarkan data di atas. Pastikan judul dan konten ditulis 100% UNIK khusus untuk {$symbol}.
 PROMPT;
 
         return [
@@ -457,7 +480,9 @@ PROMPT;
                 ['role' => 'system', 'content' => $systemPrompt],
                 ['role' => 'user', 'content' => $userPrompt],
             ],
-            'temperature' => 0.65,
+            'temperature' => 0.76,
+            'presence_penalty' => 0.12,
+            'frequency_penalty' => 0.12,
             'max_tokens' => self::getMaxTokens(),
             'response_format' => ['type' => 'json_object'],
         ];
@@ -878,8 +903,18 @@ HTML;
 
         // ==========================================
         // KONTEN BAHASA INDONESIA BERSTANDAR GOOGLE E-E-A-T (1000+ KATA)
+        // Rotasi Judul Dinamis berdasarkan Hash Simbol + Strategi agar Tidak Monoton
         // ==========================================
-        $titleId = "Analisis Saham {$symbol} ({$timeFrame}) - Setup {$strategyLabel} & Prospek Pasar";
+        $hashSeed = abs(crc32($symbol . $strategyName . $timeFrame));
+        $titleTemplatesId = [
+            "Akumulasi Saham {$symbol} ({$timeFrame}): Sinyal {$strategyLabel} & Prospek Rebound",
+            "Bedah Setup Teknikal {$symbol}: Konvergensi {$strategyLabel} Menuju Target \${$targetPrice}",
+            "Riset Kuantitatif {$symbol} ({$timeFrame}): Validasi Pola {$strategyLabel} & Level Kritis",
+            "Analisis Saham {$symbol}: Momentum {$strategyLabel} Uji Level Support \${$support}",
+            "Setup {$strategyLabel} pada {$symbol} ({$timeFrame}): Evaluasi Risiko & Potensi Penguatan",
+            "Dinamika Pasar {$symbol}: Pola {$strategyLabel} Mengindikasikan Akumulasi Smart Money",
+        ];
+        $titleId = $titleTemplatesId[$hashSeed % count($titleTemplatesId)];
         $excerptId = "Riset kuantitatif mendalam saham {$companyName} ({$symbol}) pada time frame {$timeFrame}. Teridentifikasi akumulasi likuiditas institusional RVOL {$rvol}x dan rasio beli {$buyRatio}%. Ulas struktur aksi harga, konvergensi MA/RSI, skenario ganda, dan matriks trading plan terukur.";
 
         $contentId = <<<HTML
@@ -983,7 +1018,15 @@ HTML;
         // ==========================================
         // KONTEN BAHASA INGGRIS BERSTANDAR GOOGLE E-E-A-T (1000+ KATA)
         // ==========================================
-        $titleEn = "{$symbol} Stock Quantitative Research ({$timeFrame}) - {$strategyLabel} & Trading Framework";
+        $titleTemplatesEn = [
+            "Institutional Flow on {$symbol} ({$timeFrame}): {$strategyLabel} Setup & Rebound Outlook",
+            "Technical Deep-Dive: {$symbol} {$strategyLabel} Convergence Targeting \${$targetPrice}",
+            "Quantitative Research on {$symbol} ({$timeFrame}): Validating {$strategyLabel} & Critical Pivots",
+            "{$symbol} Stock Analysis: {$strategyLabel} Momentum Defends Key Support at \${$support}",
+            "{$strategyLabel} Structure in {$symbol} ({$timeFrame}): Risk-Reward & Measured Expansion",
+            "Market Microstructure on {$symbol}: {$strategyLabel} Confirms Institutional Smart Money Inflow",
+        ];
+        $titleEn = $titleTemplatesEn[$hashSeed % count($titleTemplatesEn)];
         $excerptEn = "Comprehensive institutional equity research on {$companyName} ({$symbol}) across the {$timeFrame} horizon. Confirming institutional accumulation with an RVOL of {$rvol}x and {$buyRatio}% buy ratio. Actionable support, resistance, dual-scenario mapping, and disciplined risk-reward metrics.";
 
         $contentEn = <<<HTML
