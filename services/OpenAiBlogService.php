@@ -65,7 +65,7 @@ class OpenAiBlogService
     public const MODE_AI_OPTIMIZED = 'ai_optimized'; // Cloud AI API dengan Kompresi Token Hemat
 
     public const DEFAULT_BASE_URL = 'https://api.openai.com/v1';
-    public const DEFAULT_MAX_TOKENS = 1600;
+    public const DEFAULT_MAX_TOKENS = 3800;
 
     public const SUPPORTED_MODELS = [
         self::MODEL_GPT_6_LUNA => 'gpt-6-luna (Default - Ultra Deep Financial Analysis & E-E-A-T High Authority)',
@@ -170,7 +170,14 @@ class OpenAiBlogService
     public static function getMaxTokens(): int
     {
         $val = (int) SiteSetting::get('openai_max_tokens', (string) self::DEFAULT_MAX_TOKENS);
-        return ($val >= 500 && $val <= 4000) ? $val : self::DEFAULT_MAX_TOKENS;
+        $tokens = ($val >= 800 && $val <= 8000) ? $val : self::DEFAULT_MAX_TOKENS;
+
+        // Untuk Groq Cloud, berikan minimal 3800 tokens agar menampung reasoning tokens model MoE (gpt-oss-120b)
+        if (self::getProvider() === self::PROVIDER_GROQ || str_contains(self::getBaseUrl(), 'groq.com')) {
+            $tokens = max(3800, $tokens);
+        }
+
+        return $tokens;
     }
 
     /**
@@ -435,9 +442,9 @@ PRINSIP KEUNIKAN MUTLAK & ANTI-TEMPLATE (GOOGLE HELPFUL CONTENT COMPLIANT):
    - Pemetaan Skenario Ganda: Skenario Bullish (katalis konfirmasi) vs Skenario Invalidasi/Bearish (level kegagalan setup).
    - Rencana Trading Terstruktur (Support, Resistance, Stop-Loss terukur, Take-Profit, Risk-to-Reward).
    - Catatan Kepatuhan & Manajemen Risiko (Disclaimer kepatuhan pasar modal).
-5. Gunakan tag HTML semantik: <h2>, <h3>, <p>, <ul>, <li>, <strong>, <div class="table-responsive">, <table class="table">, <blockquote>. Panjang konten 950 - 1200 kata per bahasa.
+5. Gunakan tag HTML semantik: <h2>, <h3>, <p>, <ul>, <li>, <strong>, <div class="table-responsive">, <table class="table">, <blockquote>. Panjang konten 650 - 850 kata per bahasa (fokus pada analisis mendalam, padat fakta, tidak bertele-tele, kaya data teknikal & skenario trading).
 
-FORMAT OUTPUT WAJIB JSON MURNI:
+FORMAT OUTPUT WAJIB OBJEK JSON MURNI:
 {
   "title_id": "Judul SEO ID Dinamis & Unik (50-70 karakter)",
   "title_en": "Dynamic High-Authority SEO Title EN (50-70 characters)",
@@ -471,21 +478,32 @@ Riset analisis teknikal kuantitatif E-E-A-T untuk emiten:
 - Data Metrik Terkompresi:
 {$compressedMetrics}
 
-Hitung level support, resistance, take-profit, stop-loss realistis berdasarkan data di atas. Pastikan judul dan konten ditulis 100% UNIK khusus untuk {$symbol}.
+Instruksi Tugas:
+1. Hitung level support, resistance, take-profit, stop-loss realistis berdasarkan data di atas.
+2. Buat judul dan narasi yang 100% UNIK khusus untuk emiten {$symbol}.
+3. Kembalikan respons Anda DALAM BENTUK OBJEK JSON MURNI (valid JSON format) sesuai struktur schema yang telah ditentukan tanpa teks pengantar atau penutup apapun.
 PROMPT;
 
-        return [
+        $tokens = self::getMaxTokens();
+
+        $payload = [
             'model' => $model,
             'messages' => [
                 ['role' => 'system', 'content' => $systemPrompt],
                 ['role' => 'user', 'content' => $userPrompt],
             ],
-            'temperature' => 0.76,
-            'presence_penalty' => 0.12,
-            'frequency_penalty' => 0.12,
-            'max_tokens' => self::getMaxTokens(),
+            'temperature' => 0.72,
+            'max_tokens' => $tokens,
             'response_format' => ['type' => 'json_object'],
         ];
+
+        // Parameter penalty hanya jika didukung oleh provider (Groq tidak mendukung penalty)
+        if (self::getProvider() !== self::PROVIDER_GROQ && !str_contains(self::getBaseUrl(), 'groq.com')) {
+            $payload['presence_penalty'] = 0.12;
+            $payload['frequency_penalty'] = 0.12;
+        }
+
+        return $payload;
     }
 
     /**
@@ -523,9 +541,17 @@ PROMPT;
         }
 
         if ($httpCode !== 200) {
-            // Jika provider pihak ketiga menolak 'response_format' json_object, coba kirim ulang tanpa format khusus
-            if ($httpCode === 400 && isset($payload['response_format']) && str_contains((string) $rawResponse, 'response_format')) {
+            $rawStr = (string) $rawResponse;
+            // Jika provider pihak ketiga gagal memvalidasi JSON mode (code: json_validate_failed) atau menolak response_format
+            if ($httpCode === 400 && isset($payload['response_format']) && (
+                str_contains($rawStr, 'json_validate_failed') ||
+                str_contains($rawStr, 'Failed to validate JSON') ||
+                str_contains($rawStr, 'Failed to generate JSON') ||
+                str_contains($rawStr, 'response_format')
+            )) {
+                Yii::warning("AI provider menolak response_format json_object ({$rawStr}). Mengirim ulang tanpa format ketat...", __METHOD__);
                 unset($payload['response_format']);
+                $payload['max_tokens'] = max(3800, (int) ($payload['max_tokens'] ?? 3800));
                 return $this->callOpenAiApi($payload, $apiKey);
             }
             throw new \RuntimeException("AI Endpoint HTTP status {$httpCode}: {$rawResponse}");
@@ -778,7 +804,22 @@ PROMPT;
         }
 
         $parsed = json_decode($content, true);
-        return is_array($parsed) ? $parsed : null;
+        if (is_array($parsed)) {
+            return $parsed;
+        }
+
+        // Jika model mengembalikan teks sebelum/sesudah JSON, ekstrak blok kurung kurawal terluar
+        $firstBrace = strpos($content, '{');
+        $lastBrace = strrpos($content, '}');
+        if ($firstBrace !== false && $lastBrace !== false && $lastBrace > $firstBrace) {
+            $jsonSub = substr($content, $firstBrace, $lastBrace - $firstBrace + 1);
+            $parsed = json_decode($jsonSub, true);
+            if (is_array($parsed)) {
+                return $parsed;
+            }
+        }
+
+        return null;
     }
 
     /**
