@@ -91,14 +91,6 @@ class BlogController extends Controller
             $query->andWhere(['like', 'tags', $tag]);
         }
 
-        $dataProvider = new ActiveDataProvider([
-            'query' => $query->orderBy(['created_at' => SORT_DESC]),
-            'pagination' => [
-                'pageSize' => 9,
-                'defaultPageSize' => 9,
-            ],
-        ]);
-
         // Ambil 1 artikel unggulan (terbaru) jika halaman 1 dan tanpa filter
         $featuredPost = null;
         if (empty($search) && empty($strategy) && empty($category) && empty($tag) && (int) $req->get('page', 1) <= 1) {
@@ -106,7 +98,19 @@ class BlogController extends Controller
                 ->where(['status' => BlogPost::STATUS_PUBLISHED])
                 ->orderBy(['created_at' => SORT_DESC])
                 ->one();
+
+            if ($featuredPost !== null) {
+                $query->andWhere(['!=', 'id', $featuredPost->id]);
+            }
         }
+
+        $dataProvider = new ActiveDataProvider([
+            'query' => $query->orderBy(['created_at' => SORT_DESC]),
+            'pagination' => [
+                'pageSize' => 9,
+                'defaultPageSize' => 9,
+            ],
+        ]);
 
         // Ambil daftar kategori aktif untuk filter bar
         $categories = BlogPost::find()
