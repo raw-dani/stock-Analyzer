@@ -269,7 +269,7 @@ $this->params['breadcrumbs'][] = 'Pengaturan SEO & Tracking';
                             </a>
                         </div>
                         <p class="small text-muted mb-3" style="font-size: 0.82rem;">
-                            Groq Cloud menyediakan infrastruktur LPU™ generasi terbaru dengan kecepatan ~300 kata/detik dan kuota harian gratis yang sangat besar. Menggunakan model <strong>Llama 3.3 70B</strong> menghasilkan artikel dengan penalaran analisis teknikal setara GPT-4.
+                            Groq Cloud menyediakan infrastruktur LPU™ generasi terbaru dengan kecepatan hingga ~500–1000 kata/detik dan kuota gratis harian yang besar. Model unggulan resmi: <strong>OpenAI GPT-OSS 120B / 20B</strong>, <strong>DeepSeek R1 Distill</strong>, atau <strong>Meta Llama 3.3 70B</strong>.
                         </p>
 
                         <div class="row g-3">
@@ -291,15 +291,40 @@ $this->params['breadcrumbs'][] = 'Pengaturan SEO & Tracking';
                             </div>
 
                             <div class="col-md-5">
-                                <label class="form-label fw-semibold text-dark small">Model Groq (Default: Llama 3.3 70B)</label>
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <label class="form-label fw-semibold text-dark small mb-0">Model Groq</label>
+                                    <button type="button" class="btn btn-sm btn-outline-success py-0 px-2 rounded-pill fw-semibold" id="btnSyncGroqModels" onclick="fetchGroqModels()" style="font-size: 0.72rem;">
+                                        <i class="bi bi-arrow-repeat me-1"></i> Muat Model dari Akun Saya
+                                    </button>
+                                </div>
+                                <?php 
+                                    $currentGroqModel = $settings['groq_model'] ?: \app\services\OpenAiBlogService::DEFAULT_GROQ_MODEL;
+                                ?>
                                 <select name="Setting[groq_model]" id="groq_model_field" class="form-select bg-white">
+                                    <?php if (!array_key_exists($currentGroqModel, \app\services\OpenAiBlogService::GROQ_MODELS)): ?>
+                                        <option value="<?= Html::encode($currentGroqModel) ?>" selected>
+                                            <?= Html::encode($currentGroqModel) ?> (Tersimpan di Sistem)
+                                        </option>
+                                    <?php endif; ?>
                                     <?php foreach (\app\services\OpenAiBlogService::GROQ_MODELS as $gmKey => $gmLabel): ?>
-                                        <option value="<?= Html::encode($gmKey) ?>" <?= ($settings['groq_model'] ?: \app\services\OpenAiBlogService::DEFAULT_GROQ_MODEL) === $gmKey ? 'selected' : '' ?>>
+                                        <option value="<?= Html::encode($gmKey) ?>" <?= $currentGroqModel === $gmKey ? 'selected' : '' ?>>
                                             <?= Html::encode($gmLabel) ?>
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
-                                <div class="form-text small text-muted">Model 70B memiliki kapasitas penalaran teknikal tertinggi.</div>
+                                <div id="groq_model_sync_feedback" class="small mt-1 text-muted" style="font-size: 0.76rem;">
+                                    Klik <em>"Muat Model dari Akun Saya"</em> untuk sinkronisasi otomatis model yang diizinkan untuk API Key Anda.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Info Update Model Resmi Groq -->
+                        <div class="alert alert-light border rounded-3 p-2 mt-3 mb-0 small text-secondary" style="font-size: 0.78rem;">
+                            <div class="d-flex gap-2">
+                                <i class="bi bi-info-circle-fill text-success flex-shrink-0 mt-1"></i>
+                                <div>
+                                    <strong>Status Model Groq Resmi:</strong> Model <code>mixtral-8x7b-32768</code> dan <code>gemma2-9b-it</code> telah resmi dipensiunkan (decommissioned) oleh Groq. Rekomendasi utama: <strong>openai/gpt-oss-120b</strong> (Flagship MoE Reasoning) dan <strong>openai/gpt-oss-20b</strong> (Super Cepat) yang aktif 100% dan bebas pembatasan.
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -704,7 +729,11 @@ function testAiConnection() {
             resultBox.innerHTML = '<i class="bi bi-check-circle-fill me-1 text-success"></i> <strong>' + (data.message || 'Koneksi Berhasil!') + '</strong>';
         } else {
             resultBox.className = 'alert alert-danger py-2 px-3 small mt-2 mb-0';
-            resultBox.innerHTML = '<i class="bi bi-x-circle-fill me-1 text-danger"></i> <strong>Gagal Terhubung:</strong> ' + (data.message || 'Terjadi kesalahan');
+            var errorHtml = '<i class="bi bi-x-circle-fill me-1 text-danger"></i> <strong>Gagal Terhubung:</strong> ' + (data.message || 'Terjadi kesalahan');
+            if (provider === 'groq' && (data.message.includes('404') || data.message.includes('400') || data.message.includes('does not exist'))) {
+                errorHtml += '<div class="mt-2 pt-2 border-top border-danger border-opacity-25 small text-dark"><i class="bi bi-lightbulb-fill text-warning me-1"></i> <strong>Solusi:</strong> Model mungkin belum diizinkan untuk API Key Anda atau sudah dipensiunkan Groq. Silakan klik tombol <strong>"Muat Model dari Akun Saya"</strong> di atas atau pilih model <code>openai/gpt-oss-120b</code> / <code>openai/gpt-oss-20b</code> lalu coba lagi.</div>';
+            }
+            resultBox.innerHTML = errorHtml;
         }
     })
     .catch(function(err) {
@@ -712,6 +741,105 @@ function testAiConnection() {
         btn.innerHTML = '<i class="bi bi-play-circle me-1"></i> Uji Koneksi Sekarang';
         resultBox.className = 'alert alert-danger py-2 px-3 small mt-2 mb-0';
         resultBox.innerHTML = '<i class="bi bi-x-circle-fill me-1 text-danger"></i> <strong>Gagal Terhubung:</strong> ' + err.message;
+    });
+}
+
+function fetchGroqModels() {
+    var apiKeyField = document.getElementById('groq_api_key_field');
+    var apiKey = apiKeyField ? apiKeyField.value.trim() : '';
+    var btn = document.getElementById('btnSyncGroqModels');
+    var feedback = document.getElementById('groq_model_sync_feedback');
+    var select = document.getElementById('groq_model_field');
+
+    if (!apiKey) {
+        feedback.innerHTML = '<span class="text-danger fw-semibold"><i class="bi bi-exclamation-circle me-1"></i> Masukkan Groq API Key terlebih dahulu.</span>';
+        apiKeyField.focus();
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Memuat...';
+    feedback.innerHTML = '<span class="text-info"><i class="bi bi-arrow-repeat spin me-1"></i> Mengambil daftar model aktif dari api.groq.com...</span>';
+
+    var csrfParam = '<?= Yii::$app->request->csrfParam ?>';
+    var csrfToken = '<?= Yii::$app->request->csrfToken ?>';
+
+    var formData = new FormData();
+    formData.append(csrfParam, csrfToken);
+    formData.append('provider', 'groq');
+    formData.append('api_key', apiKey);
+    formData.append('base_url', 'https://api.groq.com/openai/v1');
+
+    fetch('<?= Url::to(['/blog/fetch-ai-models']) ?>', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(function(res) {
+        return res.json();
+    })
+    .then(function(data) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-arrow-repeat me-1"></i> Muat Model dari Akun Saya';
+
+        if (data.success && data.models && data.models.length > 0) {
+            var currentVal = select.value;
+            select.innerHTML = '';
+            var foundCurrent = false;
+
+            data.models.forEach(function(m) {
+                var opt = document.createElement('option');
+                opt.value = m.id;
+                var label = m.id;
+                if (m.id === 'openai/gpt-oss-120b') {
+                    label = m.id + ' (Flagship MoE 120B - Ultra Cepat ~500 tok/s)';
+                } else if (m.id === 'openai/gpt-oss-20b') {
+                    label = m.id + ' (Super Fast Reasoning ~1000 tok/s)';
+                } else if (m.id === 'deepseek-r1-distill-llama-70b') {
+                    label = m.id + ' (DeepSeek R1 Reasoning Llama 70B)';
+                } else if (m.id === 'deepseek-r1-distill-qwen-32b') {
+                    label = m.id + ' (DeepSeek R1 Reasoning Qwen 32B)';
+                } else if (m.id === 'qwen/qwen3.8-27b') {
+                    label = m.id + ' (Qwen 3.8 27B Reasoning)';
+                } else if (m.id === 'llama-3.3-70b-versatile') {
+                    label = m.id + ' (Meta Llama 3.3 70B)';
+                } else if (m.id === 'llama-3.1-8b-instant') {
+                    label = m.id + ' (Meta Llama 3.1 8B)';
+                }
+                opt.textContent = label;
+                if (m.id === currentVal) {
+                    opt.selected = true;
+                    foundCurrent = true;
+                }
+                select.appendChild(opt);
+            });
+
+            if (!foundCurrent) {
+                var preferred = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'deepseek-r1-distill-llama-70b', 'qwen/qwen3.8-27b', 'llama-3.3-70b-versatile'];
+                var setPreferred = false;
+                for (var i = 0; i < preferred.length; i++) {
+                    for (var j = 0; j < select.options.length; j++) {
+                        if (select.options[j].value === preferred[i]) {
+                            select.options[j].selected = true;
+                            setPreferred = true;
+                            break;
+                        }
+                    }
+                    if (setPreferred) break;
+                }
+            }
+
+            feedback.innerHTML = '<span class="text-success fw-semibold"><i class="bi bi-check-circle-fill me-1"></i> Berhasil! ' + data.models.length + ' model aktif disinkronkan. Terpilih: <code>' + select.value + '</code></span>';
+        } else {
+            feedback.innerHTML = '<span class="text-danger"><i class="bi bi-x-circle-fill me-1"></i> ' + (data.message || 'Gagal memuat model dari Groq.') + '</span>';
+        }
+    })
+    .catch(function(err) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-arrow-repeat me-1"></i> Muat Model dari Akun Saya';
+        feedback.innerHTML = '<span class="text-danger"><i class="bi bi-x-circle-fill me-1"></i> Error: ' + err.message + '</span>';
     });
 }
 

@@ -39,19 +39,25 @@ class OpenAiBlogService
 
     public const DEFAULT_MODEL = self::MODEL_GPT_6_LUNA;
 
-    // Groq Models (100% Gratis - Sangat Cepat & Cerdas)
+    // Groq Models Terkini (Resmi dari console.groq.com)
+    public const MODEL_GPT_OSS_120B = 'openai/gpt-oss-120b';
+    public const MODEL_GPT_OSS_20B = 'openai/gpt-oss-20b';
+    public const MODEL_DEEPSEEK_R1_LLAMA_70B = 'deepseek-r1-distill-llama-70b';
+    public const MODEL_DEEPSEEK_R1_QWEN_32B = 'deepseek-r1-distill-qwen-32b';
+    public const MODEL_QWEN_3_8_27B = 'qwen/qwen3.8-27b';
     public const MODEL_LLAMA_3_3_70B = 'llama-3.3-70b-versatile';
     public const MODEL_LLAMA_3_1_8B = 'llama-3.1-8b-instant';
-    public const MODEL_MIXTRAL_8X7B = 'mixtral-8x7b-32768';
-    public const MODEL_GEMMA2_9B = 'gemma2-9b-it';
 
-    public const DEFAULT_GROQ_MODEL = self::MODEL_LLAMA_3_3_70B;
+    public const DEFAULT_GROQ_MODEL = self::MODEL_GPT_OSS_120B;
 
     public const GROQ_MODELS = [
-        self::MODEL_LLAMA_3_3_70B => 'llama-3.3-70b-versatile (Rekomendasi - 128k context, Kualitas GPT-4, 100% Gratis)',
-        self::MODEL_LLAMA_3_1_8B => 'llama-3.1-8b-instant (Super Cepat, Ringan & Efisien)',
-        self::MODEL_MIXTRAL_8X7B => 'mixtral-8x7b-32768 (MoE High Capacity - 32k context)',
-        self::MODEL_GEMMA2_9B => 'gemma2-9b-it (Google Gemma 2 9B Instruct)',
+        self::MODEL_GPT_OSS_120B => 'openai/gpt-oss-120b (Rekomendasi Utama - Flagship MoE 120B, 131k context, Ultra Cepat ~500 tok/s)',
+        self::MODEL_GPT_OSS_20B => 'openai/gpt-oss-20b (Super Fast Reasoning - 131k context, ~1000 tok/s)',
+        self::MODEL_DEEPSEEK_R1_LLAMA_70B => 'deepseek-r1-distill-llama-70b (DeepSeek R1 Distill Llama 70B - 128k context)',
+        self::MODEL_DEEPSEEK_R1_QWEN_32B => 'deepseek-r1-distill-qwen-32b (DeepSeek R1 Distill Qwen 32B - 128k context)',
+        self::MODEL_QWEN_3_8_27B => 'qwen/qwen3.8-27b (Qwen 3.8 27B Reasoning - 131k context)',
+        self::MODEL_LLAMA_3_3_70B => 'llama-3.3-70b-versatile (Meta Llama 3.3 70B - 128k context, Akses Tergantung Izin Project)',
+        self::MODEL_LLAMA_3_1_8B => 'llama-3.1-8b-instant (Meta Llama 3.1 8B - Instant)',
     ];
 
     // Mode Operasi
@@ -217,18 +223,18 @@ class OpenAiBlogService
 
         if ($provider === self::PROVIDER_GROQ) {
             $groqModel = SiteSetting::get('groq_model');
-            if (!empty($groqModel) && array_key_exists(trim($groqModel), self::GROQ_MODELS)) {
+            if (!empty($groqModel)) {
                 return trim($groqModel);
             }
             $openAiModel = SiteSetting::get('openai_model');
-            if (!empty($openAiModel) && array_key_exists(trim($openAiModel), self::GROQ_MODELS)) {
+            if (!empty($openAiModel) && (array_key_exists(trim($openAiModel), self::GROQ_MODELS) || str_contains($openAiModel, '/'))) {
                 return trim($openAiModel);
             }
             return self::DEFAULT_GROQ_MODEL;
         }
 
         $model = SiteSetting::get('openai_model');
-        if (!empty($model) && array_key_exists(trim($model), self::SUPPORTED_MODELS)) {
+        if (!empty($model)) {
             return trim($model);
         }
 
@@ -321,14 +327,18 @@ class OpenAiBlogService
         $modelsToTry = [$primaryModel];
 
         if (self::getProvider() === self::PROVIDER_GROQ || str_contains(self::getBaseUrl(), 'groq.com')) {
-            if ($primaryModel === self::MODEL_LLAMA_3_3_70B) {
-                $modelsToTry[] = self::MODEL_LLAMA_3_1_8B;
-                $modelsToTry[] = self::MODEL_MIXTRAL_8X7B;
-            } elseif ($primaryModel === self::MODEL_MIXTRAL_8X7B) {
-                $modelsToTry[] = self::MODEL_LLAMA_3_3_70B;
-                $modelsToTry[] = self::MODEL_LLAMA_3_1_8B;
+            if ($primaryModel === self::MODEL_GPT_OSS_120B) {
+                $modelsToTry[] = self::MODEL_GPT_OSS_20B;
+                $modelsToTry[] = self::MODEL_DEEPSEEK_R1_LLAMA_70B;
+            } elseif ($primaryModel === self::MODEL_LLAMA_3_3_70B) {
+                $modelsToTry[] = self::MODEL_GPT_OSS_120B;
+                $modelsToTry[] = self::MODEL_GPT_OSS_20B;
+            } elseif ($primaryModel === self::MODEL_LLAMA_3_1_8B) {
+                $modelsToTry[] = self::MODEL_GPT_OSS_20B;
+                $modelsToTry[] = self::MODEL_GPT_OSS_120B;
             } else {
-                $modelsToTry[] = self::MODEL_LLAMA_3_3_70B;
+                $modelsToTry[] = self::MODEL_GPT_OSS_120B;
+                $modelsToTry[] = self::MODEL_GPT_OSS_20B;
             }
         } else {
             // Multi-tier model fallback jika tier akun belum mengaktifkan model terbaru
@@ -555,6 +565,36 @@ PROMPT;
         if ($httpCode !== 200) {
             $decoded = json_decode((string) $rawResponse, true);
             $errMsg = $decoded['error']['message'] ?? $rawResponse;
+
+            // Jika error 400 terkait response_format (misal model reasoning tidak support JSON mode), coba ulang tanpa response_format
+            if ($httpCode === 400 && isset($payload['response_format']) && (str_contains((string) $errMsg, 'response_format') || str_contains((string) $errMsg, 'json_object'))) {
+                unset($payload['response_format']);
+                $ch2 = curl_init($url);
+                curl_setopt_array($ch2, [
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_POST => true,
+                    CURLOPT_POSTFIELDS => json_encode($payload),
+                    CURLOPT_HTTPHEADER => $headers,
+                    CURLOPT_TIMEOUT => 20,
+                    CURLOPT_CONNECTTIMEOUT => 8,
+                    CURLOPT_SSL_VERIFYPEER => !str_contains($url, 'localhost'),
+                ]);
+                $rawResponse = curl_exec($ch2);
+                $httpCode = curl_getinfo($ch2, CURLINFO_HTTP_CODE);
+                curl_close($ch2);
+
+                if ($httpCode === 200) {
+                    $decoded = json_decode((string) $rawResponse, true);
+                    $content = $decoded['choices'][0]['message']['content'] ?? '';
+                    return [
+                        'success' => true,
+                        'message' => "Koneksi Berhasil! Model '{$model}' merespons dalam {$latencyMs} ms.",
+                        'latency_ms' => $latencyMs,
+                        'sample' => $content,
+                    ];
+                }
+            }
+
             return [
                 'success' => false,
                 'http_code' => $httpCode,
@@ -577,6 +617,121 @@ PROMPT;
             'success' => false,
             'message' => "Respon tidak dikenali: " . substr((string) $rawResponse, 0, 150),
             'latency_ms' => $latencyMs,
+        ];
+    }
+
+    /**
+     * Mengambil daftar model yang aktif dan dapat diakses langsung dari endpoint /models provider (Groq / OpenAI / Custom)
+     * Menggunakan API Key pengguna secara real-time.
+     */
+    public function fetchAvailableModels(string $provider, string $apiKey, string $baseUrl = ''): array
+    {
+        $baseUrl = trim($baseUrl);
+        if (empty($baseUrl)) {
+            $baseUrl = ($provider === self::PROVIDER_GROQ) ? self::GROQ_BASE_URL : self::DEFAULT_BASE_URL;
+        }
+
+        $baseUrl = rtrim($baseUrl, '/');
+        if (str_ends_with($baseUrl, '/chat/completions')) {
+            $url = substr($baseUrl, 0, -strlen('/chat/completions')) . '/models';
+        } else {
+            $url = $baseUrl . '/models';
+        }
+
+        $headers = [
+            'Content-Type: application/json',
+        ];
+        if (!empty($apiKey)) {
+            $headers[] = 'Authorization: Bearer ' . $apiKey;
+        }
+
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPGET => true,
+            CURLOPT_HTTPHEADER => $headers,
+            CURLOPT_TIMEOUT => 15,
+            CURLOPT_CONNECTTIMEOUT => 6,
+            CURLOPT_SSL_VERIFYPEER => !str_contains($url, 'localhost'),
+        ]);
+
+        $rawResponse = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
+        curl_close($ch);
+
+        if ($rawResponse === false || !empty($curlError)) {
+            return [
+                'success' => false,
+                'message' => "Gagal terhubung ke ({$url}): {$curlError}",
+                'models' => [],
+            ];
+        }
+
+        if ($httpCode !== 200) {
+            $decoded = json_decode((string) $rawResponse, true);
+            $errMsg = $decoded['error']['message'] ?? $rawResponse;
+            return [
+                'success' => false,
+                'message' => "HTTP {$httpCode}: {$errMsg}",
+                'models' => [],
+            ];
+        }
+
+        $decoded = json_decode((string) $rawResponse, true);
+        if (!isset($decoded['data']) || !is_array($decoded['data'])) {
+            return [
+                'success' => false,
+                'message' => 'Format respon endpoint /models tidak valid atau kosong.',
+                'models' => [],
+            ];
+        }
+
+        $models = [];
+        foreach ($decoded['data'] as $item) {
+            $id = $item['id'] ?? null;
+            if (!$id) {
+                continue;
+            }
+
+            // Filter model whisper audio dan prompt guard di Groq agar tidak membingungkan pengguna chat
+            if ($provider === self::PROVIDER_GROQ) {
+                if (str_contains($id, 'whisper') || str_contains($id, 'prompt-guard')) {
+                    continue;
+                }
+            }
+
+            $models[] = [
+                'id' => $id,
+                'owned_by' => $item['owned_by'] ?? 'groq',
+                'active' => $item['active'] ?? true,
+                'context_window' => $item['context_window'] ?? null,
+            ];
+        }
+
+        // Urutkan model rekomendasi di atas
+        usort($models, function ($a, $b) {
+            $priority = [
+                'openai/gpt-oss-120b' => 1,
+                'openai/gpt-oss-20b' => 2,
+                'deepseek-r1-distill-llama-70b' => 3,
+                'qwen/qwen3.8-27b' => 4,
+                'deepseek-r1-distill-qwen-32b' => 5,
+                'llama-3.3-70b-versatile' => 6,
+                'llama-3.1-8b-instant' => 7,
+            ];
+            $pA = $priority[$a['id']] ?? 99;
+            $pB = $priority[$b['id']] ?? 99;
+            if ($pA === $pB) {
+                return strcmp($a['id'], $b['id']);
+            }
+            return $pA <=> $pB;
+        });
+
+        return [
+            'success' => true,
+            'message' => 'Berhasil memuat ' . count($models) . ' model aktif dari akun Anda.',
+            'models' => $models,
         ];
     }
 

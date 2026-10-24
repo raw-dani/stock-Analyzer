@@ -30,7 +30,7 @@ class BlogController extends Controller
         return [
             'access' => [
                 'class' => AccessControl::class,
-                'only' => ['admin', 'create', 'update', 'delete', 'settings', 'generate-from-stock', 'check-existing', 'test-ai-connection'],
+                'only' => ['admin', 'create', 'update', 'delete', 'settings', 'generate-from-stock', 'check-existing', 'test-ai-connection', 'fetch-ai-models'],
                 'rules' => [
                     [
                         'allow' => true,
@@ -49,6 +49,7 @@ class BlogController extends Controller
                     'delete' => ['POST'],
                     'generate-from-stock' => ['POST'],
                     'test-ai-connection' => ['POST'],
+                    'fetch-ai-models' => ['POST'],
                 ],
             ],
         ];
@@ -488,6 +489,39 @@ class BlogController extends Controller
 
         $service = new OpenAiBlogService();
         $result = $service->testConnection($provider, $apiKey, $baseUrl, $model);
+        return $this->asJson($result);
+    }
+
+    /**
+     * Ambil daftar model yang aktif secara dinamis dari API Provider (AJAX)
+     */
+    public function actionFetchAiModels(): Response
+    {
+        Yii::$app->response->format = Response::FORMAT_JSON;
+
+        $req = Yii::$app->request;
+        $provider = trim((string) $req->post('provider', 'groq'));
+        $apiKey = trim((string) $req->post('api_key', ''));
+        $baseUrl = trim((string) $req->post('base_url', ''));
+
+        if (empty($apiKey)) {
+            $apiKey = OpenAiBlogService::getApiKey() ?? '';
+        }
+
+        if (empty($apiKey) && !str_contains($baseUrl, 'localhost') && !str_contains($baseUrl, '127.0.0.1')) {
+            return $this->asJson([
+                'success' => false,
+                'message' => 'Silakan masukkan API Key terlebih dahulu untuk memuat daftar model yang aktif.',
+                'models' => [],
+            ]);
+        }
+
+        if (empty($baseUrl)) {
+            $baseUrl = ($provider === OpenAiBlogService::PROVIDER_GROQ) ? OpenAiBlogService::GROQ_BASE_URL : OpenAiBlogService::DEFAULT_BASE_URL;
+        }
+
+        $service = new OpenAiBlogService();
+        $result = $service->fetchAvailableModels($provider, $apiKey, $baseUrl);
         return $this->asJson($result);
     }
 
