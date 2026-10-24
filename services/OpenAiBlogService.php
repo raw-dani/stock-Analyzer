@@ -17,6 +17,19 @@ use Yii;
  */
 class OpenAiBlogService
 {
+    // Provider AI yang didukung
+    public const PROVIDER_GROQ = 'groq';
+    public const PROVIDER_OPENAI = 'openai';
+    public const PROVIDER_OPENROUTER = 'openrouter';
+    public const PROVIDER_OLLAMA = 'ollama';
+    public const PROVIDER_CUSTOM = 'custom';
+
+    public const GROQ_BASE_URL = 'https://api.groq.com/openai/v1';
+    public const OPENAI_BASE_URL = 'https://api.openai.com/v1';
+    public const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
+    public const OLLAMA_BASE_URL = 'http://localhost:11434/v1';
+
+    // OpenAI Models
     public const MODEL_GPT_6_LUNA = 'gpt-6-luna';
     public const MODEL_GPT_5_6_LUNA = 'gpt-5.6-luna';
     public const MODEL_GPT_5_4_NANO = 'gpt-5.4-nano';
@@ -25,6 +38,21 @@ class OpenAiBlogService
     public const MODEL_GPT_3_5_TURBO = 'gpt-3.5-turbo';
 
     public const DEFAULT_MODEL = self::MODEL_GPT_6_LUNA;
+
+    // Groq Models (100% Gratis - Sangat Cepat & Cerdas)
+    public const MODEL_LLAMA_3_3_70B = 'llama-3.3-70b-versatile';
+    public const MODEL_LLAMA_3_1_8B = 'llama-3.1-8b-instant';
+    public const MODEL_MIXTRAL_8X7B = 'mixtral-8x7b-32768';
+    public const MODEL_GEMMA2_9B = 'gemma2-9b-it';
+
+    public const DEFAULT_GROQ_MODEL = self::MODEL_LLAMA_3_3_70B;
+
+    public const GROQ_MODELS = [
+        self::MODEL_LLAMA_3_3_70B => 'llama-3.3-70b-versatile (Rekomendasi - 128k context, Kualitas GPT-4, 100% Gratis)',
+        self::MODEL_LLAMA_3_1_8B => 'llama-3.1-8b-instant (Super Cepat, Ringan & Efisien)',
+        self::MODEL_MIXTRAL_8X7B => 'mixtral-8x7b-32768 (MoE High Capacity - 32k context)',
+        self::MODEL_GEMMA2_9B => 'gemma2-9b-it (Google Gemma 2 9B Instruct)',
+    ];
 
     // Mode Operasi
     public const MODE_ZERO_COST = 'zero_cost';       // 100% Gratis - Tanpa Token / $0 Biaya API
@@ -41,6 +69,34 @@ class OpenAiBlogService
         self::MODEL_GPT_4O_MINI => 'gpt-4o-mini (Cost-Efficient)',
         self::MODEL_GPT_3_5_TURBO => 'gpt-3.5-turbo (Legacy Standard)',
     ];
+
+    /**
+     * Dapatkan provider AI yang aktif: 'groq', 'openai', 'openrouter', 'ollama', atau 'custom'
+     */
+    public static function getProvider(): string
+    {
+        $provider = SiteSetting::get('ai_provider');
+        if (!empty($provider) && in_array($provider, [
+            self::PROVIDER_GROQ,
+            self::PROVIDER_OPENAI,
+            self::PROVIDER_OPENROUTER,
+            self::PROVIDER_OLLAMA,
+            self::PROVIDER_CUSTOM
+        ], true)) {
+            return $provider;
+        }
+
+        // Auto-detect dari API Key atau Base URL
+        $groqKey = SiteSetting::get('groq_api_key', '');
+        $apiKey = SiteSetting::get('openai_api_key', '');
+        $baseUrl = SiteSetting::get('openai_base_url', '');
+
+        if (!empty($groqKey) || str_starts_with($apiKey, 'gsk_') || str_contains($baseUrl, 'groq.com')) {
+            return self::PROVIDER_GROQ;
+        }
+
+        return self::PROVIDER_OPENAI;
+    }
 
     /**
      * Dapatkan mode pembuatan artikel: 'zero_cost' atau 'ai_optimized'
@@ -61,14 +117,32 @@ class OpenAiBlogService
     }
 
     /**
-     * Dapatkan Base URL API (Mendukung OpenAI, Groq Free Cloud, OpenRouter, atau Ollama Local)
+     * Dapatkan Base URL API (Mendukung Groq Free Cloud, OpenAI, OpenRouter, atau Ollama Local)
      */
     public static function getBaseUrl(): string
     {
-        $url = SiteSetting::get('openai_base_url');
-        if (!empty($url)) {
-            return rtrim(trim($url), '/');
+        $provider = self::getProvider();
+        $customUrl = SiteSetting::get('openai_base_url');
+
+        if ($provider === self::PROVIDER_GROQ) {
+            if (!empty($customUrl) && str_contains($customUrl, 'groq.com')) {
+                return rtrim(trim($customUrl), '/');
+            }
+            return self::GROQ_BASE_URL;
         }
+
+        if ($provider === self::PROVIDER_OPENROUTER) {
+            return !empty($customUrl) ? rtrim(trim($customUrl), '/') : self::OPENROUTER_BASE_URL;
+        }
+
+        if ($provider === self::PROVIDER_OLLAMA) {
+            return !empty($customUrl) ? rtrim(trim($customUrl), '/') : self::OLLAMA_BASE_URL;
+        }
+
+        if (!empty($customUrl)) {
+            return rtrim(trim($customUrl), '/');
+        }
+
         return self::DEFAULT_BASE_URL;
     }
 
@@ -102,10 +176,24 @@ class OpenAiBlogService
     }
 
     /**
-     * Dapatkan API Key dari SiteSetting, Yii params, atau Environment
+     * Dapatkan API Key sesuai provider yang aktif
      */
     public static function getApiKey(): ?string
     {
+        $provider = self::getProvider();
+
+        if ($provider === self::PROVIDER_GROQ) {
+            $groqKey = SiteSetting::get('groq_api_key');
+            if (!empty($groqKey)) {
+                return trim($groqKey);
+            }
+            // Fallback jika pengguna menyimpan key Groq di field openai_api_key
+            $openAiKey = SiteSetting::get('openai_api_key');
+            if (!empty($openAiKey) && str_starts_with(trim($openAiKey), 'gsk_')) {
+                return trim($openAiKey);
+            }
+        }
+
         $key = SiteSetting::get('openai_api_key');
         if (!empty($key)) {
             return trim($key);
@@ -121,10 +209,24 @@ class OpenAiBlogService
     }
 
     /**
-     * Dapatkan model OpenAI yang dikonfigurasi (Default: gpt-6-luna)
+     * Dapatkan model AI yang dikonfigurasi berdasarkan provider aktif
      */
     public static function getModel(): string
     {
+        $provider = self::getProvider();
+
+        if ($provider === self::PROVIDER_GROQ) {
+            $groqModel = SiteSetting::get('groq_model');
+            if (!empty($groqModel) && array_key_exists(trim($groqModel), self::GROQ_MODELS)) {
+                return trim($groqModel);
+            }
+            $openAiModel = SiteSetting::get('openai_model');
+            if (!empty($openAiModel) && array_key_exists(trim($openAiModel), self::GROQ_MODELS)) {
+                return trim($openAiModel);
+            }
+            return self::DEFAULT_GROQ_MODEL;
+        }
+
         $model = SiteSetting::get('openai_model');
         if (!empty($model) && array_key_exists(trim($model), self::SUPPORTED_MODELS)) {
             return trim($model);
@@ -218,16 +320,28 @@ class OpenAiBlogService
         $primaryModel = self::getModel();
         $modelsToTry = [$primaryModel];
 
-        // Multi-tier model fallback jika tier akun belum mengaktifkan model terbaru
-        if ($primaryModel === self::MODEL_GPT_6_LUNA) {
-            $modelsToTry[] = self::MODEL_GPT_5_6_LUNA;
-            $modelsToTry[] = self::MODEL_GPT_4O;
-            $modelsToTry[] = self::MODEL_GPT_4O_MINI;
-        } elseif ($primaryModel === self::MODEL_GPT_5_6_LUNA) {
-            $modelsToTry[] = self::MODEL_GPT_4O;
-            $modelsToTry[] = self::MODEL_GPT_4O_MINI;
-        } elseif ($primaryModel === self::MODEL_GPT_5_4_NANO) {
-            $modelsToTry[] = self::MODEL_GPT_4O_MINI;
+        if (self::getProvider() === self::PROVIDER_GROQ || str_contains(self::getBaseUrl(), 'groq.com')) {
+            if ($primaryModel === self::MODEL_LLAMA_3_3_70B) {
+                $modelsToTry[] = self::MODEL_LLAMA_3_1_8B;
+                $modelsToTry[] = self::MODEL_MIXTRAL_8X7B;
+            } elseif ($primaryModel === self::MODEL_MIXTRAL_8X7B) {
+                $modelsToTry[] = self::MODEL_LLAMA_3_3_70B;
+                $modelsToTry[] = self::MODEL_LLAMA_3_1_8B;
+            } else {
+                $modelsToTry[] = self::MODEL_LLAMA_3_3_70B;
+            }
+        } else {
+            // Multi-tier model fallback jika tier akun belum mengaktifkan model terbaru
+            if ($primaryModel === self::MODEL_GPT_6_LUNA) {
+                $modelsToTry[] = self::MODEL_GPT_5_6_LUNA;
+                $modelsToTry[] = self::MODEL_GPT_4O;
+                $modelsToTry[] = self::MODEL_GPT_4O_MINI;
+            } elseif ($primaryModel === self::MODEL_GPT_5_6_LUNA) {
+                $modelsToTry[] = self::MODEL_GPT_4O;
+                $modelsToTry[] = self::MODEL_GPT_4O_MINI;
+            } elseif ($primaryModel === self::MODEL_GPT_5_4_NANO) {
+                $modelsToTry[] = self::MODEL_GPT_4O_MINI;
+            }
         }
 
         $lastError = '';
@@ -383,6 +497,86 @@ PROMPT;
         }
 
         return $rawResponse;
+    }
+
+    /**
+     * Uji koneksi ke endpoint AI (Groq / OpenAI / Custom) secara instan
+     */
+    public function testConnection(string $provider, string $apiKey, string $baseUrl, string $model): array
+    {
+        $startTime = microtime(true);
+        $url = rtrim($baseUrl, '/') . '/chat/completions';
+
+        $payload = [
+            'model' => $model,
+            'messages' => [
+                ['role' => 'system', 'content' => 'You are a test assistant. Respond in strict JSON format only.'],
+                ['role' => 'user', 'content' => 'Say hello by returning {"status":"success","greeting":"Hello! AI Connection is working properly."}'],
+            ],
+            'temperature' => 0.2,
+            'max_tokens' => 80,
+            'response_format' => ['type' => 'json_object'],
+        ];
+
+        $headers = [
+            'Content-Type: application/json',
+        ];
+        if (!empty($apiKey)) {
+            $headers[] = 'Authorization: Bearer ' . $apiKey;
+        }
+
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => json_encode($payload),
+            CURLOPT_HTTPHEADER => $headers,
+            CURLOPT_TIMEOUT => 20,
+            CURLOPT_CONNECTTIMEOUT => 8,
+            CURLOPT_SSL_VERIFYPEER => !str_contains($url, 'localhost'),
+        ]);
+
+        $rawResponse = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
+        curl_close($ch);
+
+        $latencyMs = round((microtime(true) - $startTime) * 1000);
+
+        if ($rawResponse === false || !empty($curlError)) {
+            return [
+                'success' => false,
+                'message' => "Gagal terhubung ke endpoint ({$url}): {$curlError}",
+                'latency_ms' => $latencyMs,
+            ];
+        }
+
+        if ($httpCode !== 200) {
+            $decoded = json_decode((string) $rawResponse, true);
+            $errMsg = $decoded['error']['message'] ?? $rawResponse;
+            return [
+                'success' => false,
+                'http_code' => $httpCode,
+                'message' => "HTTP {$httpCode}: {$errMsg}",
+                'latency_ms' => $latencyMs,
+            ];
+        }
+
+        $decoded = json_decode((string) $rawResponse, true);
+        if (isset($decoded['choices'][0]['message']['content'])) {
+            return [
+                'success' => true,
+                'message' => "Koneksi Berhasil! Model '{$model}' merespons dalam {$latencyMs} ms.",
+                'latency_ms' => $latencyMs,
+                'sample' => $decoded['choices'][0]['message']['content'],
+            ];
+        }
+
+        return [
+            'success' => false,
+            'message' => "Respon tidak dikenali: " . substr((string) $rawResponse, 0, 150),
+            'latency_ms' => $latencyMs,
+        ];
     }
 
     /**

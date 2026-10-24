@@ -30,7 +30,7 @@ class BlogController extends Controller
         return [
             'access' => [
                 'class' => AccessControl::class,
-                'only' => ['admin', 'create', 'update', 'delete', 'settings', 'generate-from-stock', 'check-existing'],
+                'only' => ['admin', 'create', 'update', 'delete', 'settings', 'generate-from-stock', 'check-existing', 'test-ai-connection'],
                 'rules' => [
                     [
                         'allow' => true,
@@ -48,6 +48,7 @@ class BlogController extends Controller
                 'actions' => [
                     'delete' => ['POST'],
                     'generate-from-stock' => ['POST'],
+                    'test-ai-connection' => ['POST'],
                 ],
             ],
         ];
@@ -413,6 +414,9 @@ class BlogController extends Controller
                 'custom_head_scripts' => ['analytics', 'Custom Head Scripts'],
                 'custom_body_scripts' => ['analytics', 'Custom Body Scripts'],
                 'ai_generation_mode' => ['ai', 'Mode Pembuatan Artikel (zero_cost / ai_optimized)'],
+                'ai_provider' => ['ai', 'Penyedia Layanan AI (groq / openai / openrouter / ollama / custom)'],
+                'groq_api_key' => ['ai', 'Groq Cloud API Key (gsk_...)'],
+                'groq_model' => ['ai', 'Model Groq (llama-3.3-70b-versatile / etc)'],
                 'openai_base_url' => ['ai', 'Custom API Base URL (OpenAI / Groq Free / OpenRouter)'],
                 'openai_max_tokens' => ['ai', 'Max Output Completion Tokens (800-4000)'],
                 'openai_cache_enabled' => ['ai', 'Aktifkan Caching Respon AI (Hemat Token)'],
@@ -426,7 +430,7 @@ class BlogController extends Controller
             }
 
             SiteSetting::flushCache();
-            Yii::$app->session->setFlash('success', 'Pengaturan SEO, Webmaster, & AI Token Optimizer berhasil disimpan.');
+            Yii::$app->session->setFlash('success', 'Pengaturan SEO, Webmaster, & AI Provider Optimizer berhasil disimpan.');
             return $this->redirect(['settings']);
         }
 
@@ -439,7 +443,10 @@ class BlogController extends Controller
             'custom_head_scripts' => SiteSetting::get('custom_head_scripts', ''),
             'custom_body_scripts' => SiteSetting::get('custom_body_scripts', ''),
             'ai_generation_mode' => SiteSetting::get('ai_generation_mode', OpenAiBlogService::getGenerationMode()),
-            'openai_base_url' => SiteSetting::get('openai_base_url', OpenAiBlogService::DEFAULT_BASE_URL),
+            'ai_provider' => SiteSetting::get('ai_provider', OpenAiBlogService::getProvider()),
+            'groq_api_key' => SiteSetting::get('groq_api_key', ''),
+            'groq_model' => SiteSetting::get('groq_model', OpenAiBlogService::DEFAULT_GROQ_MODEL),
+            'openai_base_url' => SiteSetting::get('openai_base_url', OpenAiBlogService::getBaseUrl()),
             'openai_max_tokens' => SiteSetting::get('openai_max_tokens', (string) OpenAiBlogService::DEFAULT_MAX_TOKENS),
             'openai_cache_enabled' => SiteSetting::get('openai_cache_enabled', '1'),
             'openai_api_key' => SiteSetting::get('openai_api_key', ''),
@@ -449,6 +456,39 @@ class BlogController extends Controller
         return $this->render('settings', [
             'settings' => $currentSettings,
         ]);
+    }
+
+    /**
+     * Endpoint AJAX Uji Koneksi API AI (Groq / OpenAI / Custom)
+     */
+    public function actionTestAiConnection(): Response
+    {
+        Yii::$app->response->format = Response::FORMAT_JSON;
+        $req = Yii::$app->request;
+
+        $provider = (string) $req->post('provider', 'groq');
+        $apiKey = trim((string) $req->post('api_key', ''));
+        $baseUrl = trim((string) $req->post('base_url', ''));
+        $model = trim((string) $req->post('model', ''));
+
+        if (empty($baseUrl)) {
+            $baseUrl = ($provider === 'groq') ? OpenAiBlogService::GROQ_BASE_URL : OpenAiBlogService::DEFAULT_BASE_URL;
+        }
+
+        if (empty($apiKey) && !str_contains($baseUrl, 'localhost') && !str_contains($baseUrl, '127.0.0.1')) {
+            return $this->asJson([
+                'success' => false,
+                'message' => 'API Key wajib diisi untuk melakukan pengujian koneksi.',
+            ]);
+        }
+
+        if (empty($model)) {
+            $model = ($provider === 'groq') ? OpenAiBlogService::DEFAULT_GROQ_MODEL : OpenAiBlogService::DEFAULT_MODEL;
+        }
+
+        $service = new OpenAiBlogService();
+        $result = $service->testConnection($provider, $apiKey, $baseUrl, $model);
+        return $this->asJson($result);
     }
 
     /**
