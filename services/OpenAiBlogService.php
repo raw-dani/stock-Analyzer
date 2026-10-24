@@ -505,7 +505,8 @@ PROMPT;
     public function testConnection(string $provider, string $apiKey, string $baseUrl, string $model): array
     {
         $startTime = microtime(true);
-        $url = rtrim($baseUrl, '/') . '/chat/completions';
+        $baseUrl = rtrim(trim($baseUrl), '/');
+        $url = str_ends_with($baseUrl, '/chat/completions') ? $baseUrl : $baseUrl . '/chat/completions';
 
         $payload = [
             'model' => $model,

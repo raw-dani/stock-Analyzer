@@ -686,7 +686,15 @@ function testAiConnection() {
             'X-Requested-With': 'XMLHttpRequest'
         }
     })
-    .then(function(res) { return res.json(); })
+    .then(function(res) {
+        return res.text().then(function(text) {
+            try {
+                return JSON.parse(text);
+            } catch (e) {
+                throw new Error('Respon server (' + res.status + ' ' + res.statusText + '): ' + text.substring(0, 150));
+            }
+        });
+    })
     .then(function(data) {
         btn.disabled = false;
         btn.innerHTML = '<i class="bi bi-play-circle me-1"></i> Uji Koneksi Sekarang';
