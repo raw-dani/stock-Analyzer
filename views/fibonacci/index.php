@@ -28,28 +28,58 @@ $badgeAction = [
 ];
 ?>
 
-<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
-    <div>
-        <h1 class="h3 mb-1 fw-bold text-dark">
-            <?= \app\helpers\SvgHelper::icon('bullseye', ['class' => 'text-primary']) ?> <?= Html::encode($this->title) ?>
-        </h1>
-        <p class="text-muted small mb-0">
-            Penentuan <strong>waktu beli terbaik</strong> (Golden Pocket 50% &ndash; 61.8%) &amp; <strong>waktu jual terbaik</strong> (Target Ekstensi 1.272 &amp; 1.618 atau Stop Loss) dengan konfirmasi volume.
-        </p>
-    </div>
-    <div class="d-flex flex-wrap align-items-center gap-2">
-        <div class="btn-group btn-group-sm shadow-sm" role="group">
-            <?php foreach ($timeframes as $tfKey => $tfLabel): ?>
-                <?= Html::a(
-                    Html::encode($tfLabel),
-                    $filterWith(['timeframe' => $tfKey]),
-                    ['class' => 'btn btn-sm ' . ((int) $params['timeframe'] === (int) $tfKey ? 'btn-primary' : 'btn-outline-secondary')]
-                ) ?>
-            <?php endforeach; ?>
+<!-- 1. Unified App Hero Header -->
+<div class="app-hero-header">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="app-hero-icon text-primary">
+                <?= \app\helpers\SvgHelper::icon('bullseye') ?>
+            </div>
+            <div>
+                <h1 class="app-hero-title">
+                    <?= Html::encode($this->title) ?>
+                </h1>
+                <p class="app-hero-desc">
+                    Penentuan <strong>waktu beli terbaik</strong> (Golden Pocket 50% &ndash; 61.8%) &amp; <strong>waktu jual terbaik</strong> (Target Ekstensi 1.272 &amp; 1.618 atau Stop Loss) dengan konfirmasi volume.
+                </p>
+            </div>
         </div>
-        <span class="badge bg-dark px-3 py-2 fs-7 shadow-sm">
-            TF: <?= Html::encode($timeframes[$params['timeframe']] ?? '1D') ?>
-        </span>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <!-- Timeframe Group -->
+            <div class="btn-group-tf">
+                <?php foreach ($timeframes as $tfKey => $tfLabel): ?>
+                    <?= Html::a(
+                        Html::encode($tfLabel),
+                        $filterWith(['timeframe' => $tfKey]),
+                        ['class' => 'btn-tf ' . ((int) $params['timeframe'] === (int) $tfKey ? 'active' : '')]
+                    ) ?>
+                <?php endforeach; ?>
+            </div>
+
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle shadow-xs" type="button" data-bs-toggle="dropdown">
+                    <?= \app\helpers\SvgHelper::icon('clipboard') ?> Salin Simbol (<?= count($symbols) ?>)
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow">
+                    <li>
+                        <button class="dropdown-item small" type="button" onclick="copyToClipboard('<?= Html::encode($tvSymbolsStr) ?>', 'TradingView')">
+                            <?= \app\helpers\SvgHelper::icon('tv', ['class' => 'me-1 text-primary']) ?> Format TradingView (<?= count($tvSymbols) ?>)
+                        </button>
+                    </li>
+                    <li>
+                        <button class="dropdown-item small" type="button" onclick="copyToClipboard('<?= Html::encode($symbolsStr) ?>', 'Biasa')">
+                            <?= \app\helpers\SvgHelper::icon('card-text', ['class' => 'me-1 text-success']) ?> Format Simbol Biasa (<?= count($symbols) ?>)
+                        </button>
+                    </li>
+                </ul>
+            </div>
+
+            <?= Html::a(
+                \app\helpers\SvgHelper::icon('download') . ' Ekspor CSV',
+                Url::to(array_merge(['/fibonacci/export'], $currentGet)),
+                ['class' => 'btn btn-sm btn-outline-success shadow-xs']
+            ) ?>
+        </div>
     </div>
 </div>
 
@@ -58,220 +88,176 @@ $badgeAction = [
     'timeframe' => (int) ($params['timeframe'] ?? 24),
 ]) ?>
 
-<!-- Interactive KPI Metric Summary Cards -->
+<!-- 2. Unified KPI Metric Cards -->
 <div class="row g-3 mb-4">
     <div class="col-6 col-md-3">
-        <a href="<?= Url::to(['/fibonacci/index', 'timeframe' => $params['timeframe']]) ?>" class="text-decoration-none">
-            <div class="card border-0 shadow-sm bg-light text-center h-100 py-2 hover-card">
-                <div class="card-body p-2">
-                    <div class="text-muted small fw-semibold text-uppercase">Total Saham Terfilter</div>
-                    <div class="h2 mb-0 fw-bold text-dark"><?= number_format((int) ($stats['total'] ?? 0)) ?></div>
-                    <div class="small text-muted"><?= \app\helpers\SvgHelper::icon('arrow-counterclockwise') ?> Klik untuk reset filter</div>
-                </div>
+        <a href="<?= Url::to(['/fibonacci/index', 'timeframe' => $params['timeframe']]) ?>" class="kpi-card-unified kpi-accent-indigo <?= ($params['strategy'] === 'all' || empty($params['strategy'])) ? 'kpi-selected' : '' ?>">
+            <div class="kpi-header">
+                <span class="kpi-label">Total Saham Terfilter</span>
+                <?= \app\helpers\SvgHelper::icon('grid', ['class' => 'text-muted']) ?>
             </div>
+            <div class="kpi-value"><?= number_format((int) ($stats['total'] ?? 0)) ?></div>
+            <div class="kpi-subtext"><?= \app\helpers\SvgHelper::icon('arrow-counterclockwise') ?> Reset Filter</div>
         </a>
     </div>
+
     <div class="col-6 col-md-3">
-        <a href="<?= $filterWith(['strategy' => 'golden_pocket']) ?>" class="text-decoration-none">
-            <div class="card border-0 shadow-sm bg-success bg-opacity-10 text-center h-100 py-2 border-start border-success border-4 hover-card <?= ($params['strategy'] === 'golden_pocket') ? 'ring-active' : '' ?>">
-                <div class="card-body p-2">
-                    <div class="text-success small fw-semibold text-uppercase">⭐ Golden Pocket Buys</div>
-                    <div class="h2 mb-0 fw-bold text-success"><?= number_format((int) ($stats['goldenPocketCount'] ?? 0)) ?></div>
-                    <div class="small text-success"><?= \app\helpers\SvgHelper::icon('star-fill') ?> Waktu Beli Terbaik (50%-61.8%)</div>
-                </div>
+        <a href="<?= $filterWith(['strategy' => 'golden_pocket']) ?>" class="kpi-card-unified kpi-accent-emerald <?= ($params['strategy'] === 'golden_pocket') ? 'kpi-selected' : '' ?>">
+            <div class="kpi-header">
+                <span class="kpi-label text-success">⭐ Golden Pocket Buys</span>
+                <?= \app\helpers\SvgHelper::icon('check-circle', ['class' => 'text-success']) ?>
             </div>
+            <div class="kpi-value text-success"><?= number_format((int) ($stats['goldenPocketCount'] ?? 0)) ?></div>
+            <div class="kpi-subtext text-success">Waktu Beli Terbaik (50%-61.8%)</div>
         </a>
     </div>
+
     <div class="col-6 col-md-3">
-        <a href="<?= $filterWith(['strategy' => 'target_reached']) ?>" class="text-decoration-none">
-            <div class="card border-0 shadow-sm bg-warning bg-opacity-10 text-center h-100 py-2 border-start border-warning border-4 hover-card <?= ($params['strategy'] === 'target_reached') ? 'ring-active' : '' ?>">
-                <div class="card-body p-2">
-                    <div class="text-warning-emphasis small fw-semibold text-uppercase">🎯 Target Ekstensi Tercapai</div>
-                    <div class="h2 mb-0 fw-bold text-dark"><?= number_format((int) ($stats['targetReachedCount'] ?? 0)) ?></div>
-                    <div class="small text-warning-emphasis"><?= \app\helpers\SvgHelper::icon('trophy-fill') ?> Waktu Jual TP (1.272 / 1.618)</div>
-                </div>
+        <a href="<?= $filterWith(['strategy' => 'target_reached']) ?>" class="kpi-card-unified kpi-accent-amber <?= ($params['strategy'] === 'target_reached') ? 'kpi-selected' : '' ?>">
+            <div class="kpi-header">
+                <span class="kpi-label text-warning-emphasis">🎯 Target Ekstensi Tercapai</span>
+                <?= \app\helpers\SvgHelper::icon('trophy-fill', ['class' => 'text-warning']) ?>
             </div>
+            <div class="kpi-value text-dark"><?= number_format((int) ($stats['targetReachedCount'] ?? 0)) ?></div>
+            <div class="kpi-subtext">Waktu Jual TP (1.272 / 1.618)</div>
         </a>
     </div>
+
     <div class="col-6 col-md-3">
-        <a href="<?= $filterWith(['strategy' => 'breakdown']) ?>" class="text-decoration-none">
-            <div class="card border-0 shadow-sm bg-danger bg-opacity-10 text-center h-100 py-2 border-start border-danger border-4 hover-card <?= ($params['strategy'] === 'breakdown') ? 'ring-active' : '' ?>">
-                <div class="card-body p-2">
-                    <div class="text-danger small fw-semibold text-uppercase">⚠️ Alert Jual / Cut Loss</div>
-                    <div class="h2 mb-0 fw-bold text-danger"><?= number_format((int) ($stats['breakdownCount'] ?? 0)) ?></div>
-                    <div class="small text-danger"><?= \app\helpers\SvgHelper::icon('shield-x') ?> Breakdown Support (&lt; 78.6%)</div>
-                </div>
+        <a href="<?= $filterWith(['strategy' => 'breakdown']) ?>" class="kpi-card-unified kpi-accent-rose <?= ($params['strategy'] === 'breakdown') ? 'kpi-selected' : '' ?>">
+            <div class="kpi-header">
+                <span class="kpi-label text-danger">⚠️ Alert Jual / Cut Loss</span>
+                <?= \app\helpers\SvgHelper::icon('shield-x', ['class' => 'text-danger']) ?>
             </div>
+            <div class="kpi-value text-danger"><?= number_format((int) ($stats['breakdownCount'] ?? 0)) ?></div>
+            <div class="kpi-subtext text-danger">Breakdown Support (&lt; 78.6%)</div>
         </a>
     </div>
 </div>
 
-<!-- Strategy Quick Presets (1-Klik) -->
-<div class="card border-0 shadow-sm mb-3 bg-light">
-    <div class="card-body p-3">
-        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
-            <div class="d-flex flex-wrap align-items-center gap-2">
-                <span class="small fw-bold text-muted me-1"><?= \app\helpers\SvgHelper::icon('lightning-fill', ['class' => 'text-warning']) ?> Preset Strategi Cepat:</span>
-                
-                <?= Html::a(
-                    \app\helpers\SvgHelper::icon('grid-fill') . ' Semua Sinyal',
-                    $filterWith(['strategy' => 'all']),
-                    ['class' => 'btn btn-sm ' . ($params['strategy'] === 'all' ? 'btn-dark' : 'btn-outline-dark')]
-                ) ?>
+<!-- 3. Unified Filter Card & Presets -->
+<div class="filter-card-unified">
+    <!-- Preset Pills Bar -->
+    <div class="preset-pills-bar">
+        <span class="small fw-bold text-muted me-1">
+            <?= \app\helpers\SvgHelper::icon('sliders2', ['class' => 'text-primary']) ?> Preset Cepat:
+        </span>
+        
+        <?= Html::a(
+            \app\helpers\SvgHelper::icon('grid-fill') . ' Semua Sinyal',
+            $filterWith(['strategy' => 'all']),
+            ['class' => 'preset-pill ' . ($params['strategy'] === 'all' ? 'active' : '')]
+        ) ?>
 
-                <?= Html::a(
-                    \app\helpers\SvgHelper::icon('star-fill', ['class' => 'text-warning']) . ' Golden Pocket (50%-61.8%)',
-                    $filterWith(['strategy' => 'golden_pocket']),
-                    ['class' => 'btn btn-sm ' . ($params['strategy'] === 'golden_pocket' ? 'btn-success text-white' : 'btn-outline-success')]
-                ) ?>
+        <?= Html::a(
+            \app\helpers\SvgHelper::icon('star-fill', ['class' => 'text-warning']) . ' Golden Pocket',
+            $filterWith(['strategy' => 'golden_pocket']),
+            ['class' => 'preset-pill ' . ($params['strategy'] === 'golden_pocket' ? 'active' : '')]
+        ) ?>
 
-                <?= Html::a(
-                    \app\helpers\SvgHelper::icon('lightning-charge-fill', ['class' => 'text-warning']) . ' Shakeout Low (' . ($stats['shakeoutCount'] ?? 0) . ')',
-                    $filterWith(['strategy' => 'shakeout_low']),
-                    ['class' => 'btn btn-sm ' . ($params['strategy'] === 'shakeout_low' ? 'btn-warning text-dark active fw-bold' : 'btn-outline-warning text-dark')]
-                ) ?>
+        <?= Html::a(
+            \app\helpers\SvgHelper::icon('lightning-charge-fill', ['class' => 'text-warning']) . ' Shakeout Low (' . ($stats['shakeoutCount'] ?? 0) . ')',
+            $filterWith(['strategy' => 'shakeout_low']),
+            ['class' => 'preset-pill ' . ($params['strategy'] === 'shakeout_low' ? 'active' : '')]
+        ) ?>
 
-                <?= Html::a(
-                    \app\helpers\SvgHelper::icon('arrow-down-right') . ' Pullback 38.2% Dip',
-                    $filterWith(['strategy' => 'pullback_382']),
-                    ['class' => 'btn btn-sm ' . ($params['strategy'] === 'pullback_382' ? 'btn-primary' : 'btn-outline-primary')]
-                ) ?>
+        <?= Html::a(
+            \app\helpers\SvgHelper::icon('arrow-down-right') . ' Pullback 38.2%',
+            $filterWith(['strategy' => 'pullback_382']),
+            ['class' => 'preset-pill ' . ($params['strategy'] === 'pullback_382' ? 'active' : '')]
+        ) ?>
 
-                <?= Html::a(
-                    \app\helpers\SvgHelper::icon('rocket-takeoff') . ' Breakout Swing High',
-                    $filterWith(['strategy' => 'breakout_high']),
-                    ['class' => 'btn btn-sm ' . ($params['strategy'] === 'breakout_high' ? 'btn-info text-white' : 'btn-outline-info')]
-                ) ?>
+        <?= Html::a(
+            \app\helpers\SvgHelper::icon('rocket-takeoff') . ' Breakout High',
+            $filterWith(['strategy' => 'breakout_high']),
+            ['class' => 'preset-pill ' . ($params['strategy'] === 'breakout_high' ? 'active' : '')]
+        ) ?>
 
-                <?= Html::a(
-                    \app\helpers\SvgHelper::icon('cash-stack') . ' Waktu Jual / TP Tercapai',
-                    $filterWith(['strategy' => 'target_reached']),
-                    ['class' => 'btn btn-sm ' . ($params['strategy'] === 'target_reached' ? 'btn-warning text-dark' : 'btn-outline-warning text-dark')]
-                ) ?>
+        <?= Html::a(
+            \app\helpers\SvgHelper::icon('cash-stack') . ' TP Tercapai',
+            $filterWith(['strategy' => 'target_reached']),
+            ['class' => 'preset-pill ' . ($params['strategy'] === 'target_reached' ? 'active' : '')]
+        ) ?>
 
-                <?= Html::a(
-                    \app\helpers\SvgHelper::icon('shield-slash') . ' Alert Jual / Breakdown',
-                    $filterWith(['strategy' => 'breakdown']),
-                    ['class' => 'btn btn-sm ' . ($params['strategy'] === 'breakdown' ? 'btn-danger' : 'btn-outline-danger')]
-                ) ?>
-            </div>
-            
-            <div class="d-flex align-items-center gap-2">
-                <div class="dropdown">
-                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle shadow-sm" type="button" data-bs-toggle="dropdown">
-                        <?= \app\helpers\SvgHelper::icon('clipboard') ?> Salin Simbol (<?= count($symbols) ?>)
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow">
-                        <li>
-                            <button class="dropdown-item small" type="button" onclick="copyToClipboard('<?= Html::encode($tvSymbolsStr) ?>', 'TradingView')">
-                                <?= \app\helpers\SvgHelper::icon('tv', ['class' => 'me-1 text-primary']) ?> Format TradingView (<?= count($tvSymbols) ?>)
-                            </button>
-                        </li>
-                        <li>
-                            <button class="dropdown-item small" type="button" onclick="copyToClipboard('<?= Html::encode($symbolsStr) ?>', 'Biasa')">
-                                <?= \app\helpers\SvgHelper::icon('card-text', ['class' => 'me-1 text-success']) ?> Format Simbol Biasa (<?= count($symbols) ?>)
-                            </button>
-                        </li>
-                    </ul>
-                </div>
+        <?= Html::a(
+            \app\helpers\SvgHelper::icon('shield-slash') . ' Breakdown Alert',
+            $filterWith(['strategy' => 'breakdown']),
+            ['class' => 'preset-pill ' . ($params['strategy'] === 'breakdown' ? 'active' : '')]
+        ) ?>
+    </div>
 
-                <?= Html::a(
-                    \app\helpers\SvgHelper::icon('download') . ' Ekspor CSV',
-                    Url::to(array_merge(['/fibonacci/export'], $currentGet)),
-                    ['class' => 'btn btn-sm btn-outline-primary shadow-sm']
-                ) ?>
-            </div>
+    <!-- Filter Form -->
+    <?= Html::beginForm(['/fibonacci/index'], 'get', ['class' => 'row g-2 align-items-end', 'id' => 'filter-form']) ?>
+        <input type="hidden" name="timeframe" value="<?= Html::encode($params['timeframe']) ?>">
+
+        <div class="col-12 col-md-3">
+            <label class="form-label small text-muted mb-1">Cari Simbol Saham</label>
+            <?= Html::textInput('symbol', $params['symbol'] ?? '', [
+                'class' => 'form-control form-control-sm text-uppercase',
+                'placeholder' => 'Contoh: NVDA, AAPL, BBCA',
+            ]) ?>
+        </div>
+
+        <div class="col-6 col-md-2">
+            <label class="form-label small text-muted mb-1">Strategi Setup</label>
+            <?= Html::dropDownList('strategy', $params['strategy'], [
+                'all' => 'Semua Sinyal',
+                'buy_all' => 'Semua Posisi Beli',
+                'golden_pocket' => '⭐ Golden Pocket (50%-61.8%)',
+                'shakeout_low' => '⚡ Shakeout Low (Golden Pocket Sweep)',
+                'pullback_382' => 'Pullback 38.2% Dip',
+                'breakout_high' => 'Breakout Swing High',
+                'sell_all' => 'Semua Alert Jual / TP',
+                'target_reached' => '🎯 Ekstensi 1.272 / 1.618 Tercapai',
+                'breakdown' => '⚠️ Breakdown Cut Loss',
+            ], ['class' => 'form-select form-select-sm']) ?>
+        </div>
+
+        <div class="col-6 col-md-2">
+            <label class="form-label small text-muted mb-1">Min. Risk/Reward</label>
+            <?= Html::dropDownList('minRr', (string) $params['minRr'], [
+                '0' => 'Semua R:R',
+                '1.5' => '≥ 1.5 : 1',
+                '2.0' => '≥ 2.0 : 1 (Ideal)',
+                '3.0' => '≥ 3.0 : 1 (Super)',
+            ], ['class' => 'form-select form-select-sm']) ?>
+        </div>
+
+        <div class="col-6 col-md-2">
+            <label class="form-label small text-muted mb-1">Urutkan (Sort)</label>
+            <?= Html::dropDownList('sort', $params['sort'], [
+                'rr' => 'R:R Tertinggi',
+                'gain' => 'Potensi Gain TP1 Terbesar',
+                'retrace' => 'Retracement Terdalam',
+                'rvol' => 'Volume RVOL Terbesar',
+                'symbol' => 'Simbol (A-Z)',
+                'price' => 'Harga Tertinggi',
+            ], ['class' => 'form-select form-select-sm']) ?>
+        </div>
+
+        <div class="col-12 col-md-3 d-flex gap-1">
+            <?= Html::submitButton(\app\helpers\SvgHelper::icon('search') . ' Pindai', ['class' => 'btn btn-primary btn-sm flex-grow-1']) ?>
+            <?= Html::a(\app\helpers\SvgHelper::icon('arrow-counterclockwise'), ['/fibonacci/index'], ['class' => 'btn btn-outline-secondary btn-sm', 'title' => 'Reset Filter']) ?>
+        </div>
+    <?= Html::endForm() ?>
+</div>
+
+<!-- 4. Tabel Hasil Scanner Unified -->
+<div class="table-card-unified">
+    <div class="table-card-header">
+        <div>
+            <h5 class="mb-0">
+                <?= \app\helpers\SvgHelper::icon('table', ['class' => 'text-primary me-1']) ?> Daftar Sinyal Fibonacci Retracement &amp; Extension
+            </h5>
+            <small class="text-muted">Menampilkan <strong><?= count($results) ?></strong> saham hasil scanner Fibonacci</small>
+        </div>
+        <div style="max-width: 250px;" class="w-100">
+            <input type="text" id="tableSearchInput" class="form-control form-control-sm" placeholder="Filter cepat di tabel...">
         </div>
     </div>
-</div>
-
-<!-- Form Filter & Pencarian Lengkap -->
-<div class="card border-0 shadow-sm mb-4">
-    <div class="card-body p-3">
-        <?= Html::beginForm(['/fibonacci/index'], 'get', ['class' => 'row g-2 align-items-end', 'id' => 'filter-form']) ?>
-            
-            <div class="col-12 col-md-3">
-                <label class="form-label small fw-semibold text-muted mb-1">Cari Simbol Saham</label>
-                <div class="input-group input-group-sm">
-                    <span class="input-group-text"><?= \app\helpers\SvgHelper::icon('search') ?></span>
-                    <?= Html::textInput('symbol', $params['symbol'] ?? '', [
-                        'class' => 'form-control',
-                        'placeholder' => 'Contoh: NVDA, AAPL, BBCA',
-                    ]) ?>
-                </div>
-            </div>
-
-            <div class="col-6 col-md-2">
-                <label class="form-label small fw-semibold text-muted mb-1">Timeframe</label>
-                <?= Html::dropDownList('timeframe', $params['timeframe'], $timeframes, [
-                    'class' => 'form-select form-select-sm',
-                    'onchange' => 'this.form.submit()',
-                ]) ?>
-            </div>
-
-            <div class="col-6 col-md-2">
-                <label class="form-label small fw-semibold text-muted mb-1">Strategi Setup</label>
-                <?= Html::dropDownList('strategy', $params['strategy'], [
-                    'all' => 'Semua Sinyal',
-                    'buy_all' => 'Semua Posisi Beli',
-                    'golden_pocket' => '⭐ Golden Pocket (50%-61.8%)',
-                    'shakeout_low' => '⚡ Shakeout Low (Golden Pocket Sweep)',
-                    'pullback_382' => 'Pullback 38.2% Dip',
-                    'breakout_high' => 'Breakout Swing High',
-                    'sell_all' => 'Semua Alert Jual / TP',
-                    'target_reached' => '🎯 Ekstensi 1.272 / 1.618 Tercapai',
-                    'breakdown' => '⚠️ Breakdown Cut Loss',
-                ], ['class' => 'form-select form-select-sm', 'onchange' => 'this.form.submit()']) ?>
-            </div>
-
-            <div class="col-6 col-md-2">
-                <label class="form-label small fw-semibold text-muted mb-1">Min. Risk:Reward</label>
-                <?= Html::dropDownList('minRr', (string) $params['minRr'], [
-                    '0' => 'Semua R:R',
-                    '1.5' => '≥ 1.5x (Moderat)',
-                    '2.0' => '≥ 2.0x (Direkomendasikan)',
-                    '3.0' => '≥ 3.0x (Sangat Tinggi)',
-                ], ['class' => 'form-select form-select-sm', 'onchange' => 'this.form.submit()']) ?>
-            </div>
-
-            <div class="col-6 col-md-2">
-                <label class="form-label small fw-semibold text-muted mb-1">Urutkan Berdasarkan</label>
-                <?= Html::dropDownList('sort', $params['sort'], [
-                    'rr' => 'R:R Tertinggi',
-                    'gain' => 'Potensi Gain TP1 Terbesar',
-                    'retrace' => 'Retracement Terdalam',
-                    'rvol' => 'Volume RVOL Terbesar',
-                    'symbol' => 'Simbol (A-Z)',
-                    'price' => 'Harga Tertinggi',
-                ], ['class' => 'form-select form-select-sm', 'onchange' => 'this.form.submit()']) ?>
-            </div>
-
-            <div class="col-12 col-md-1 d-flex gap-1">
-                <?= Html::submitButton(\app\helpers\SvgHelper::icon('funnel-fill') . ' Filter', ['class' => 'btn btn-sm btn-primary w-100']) ?>
-            </div>
-
-        <?= Html::endForm() ?>
-    </div>
-</div>
-
-<!-- Live Instant Filter Input -->
-<div class="d-flex justify-content-between align-items-center mb-2">
-    <div class="text-muted small">
-        Menampilkan <strong><?= count($results) ?></strong> saham hasil scanner Fibonacci
-    </div>
-    <div style="max-width: 280px;" class="w-100">
-        <div class="input-group input-group-sm">
-            <span class="input-group-text bg-white"><?= \app\helpers\SvgHelper::icon('filter') ?></span>
-            <input type="text" id="tableSearchInput" class="form-control" placeholder="Ketik untuk filter cepat di tabel...">
-        </div>
-    </div>
-</div>
-
-<!-- Table Results -->
-<div class="card border-0 shadow-sm overflow-hidden mb-4">
     <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0" id="fib-grid-table">
-            <thead class="table-dark text-nowrap">
+        <table class="table table-unified table-hover align-middle mb-0" id="fib-grid-table">
+            <thead class="table-light text-muted small text-uppercase">
                 <tr>
                     <th>Simbol</th>
                     <th>Harga Saat Ini</th>

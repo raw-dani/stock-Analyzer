@@ -30,61 +30,60 @@ $this->params['breadcrumbs'][] = 'Bullish Patterns';
 
 <div class="crypto-bullish-patterns pb-5">
     <!-- Header Section -->
-    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
-        <div>
-            <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
-                <h1 class="h3 mb-0 fw-bold text-dark d-flex align-items-center gap-2">
-                    <span class="crypto-icon-badge bg-success text-white px-2 py-1 rounded-3 shadow-sm">
-                        <i class="bi bi-rocket-takeoff fs-5"></i>
-                    </span>
-                    Bullish Breakout & Continuation
-                </h1>
-                <span class="badge bg-dark text-warning border border-warning px-2 py-1 d-inline-flex align-items-center gap-1">
-                    <span class="live-pulse"></span>
-                    CRYPTO 24/7
-                </span>
-                <span class="badge bg-success-subtle text-success px-2 py-1 fw-bold">Pattern Engine</span>
-                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 d-inline-flex align-items-center gap-1">
-                    <i class="bi bi-shield-check"></i> Spot Trading (Tanpa Leverage)
-                </span>
-            </div>
-            <p class="text-muted small mb-0">
-                Deteksi pola klasik: <strong>Cup & Handle</strong>, <strong>Bullish Flag</strong>, <strong>Pennant</strong>, <strong>Ascending Triangle</strong>, & <strong>Darvas Box</strong> dengan konfirmasi volume beli agresif Binance.
-            </p>
-        </div>
-
-        <!-- Currency & Timeframe Toolbar -->
-        <div class="d-flex align-items-center gap-2 flex-wrap">
-            <!-- Currency Switcher (IDR vs USDT) -->
-            <div class="btn-group shadow-sm" role="group" title="Pilih Mata Uang Denominasi">
-                <a href="<?= Url::to(['/crypto/bullish-patterns', 'timeframe' => $timeframe, 'patternType' => $patternType, 'status' => $status, 'minConfidence' => $minConfidence, 'minRr' => $minRr, 'search' => $search, 'sort' => $sort, 'currency' => 'IDR']) ?>"
-                   class="btn btn-sm <?= $currency === 'IDR' ? 'btn-success active fw-bold' : 'btn-outline-secondary' ?>">
-                    🇮🇩 IDR (Rp)
-                </a>
-                <a href="<?= Url::to(['/crypto/bullish-patterns', 'timeframe' => $timeframe, 'patternType' => $patternType, 'status' => $status, 'minConfidence' => $minConfidence, 'minRr' => $minRr, 'search' => $search, 'sort' => $sort, 'currency' => 'USDT']) ?>"
-                   class="btn btn-sm <?= $currency === 'USDT' ? 'btn-primary active fw-bold' : 'btn-outline-secondary' ?>">
-                    💵 USDT ($)
-                </a>
+    <div class="app-hero-header mb-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                    <div class="app-hero-icon text-success bg-success bg-opacity-10">
+                        <i class="bi bi-rocket-takeoff"></i>
+                    </div>
+                    <div>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <h1 class="app-hero-title mb-0">Bullish Breakout &amp; Continuation</h1>
+                            <span class="badge bg-dark text-warning border border-warning px-2 py-1 d-inline-flex align-items-center gap-1 rounded-pill">
+                                <span class="live-pulse"></span> CRYPTO 24/7
+                            </span>
+                            <span class="badge bg-success-subtle text-success px-2 py-1 fw-bold rounded-pill">Pattern Engine</span>
+                        </div>
+                        <p class="app-hero-desc mb-0 mt-1">
+                            Deteksi pola klasik: <strong>Cup &amp; Handle</strong>, <strong>Bullish Flag</strong>, <strong>Pennant</strong>, <strong>Ascending Triangle</strong>, &amp; <strong>Darvas Box</strong> dengan konfirmasi volume beli agresif Binance.
+                        </p>
+                    </div>
+                </div>
             </div>
 
-            <!-- Live USDT/IDR Rate Badge -->
-            <span class="badge bg-light text-dark border shadow-xs d-none d-sm-inline-flex align-items-center gap-1 font-monospace" style="font-size: 0.72rem;" title="Kurs Live USDT/IDR Binance Spot">
-                <span class="live-pulse" style="width: 6px; height: 6px;"></span>
-                1 USDT = Rp <?= number_format($usdtIdrRate, 0, ',', '.') ?>
-            </span>
-
-            <span class="small fw-bold text-muted text-uppercase tracking-wider">TF:</span>
-            <div class="btn-group shadow-sm" role="group">
-                <?php foreach ($timeframes as $tfKey => $tfName): ?>
-                    <a href="<?= Url::to(['/crypto/bullish-patterns', 'timeframe' => $tfKey, 'patternType' => $patternType, 'status' => $status, 'minConfidence' => $minConfidence, 'minRr' => $minRr, 'search' => $search, 'sort' => $sort, 'currency' => $currency]) ?>"
-                       class="btn btn-sm <?= $timeframe === $tfKey ? 'btn-primary active fw-bold' : 'btn-outline-secondary' ?>">
-                        <?= strtoupper($tfKey) ?>
+            <!-- Currency & Timeframe Toolbar -->
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <!-- Currency Switcher (IDR vs USDT) -->
+                <div class="btn-group btn-group-sm shadow-sm" role="group" title="Pilih Mata Uang Denominasi">
+                    <a href="<?= Url::to(['/crypto/bullish-patterns', 'timeframe' => $timeframe, 'patternType' => $patternType, 'status' => $status, 'minConfidence' => $minConfidence, 'minRr' => $minRr, 'search' => $search, 'sort' => $sort, 'currency' => 'IDR']) ?>"
+                       class="btn <?= $currency === 'IDR' ? 'btn-success active fw-bold' : 'btn-outline-secondary' ?>">
+                        🇮🇩 IDR (Rp)
                     </a>
-                <?php endforeach; ?>
+                    <a href="<?= Url::to(['/crypto/bullish-patterns', 'timeframe' => $timeframe, 'patternType' => $patternType, 'status' => $status, 'minConfidence' => $minConfidence, 'minRr' => $minRr, 'search' => $search, 'sort' => $sort, 'currency' => 'USDT']) ?>"
+                       class="btn <?= $currency === 'USDT' ? 'btn-primary active fw-bold' : 'btn-outline-secondary' ?>">
+                        💵 USDT ($)
+                    </a>
+                </div>
+
+                <!-- Live USDT/IDR Rate Badge -->
+                <span class="badge bg-light text-dark border shadow-xs d-none d-sm-inline-flex align-items-center gap-1 font-monospace rounded-pill" style="font-size: 0.72rem;" title="Kurs Live USDT/IDR Binance Spot">
+                    <span class="live-pulse" style="width: 6px; height: 6px;"></span>
+                    1 USDT = Rp <?= number_format($usdtIdrRate, 0, ',', '.') ?>
+                </span>
+
+                <div class="btn-group-tf shadow-sm">
+                    <?php foreach ($timeframes as $tfKey => $tfName): ?>
+                        <a href="<?= Url::to(['/crypto/bullish-patterns', 'timeframe' => $tfKey, 'patternType' => $patternType, 'status' => $status, 'minConfidence' => $minConfidence, 'minRr' => $minRr, 'search' => $search, 'sort' => $sort, 'currency' => $currency]) ?>"
+                           class="btn-tf <?= $timeframe === $tfKey ? 'active' : '' ?>">
+                            <?= strtoupper($tfKey) ?>
+                        </a>
+                    <?php endforeach; ?>
+                </div>
+                <a href="<?= Url::to(['/crypto/index', 'timeframe' => $timeframe, 'currency' => $currency]) ?>" class="btn btn-sm btn-outline-secondary shadow-sm rounded-pill">
+                    <i class="bi bi-arrow-left"></i> Volume Hub
+                </a>
             </div>
-            <a href="<?= Url::to(['/crypto/index', 'timeframe' => $timeframe, 'currency' => $currency]) ?>" class="btn btn-sm btn-outline-secondary shadow-sm">
-                <i class="bi bi-arrow-left"></i> Volume Hub
-            </a>
         </div>
     </div>
 
@@ -96,69 +95,57 @@ $this->params['breadcrumbs'][] = 'Bullish Patterns';
     <!-- KPI Summary Cards -->
     <div class="row g-3 mb-4">
         <div class="col-6 col-md-4 col-lg-2">
-            <div class="card border-0 shadow-sm h-100 kpi-card bg-body-tertiary">
-                <div class="card-body p-3">
-                    <div class="text-muted small fw-semibold text-uppercase mb-1">Total Pola</div>
-                    <div class="h3 mb-0 fw-bold text-dark"><?= $stats['total'] ?></div>
-                    <div class="small text-muted mt-1">Pola terdeteksi</div>
-                </div>
+            <div class="kpi-card-unified kpi-accent-indigo h-100">
+                <div class="kpi-card-label">Total Pola</div>
+                <div class="kpi-card-value text-indigo-700"><?= $stats['total'] ?></div>
+                <div class="kpi-card-sub text-muted mt-1">Pola terdeteksi</div>
             </div>
         </div>
 
         <div class="col-6 col-md-4 col-lg-2">
-            <div class="card border-0 shadow-sm h-100 kpi-card bg-body-tertiary">
-                <div class="card-body p-3">
-                    <div class="text-muted small fw-semibold text-uppercase mb-1">Buy Zone</div>
-                    <div class="h3 mb-0 fw-bold text-success"><?= $stats['buyZoneCount'] ?></div>
-                    <div class="small text-muted mt-1">Breakout segar + volume</div>
-                </div>
+            <div class="kpi-card-unified kpi-accent-emerald h-100">
+                <div class="kpi-card-label">Buy Zone</div>
+                <div class="kpi-card-value text-emerald-700"><?= $stats['buyZoneCount'] ?></div>
+                <div class="kpi-card-sub text-emerald-600 mt-1">Breakout segar + vol</div>
             </div>
         </div>
 
         <div class="col-6 col-md-4 col-lg-2">
-            <div class="card border-0 shadow-sm h-100 kpi-card bg-body-tertiary">
-                <div class="card-body p-3">
-                    <div class="text-muted small fw-semibold text-uppercase mb-1">Retest Support</div>
-                    <div class="h3 mb-0 fw-bold text-primary"><?= $stats['retestCount'] ?></div>
-                    <div class="small text-muted mt-1">Pullback ke resisten lama</div>
-                </div>
+            <div class="kpi-card-unified kpi-accent-cyan h-100">
+                <div class="kpi-card-label">Retest Support</div>
+                <div class="kpi-card-value text-cyan-700"><?= $stats['retestCount'] ?></div>
+                <div class="kpi-card-sub text-muted mt-1">Pullback ke resisten</div>
             </div>
         </div>
 
         <div class="col-6 col-md-4 col-lg-2">
-            <div class="card border-0 shadow-sm h-100 kpi-card bg-body-tertiary">
-                <div class="card-body p-3">
-                    <div class="text-muted small fw-semibold text-uppercase mb-1">Sedang Membentuk</div>
-                    <div class="h3 mb-0 fw-bold text-warning"><?= $stats['formingCount'] ?></div>
-                    <div class="small text-muted mt-1">Mendekati level breakout</div>
-                </div>
+            <div class="kpi-card-unified kpi-accent-amber h-100">
+                <div class="kpi-card-label">Sedang Membentuk</div>
+                <div class="kpi-card-value text-amber-700"><?= $stats['formingCount'] ?></div>
+                <div class="kpi-card-sub text-muted mt-1">Dekat level breakout</div>
             </div>
         </div>
 
         <div class="col-6 col-md-4 col-lg-2">
-            <div class="card border-0 shadow-sm h-100 kpi-card bg-body-tertiary">
-                <div class="card-body p-3">
-                    <div class="text-muted small fw-semibold text-uppercase mb-1">High Confidence</div>
-                    <div class="h3 mb-0 fw-bold text-info"><?= $stats['highConfidenceCount'] ?></div>
-                    <div class="small text-muted mt-1">Keyakinan &ge; 75%</div>
-                </div>
+            <div class="kpi-card-unified kpi-accent-indigo h-100">
+                <div class="kpi-card-label">High Confidence</div>
+                <div class="kpi-card-value text-indigo-700"><?= $stats['highConfidenceCount'] ?></div>
+                <div class="kpi-card-sub text-muted mt-1">Keyakinan &ge; 75%</div>
             </div>
         </div>
 
         <div class="col-6 col-md-4 col-lg-2">
-            <div class="card border-0 shadow-sm h-100 kpi-card bg-body-tertiary">
-                <div class="card-body p-3">
-                    <div class="text-muted small fw-semibold text-uppercase mb-1">High R:R Ratio</div>
-                    <div class="h3 mb-0 fw-bold text-success"><?= $stats['highRrCount'] ?></div>
-                    <div class="small text-muted mt-1">Risk-to-Reward &ge; 2.0x</div>
-                </div>
+            <div class="kpi-card-unified kpi-accent-emerald h-100">
+                <div class="kpi-card-label">High R:R Ratio</div>
+                <div class="kpi-card-value text-emerald-700"><?= $stats['highRrCount'] ?></div>
+                <div class="kpi-card-sub text-emerald-600 mt-1">R:R &ge; 2.0x</div>
             </div>
         </div>
     </div>
 
     <!-- Filter & Pattern Toolbar -->
-    <div class="card border-0 shadow-sm mb-4">
-        <div class="card-body p-3">
+    <div class="filter-card-unified mb-4">
+        <div class="filter-card-body p-3">
             <form method="get" action="<?= Url::to(['/crypto/bullish-patterns']) ?>" class="row g-2 align-items-center">
                 <input type="hidden" name="timeframe" value="<?= Html::encode($timeframe) ?>">
                 <input type="hidden" name="currency" value="<?= Html::encode($currency) ?>">
@@ -214,9 +201,9 @@ $this->params['breadcrumbs'][] = 'Bullish Patterns';
     </div>
 
     <!-- Patterns Results Table -->
-    <div class="card border-0 shadow-sm overflow-hidden">
+    <div class="table-card-unified">
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
+            <table class="table-unified">
                 <thead class="table-light">
                     <tr>
                         <th style="width: 190px;">Asset / Koin</th>

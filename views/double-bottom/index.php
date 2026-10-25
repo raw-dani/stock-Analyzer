@@ -49,14 +49,37 @@ if (is_string($dailyMax) && $dailyMax !== '') {
     $staleDays = (int) floor((time() - strtotime($dailyMax . ' 23:59:00')) / 86400);
 }
 $sortLink = fn(string $key, string $label) => Html::a($label . ($sort === $key ? ' ▼' : ''), array_merge(['double-bottom/index'], $filterParams, ['sort' => $key]), ['class' => 'text-decoration-none text-dark fw-bold']);
+$filterWith = fn(array $overrides) => \yii\helpers\Url::to(array_merge(['/double-bottom/index'], $filterParams, $overrides));
 ?>
-<div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
-    <div>
-        <h1 class="h3 mb-0"><?= \app\helpers\SvgHelper::icon('graph-up-arrow', ['class' => 'text-primary']) ?> <?= Html::encode($this->title) ?></h1>
-        <small class="text-muted">Pindai pola pembalikan arah W dengan validasi volume, zona entri optimal, dan kalkulasi Risk/Reward</small>
-    </div>
-    <div class="d-flex gap-2 align-items-center">
-        <span class="badge bg-primary px-3 py-2 fs-7"><?= DoubleBottomService::getTimeframeLabel($timeframe) ?></span>
+
+<!-- 1. Unified App Hero Header -->
+<div class="app-hero-header">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="app-hero-icon text-primary">
+                <?= \app\helpers\SvgHelper::icon('graph-up-arrow') ?>
+            </div>
+            <div>
+                <h1 class="app-hero-title">
+                    <?= Html::encode($this->title) ?>
+                </h1>
+                <p class="app-hero-desc">
+                    Pindai pola pembalikan arah W dengan validasi volume agresif, zona entri optimal, dan kalkulasi Risk/Reward presisi.
+                </p>
+            </div>
+        </div>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <!-- Timeframe Group -->
+            <div class="btn-group-tf">
+                <?php foreach ($timeframes as $tfKey => $tfLabel): ?>
+                    <?= Html::a(
+                        Html::encode($tfLabel),
+                        $filterWith(['timeframe' => $tfKey]),
+                        ['class' => 'btn-tf ' . ((int) $timeframe === (int) $tfKey ? 'active' : '')]
+                    ) ?>
+                <?php endforeach; ?>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -65,153 +88,205 @@ $sortLink = fn(string $key, string $label) => Html::a($label . ($sort === $key ?
     'timeframe' => (int) ($timeframe ?? 24),
 ]) ?>
 
-<!-- Form Filter & Parameter -->
-<div class="card shadow-sm mb-4">
-    <div class="card-header bg-light py-2">
-        <strong class="text-secondary"><?= \app\helpers\SvgHelper::icon('funnel') ?> Parameter &amp; Filter Trading</strong>
-    </div>
-    <div class="card-body">
-        <?= Html::beginForm(['double-bottom/index'], 'get', ['class' => 'row g-3 align-items-end']) ?>
-            <div class="col-md-2 col-6">
-                <label class="form-label small fw-bold">Timeframe</label>
-                <?= Html::dropDownList('timeframe', $timeframe, $timeframes, ['class' => 'form-select form-select-sm', 'onchange' => 'this.form.submit()']) ?>
-            </div>
-            <div class="col-md-2 col-6">
-                <label class="form-label small fw-bold">Status Transaksi</label>
-                <?= Html::dropDownList('statusFilter', $statusFilter, [
-                    'all' => 'Semua Status',
-                    'buy_zone' => '🟢 In Golden Buy Zone (0-3%)',
-                    'breakout' => '🚀 Terkonfirmasi Breakout',
-                    'retest' => '🔄 Retest Neckline',
-                    'approaching' => '👀 Mendekati Breakout (-3%..0)',
-                ], ['class' => 'form-select form-select-sm']) ?>
-            </div>
-            <div class="col-md-2 col-6">
-                <label class="form-label small fw-bold">Min. Risk/Reward (R:R)</label>
-                <?= Html::dropDownList('minRr', $minRr, [
-                    '0' => 'Semua R:R',
-                    '1.5' => '≥ 1.5 : 1',
-                    '2.0' => '≥ 2.0 : 1 (Ideal)',
-                    '3.0' => '≥ 3.0 : 1 (Super)',
-                ], ['class' => 'form-select form-select-sm']) ?>
-            </div>
-            <div class="col-md-2 col-6">
-                <label class="form-label small fw-bold">Urutkan (Sorting)</label>
-                <?= Html::dropDownList('sort', $sort, [
-                    'confidence' => 'Score Confidence',
-                    'rr' => 'Risk/Reward Tertinggi',
-                    'distance' => 'Terdekat ke Neckline',
-                    'rvol' => 'Lonjakan Volume (RVOL)',
-                    'target' => 'Potensi Gain % Target',
-                    'symbol' => 'Simbol Saham',
-                ], ['class' => 'form-select form-select-sm']) ?>
-            </div>
-            <div class="col-md-2 col-6">
-                <label class="form-label small fw-bold">Lookback (Candle)</label>
-                <?= Html::input('number', 'lookback', $lookback, ['class' => 'form-control form-control-sm', 'min' => 5, 'max' => 500]) ?>
-            </div>
-            <div class="col-md-2 col-6">
-                <label class="form-label small fw-bold">Toleransi Low (%)</label>
-                <?= Html::input('number', 'tolerance', round($tolerancePercent, 1), ['class' => 'form-control form-control-sm', 'min' => 0.1, 'max' => 20, 'step' => 0.1]) ?>
-            </div>
-
-            <!-- Advanced Row Toggle -->
-            <div class="col-12 mt-2">
-                <details>
-                    <summary class="small text-muted" style="cursor: pointer;">Pengaturan Lanjutan (Separasi candle, Neckline depth, Min. Conf)</summary>
-                    <div class="row g-2 mt-1 pt-2 border-top">
-                        <div class="col-md-3">
-                            <label class="form-label small">Separasi Min - Maks</label>
-                            <div class="input-group input-group-sm">
-                                <?= Html::input('number', 'minSeparation', $minSeparation, ['class' => 'form-control', 'min' => 2, 'title' => 'Separasi minimum']) ?>
-                                <?= Html::input('number', 'maxSeparation', $maxSeparation, ['class' => 'form-control', 'min' => 2, 'title' => 'Separasi maksimum']) ?>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label small">Neckline Min Depth (%)</label>
-                            <?= Html::input('number', 'necklineMinDepth', round($necklineMinDepth * 100, 1), ['class' => 'form-control form-control-sm', 'min' => 0, 'max' => 50, 'step' => 0.1]) ?>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label small">Confidence Minimum</label>
-                            <?= Html::input('number', 'minConfidence', $minConfidence, ['class' => 'form-control form-control-sm', 'min' => 0, 'max' => 100]) ?>
-                        </div>
-                    </div>
-                </details>
-            </div>
-
-            <div class="col-md-8 col-12 d-flex gap-3 align-items-center">
-                <div class="form-check form-check-inline mb-0">
-                    <?= Html::checkbox('volOnly', $volOnly, ['class' => 'form-check-input', 'id' => 'volOnlyCheck', 'value' => 1]) ?>
-                    <label class="form-check-label small fw-bold" for="volOnlyCheck">Hanya dengan Konfirmasi Volume (RVOL ≥ 1.3x atau Dry-Up)</label>
-                </div>
-            </div>
-            <div class="col-md-4 col-12 text-end">
-                <?= Html::submitButton(\app\helpers\SvgHelper::icon('search') . ' Pindai Pasar', ['class' => 'btn btn-primary px-4 shadow-sm w-100']) ?>
-            </div>
-        <?= Html::endForm() ?>
-    </div>
-</div>
-
 <?php if ($isIntradayTf && $fbCount > 0): ?>
-<div class="alert alert-warning py-2 small">
+<div class="alert alert-warning py-2 small mb-3">
     <strong>Mode approximasi:</strong>
     <?= $fbCount ?> dari <?= count($results) ?> hasil memakai <em>daily fallback</em>
     (intraday tersedia untuk <?= $intradaySyms ?>/<?= $stockCount ?> saham).
 </div>
 <?php endif; ?>
 <?php if ($staleDays !== null && $staleDays >= 3): ?>
-<div class="alert alert-danger py-2 small">
+<div class="alert alert-danger py-2 small mb-3">
     <strong>Perhatian:</strong> Data harian terakhir <?= Html::encode((string) $dailyMax) ?> (<?= $staleDays ?> hari lalu).
 </div>
 <?php endif; ?>
 
-<!-- KPI Quick Stats -->
+<!-- 2. Unified KPI Metric Cards -->
 <div class="row g-3 mb-4">
-    <div class="col-md-3 col-6">
-        <div class="card h-100 border-0 shadow-sm bg-light">
-            <div class="card-body p-3 text-center">
-                <div class="text-muted small fw-bold text-uppercase">Pola Ditemukan</div>
-                <div class="h2 mb-0 text-primary fw-bold"><?= count($results) ?></div>
+    <div class="col-6 col-md-3">
+        <a href="<?= $filterWith(['statusFilter' => 'all']) ?>" class="kpi-card-unified kpi-accent-indigo <?= $statusFilter === 'all' ? 'kpi-selected' : '' ?>">
+            <div class="kpi-header">
+                <span class="kpi-label">Pola Terdeteksi</span>
+                <?= \app\helpers\SvgHelper::icon('grid', ['class' => 'text-muted']) ?>
             </div>
-        </div>
+            <div class="kpi-value"><?= count($results) ?></div>
+            <div class="kpi-subtext">Semua Pola W Terkonfirmasi</div>
+        </a>
     </div>
-    <div class="col-md-3 col-6">
-        <div class="card h-100 border-0 shadow-sm bg-light">
-            <div class="card-body p-3 text-center">
-                <div class="text-muted small fw-bold text-uppercase">Golden Buy Zone (0-3%)</div>
-                <div class="h2 mb-0 text-success fw-bold"><?= $buyZoneCount ?></div>
+
+    <div class="col-6 col-md-3">
+        <a href="<?= $filterWith(['statusFilter' => 'buy_zone']) ?>" class="kpi-card-unified kpi-accent-emerald <?= $statusFilter === 'buy_zone' ? 'kpi-selected' : '' ?>">
+            <div class="kpi-header">
+                <span class="kpi-label text-success">Golden Buy Zone (0-3%)</span>
+                <?= \app\helpers\SvgHelper::icon('check-circle', ['class' => 'text-success']) ?>
             </div>
-        </div>
+            <div class="kpi-value text-success"><?= $buyZoneCount ?></div>
+            <div class="kpi-subtext text-success">Optimal Entry Area</div>
+        </a>
     </div>
-    <div class="col-md-3 col-6">
-        <div class="card h-100 border-0 shadow-sm bg-light">
-            <div class="card-body p-3 text-center">
-                <div class="text-muted small fw-bold text-uppercase">Breakout Terkonfirmasi</div>
-                <div class="h2 mb-0 text-info fw-bold"><?= $breakoutCount ?></div>
+
+    <div class="col-6 col-md-3">
+        <a href="<?= $filterWith(['statusFilter' => 'breakout']) ?>" class="kpi-card-unified kpi-accent-cyan <?= $statusFilter === 'breakout' ? 'kpi-selected' : '' ?>">
+            <div class="kpi-header">
+                <span class="kpi-label text-cyan">Breakout Terkonfirmasi</span>
+                <?= \app\helpers\SvgHelper::icon('rocket-takeoff', ['class' => 'text-info']) ?>
             </div>
-        </div>
+            <div class="kpi-value text-info"><?= $breakoutCount ?></div>
+            <div class="kpi-subtext">Menembus Neckline Resistance</div>
+        </a>
     </div>
-    <div class="col-md-3 col-6">
-        <div class="card h-100 border-0 shadow-sm bg-light">
-            <div class="card-body p-3 text-center">
-                <div class="text-muted small fw-bold text-uppercase">High R:R (≥ 2.0x)</div>
-                <div class="h2 mb-0 text-warning fw-bold"><?= $highRrCount ?></div>
+
+    <div class="col-6 col-md-3">
+        <a href="<?= $filterWith(['minRr' => '2.0']) ?>" class="kpi-card-unified kpi-accent-amber <?= (float)$minRr >= 2.0 ? 'kpi-selected' : '' ?>">
+            <div class="kpi-header">
+                <span class="kpi-label text-warning-emphasis">High R:R (&ge; 2.0x)</span>
+                <?= \app\helpers\SvgHelper::icon('lightning-charge-fill', ['class' => 'text-warning']) ?>
             </div>
-        </div>
+            <div class="kpi-value text-dark"><?= $highRrCount ?></div>
+            <div class="kpi-subtext">Rasio Risiko:Keuntungan Ideal</div>
+        </a>
     </div>
 </div>
 
-<!-- Hasil Scanner Table -->
-<div class="card shadow-sm border-0">
-    <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
-        <h5 class="mb-0 fw-bold">Daftar Peluang Saham Terdeteksi</h5>
-        <span class="text-muted small">Menampilkan <?= count($results) ?> saham</span>
+<!-- 3. Unified Filter Card & Presets -->
+<div class="filter-card-unified">
+    <!-- Preset Pills Bar -->
+    <div class="preset-pills-bar">
+        <span class="small fw-bold text-muted me-1">
+            <?= \app\helpers\SvgHelper::icon('sliders2', ['class' => 'text-primary']) ?> Preset Cepat:
+        </span>
+        
+        <?= Html::a(
+            \app\helpers\SvgHelper::icon('grid-fill') . ' Semua Pola',
+            $filterWith(['statusFilter' => 'all']),
+            ['class' => 'preset-pill ' . ($statusFilter === 'all' ? 'active' : '')]
+        ) ?>
+
+        <?= Html::a(
+            \app\helpers\SvgHelper::icon('check-circle-fill') . ' In Buy Zone (0-3%)',
+            $filterWith(['statusFilter' => 'buy_zone']),
+            ['class' => 'preset-pill ' . ($statusFilter === 'buy_zone' ? 'active' : '')]
+        ) ?>
+
+        <?= Html::a(
+            \app\helpers\SvgHelper::icon('rocket-takeoff') . ' Terkonfirmasi Breakout',
+            $filterWith(['statusFilter' => 'breakout']),
+            ['class' => 'preset-pill ' . ($statusFilter === 'breakout' ? 'active' : '')]
+        ) ?>
+
+        <?= Html::a(
+            \app\helpers\SvgHelper::icon('arrow-repeat') . ' Retest Neckline',
+            $filterWith(['statusFilter' => 'retest']),
+            ['class' => 'preset-pill ' . ($statusFilter === 'retest' ? 'active' : '')]
+        ) ?>
+
+        <?= Html::a(
+            \app\helpers\SvgHelper::icon('eye') . ' Mendekati Neckline (-3%..0)',
+            $filterWith(['statusFilter' => 'approaching']),
+            ['class' => 'preset-pill ' . ($statusFilter === 'approaching' ? 'active' : '')]
+        ) ?>
     </div>
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover table-striped align-middle mb-0 text-nowrap">
-                <thead class="table-dark">
-                    <tr>
+
+    <!-- Filter Form -->
+    <?= Html::beginForm(['double-bottom/index'], 'get', ['class' => 'row g-2 align-items-end']) ?>
+        <input type="hidden" name="timeframe" value="<?= Html::encode($timeframe) ?>">
+
+        <div class="col-md-3 col-6">
+            <label class="form-label small text-muted mb-1">Status Transaksi</label>
+            <?= Html::dropDownList('statusFilter', $statusFilter, [
+                'all' => 'Semua Status',
+                'buy_zone' => '🟢 In Golden Buy Zone (0-3%)',
+                'breakout' => '🚀 Terkonfirmasi Breakout',
+                'retest' => '🔄 Retest Neckline',
+                'approaching' => '👀 Mendekati Breakout (-3%..0)',
+            ], ['class' => 'form-select form-select-sm']) ?>
+        </div>
+
+        <div class="col-md-2 col-6">
+            <label class="form-label small text-muted mb-1">Min. Risk/Reward</label>
+            <?= Html::dropDownList('minRr', $minRr, [
+                '0' => 'Semua R:R',
+                '1.5' => '≥ 1.5 : 1',
+                '2.0' => '≥ 2.0 : 1 (Ideal)',
+                '3.0' => '≥ 3.0 : 1 (Super)',
+            ], ['class' => 'form-select form-select-sm']) ?>
+        </div>
+
+        <div class="col-md-2 col-6">
+            <label class="form-label small text-muted mb-1">Urutan (Sort)</label>
+            <?= Html::dropDownList('sort', $sort, [
+                'confidence' => 'Score Confidence',
+                'rr' => 'Risk/Reward Tertinggi',
+                'distance' => 'Terdekat ke Neckline',
+                'rvol' => 'Lonjakan Volume (RVOL)',
+                'target' => 'Potensi Gain % Target',
+                'symbol' => 'Simbol Saham',
+            ], ['class' => 'form-select form-select-sm']) ?>
+        </div>
+
+        <div class="col-md-2 col-6">
+            <label class="form-label small text-muted mb-1">Lookback (Candle)</label>
+            <?= Html::input('number', 'lookback', $lookback, ['class' => 'form-control form-control-sm', 'min' => 5, 'max' => 500]) ?>
+        </div>
+
+        <div class="col-md-3 col-12 d-flex gap-1">
+            <?= Html::submitButton(\app\helpers\SvgHelper::icon('search') . ' Pindai', ['class' => 'btn btn-primary btn-sm flex-grow-1']) ?>
+            <?= Html::a(\app\helpers\SvgHelper::icon('arrow-counterclockwise'), ['double-bottom/index'], ['class' => 'btn btn-outline-secondary btn-sm', 'title' => 'Reset Filter']) ?>
+        </div>
+
+        <!-- Advanced Toggle Details -->
+        <div class="col-12 mt-1">
+            <details>
+                <summary class="small text-muted" style="cursor: pointer;">Pengaturan Lanjutan (Separasi candle, Neckline depth, Min. Conf, Vol Only)</summary>
+                <div class="row g-2 mt-1 pt-2 border-top">
+                    <div class="col-md-3">
+                        <label class="form-label small text-muted mb-1">Toleransi Low (%)</label>
+                        <?= Html::input('number', 'tolerance', round($tolerancePercent, 1), ['class' => 'form-control form-control-sm', 'min' => 0.1, 'max' => 20, 'step' => 0.1]) ?>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small text-muted mb-1">Separasi Min - Maks</label>
+                        <div class="input-group input-group-sm">
+                            <?= Html::input('number', 'minSeparation', $minSeparation, ['class' => 'form-control', 'min' => 2, 'title' => 'Separasi minimum']) ?>
+                            <?= Html::input('number', 'maxSeparation', $maxSeparation, ['class' => 'form-control', 'min' => 2, 'title' => 'Separasi maksimum']) ?>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small text-muted mb-1">Neckline Min Depth (%)</label>
+                        <?= Html::input('number', 'necklineMinDepth', round($necklineMinDepth * 100, 1), ['class' => 'form-control form-control-sm', 'min' => 0, 'max' => 50, 'step' => 0.1]) ?>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small text-muted mb-1">Confidence Minimum</label>
+                        <?= Html::input('number', 'minConfidence', $minConfidence, ['class' => 'form-control form-control-sm', 'min' => 0, 'max' => 100]) ?>
+                    </div>
+                    <div class="col-12 mt-2">
+                        <div class="form-check form-check-inline mb-0">
+                            <?= Html::checkbox('volOnly', $volOnly, ['class' => 'form-check-input', 'id' => 'volOnlyCheck', 'value' => 1]) ?>
+                            <label class="form-check-label small fw-semibold" for="volOnlyCheck">Hanya dengan Konfirmasi Volume (RVOL ≥ 1.3x atau Dry-Up)</label>
+                        </div>
+                    </div>
+                </div>
+            </details>
+        </div>
+    <?= Html::endForm() ?>
+</div>
+
+<!-- 4. Tabel Hasil Scanner Unified -->
+<div class="table-card-unified">
+    <div class="table-card-header">
+        <div>
+            <h5 class="mb-0">
+                <?= \app\helpers\SvgHelper::icon('table', ['class' => 'text-primary me-1']) ?> Daftar Peluang Saham Terdeteksi
+            </h5>
+            <small class="text-muted">Menampilkan <?= count($results) ?> saham teranalisis</small>
+        </div>
+        <div class="small text-muted">
+            TF: <strong><?= DoubleBottomService::getTimeframeLabel($timeframe) ?></strong>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-unified table-hover align-middle mb-0 text-nowrap">
+            <thead class="table-light text-muted small text-uppercase">
+                <tr>
                         <th class="ps-3">#</th>
                         <th><?= $sortLink('symbol', 'Saham') ?></th>
                         <th class="text-center">Rekomendasi</th>

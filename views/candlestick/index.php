@@ -31,56 +31,35 @@ $badgeAction = [
 ];
 ?>
 
-<style>
-.hover-card {
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    cursor: pointer;
-}
-.hover-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.12) !important;
-}
-.ring-active {
-    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.35) !important;
-}
-.table-hover tbody tr:hover {
-    background-color: rgba(13, 110, 253, 0.04);
-}
-.candlestick-badge {
-    font-size: 0.8rem;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-}
-.progress-confidence {
-    height: 7px;
-    border-radius: 4px;
-    background-color: #e9ecef;
-}
-</style>
-
-<!-- Header Title & Timeframe Selector -->
-<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
-    <div>
-        <h1 class="h3 mb-1 fw-bold text-dark">
-            <?= \app\helpers\SvgHelper::icon('bar-chart-steps', ['class' => 'text-primary']) ?> <?= Html::encode($this->title) ?>
-        </h1>
-        <p class="text-muted small mb-0">
-            Analisa pola potensial (<strong>Hammer, Shooting Star, Engulfing, Doji, Marubozu</strong>) untuk menentukan waktu beli &amp; jual presisi dengan <strong>konfirmasi volume multi-timeframe</strong>.
-        </p>
-    </div>
-    <div class="d-flex flex-wrap align-items-center gap-2">
-        <div class="btn-group btn-group-sm shadow-sm" role="group" id="tf-button-group">
-            <?php foreach ($timeframes as $tfKey => $tfLabel): ?>
-                <?= Html::a(
-                    Html::encode($tfLabel),
-                    $filterWith(['timeframe' => $tfKey]),
-                    ['class' => 'btn btn-sm ' . ((int) $params['timeframe'] === (int) $tfKey ? 'btn-primary active' : 'btn-outline-secondary')]
-                ) ?>
-            <?php endforeach; ?>
+<div class="app-hero-header mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="app-hero-icon text-primary bg-primary bg-opacity-10">
+                <?= \app\helpers\SvgHelper::icon('bar-chart-steps') ?>
+            </div>
+            <div>
+                <h1 class="app-hero-title mb-1">
+                    <?= Html::encode($this->title) ?>
+                </h1>
+                <p class="app-hero-desc mb-0">
+                    Analisa pola potensial (<strong>Hammer, Shooting Star, Engulfing, Doji, Marubozu</strong>) untuk menentukan waktu beli &amp; jual presisi dengan <strong>konfirmasi volume multi-timeframe</strong>.
+                </p>
+            </div>
         </div>
-        <span class="badge bg-dark px-3 py-2 fs-7 shadow-sm">
-            TF Aktif: <?= Html::encode($timeframes[$params['timeframe']] ?? '1D') ?>
-        </span>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <div class="btn-group-tf shadow-sm" id="tf-button-group">
+                <?php foreach ($timeframes as $tfKey => $tfLabel): ?>
+                    <?= Html::a(
+                        Html::encode($tfLabel),
+                        $filterWith(['timeframe' => $tfKey]),
+                        ['class' => 'btn-tf ' . ((int) $params['timeframe'] === (int) $tfKey ? 'active' : '')]
+                    ) ?>
+                <?php endforeach; ?>
+            </div>
+            <span class="badge bg-dark px-3 py-2 fs-7 shadow-sm rounded-pill">
+                TF: <?= Html::encode($timeframes[$params['timeframe']] ?? '1D') ?>
+            </span>
+        </div>
     </div>
 </div>
 
@@ -94,11 +73,11 @@ $badgeAction = [
     <!-- Card 1: Total Pola -->
     <div class="col-6 col-lg-2">
         <a href="<?= Url::to(['/candlestick/index', 'timeframe' => $params['timeframe']]) ?>" class="text-decoration-none">
-            <div class="card border-0 shadow-sm bg-light text-center h-100 py-2 hover-card">
-                <div class="card-body p-2">
-                    <div class="text-muted small fw-semibold text-uppercase">Total Saham</div>
-                    <div class="h2 mb-0 fw-bold text-dark"><?= number_format((int) ($stats['total'] ?? 0)) ?></div>
-                    <div class="small text-muted" style="font-size: 0.72rem;"><?= \app\helpers\SvgHelper::icon('arrow-counterclockwise') ?> Reset filter</div>
+            <div class="kpi-card-unified kpi-accent-indigo h-100 <?= (empty($params['action']) || $params['action'] === 'all') && empty($params['volume_filter']) && empty($params['pattern']) ? 'kpi-selected' : '' ?>">
+                <div class="kpi-card-label">Total Saham</div>
+                <div class="kpi-card-value text-indigo-700"><?= number_format((int) ($stats['total'] ?? 0)) ?></div>
+                <div class="kpi-card-sub text-muted">
+                    <?= \app\helpers\SvgHelper::icon('arrow-counterclockwise', ['class' => 'me-1']) ?> Reset filter
                 </div>
             </div>
         </a>
@@ -107,24 +86,24 @@ $badgeAction = [
     <!-- Card 2: Sinyal Beli (Buy Setups) -->
     <div class="col-6 col-lg-2">
         <a href="<?= $filterWith(['action' => 'buy_only', 'preset' => '']) ?>" class="text-decoration-none">
-            <div class="card border-0 shadow-sm bg-success bg-opacity-10 text-center h-100 py-2 border-start border-success border-4 hover-card <?= ($params['action'] === 'buy_only') ? 'ring-active' : '' ?>">
-                <div class="card-body p-2">
-                    <div class="text-success small fw-semibold text-uppercase">Waktu Beli (Buys)</div>
-                    <div class="h2 mb-0 fw-bold text-success"><?= number_format((int) ($stats['buyCount'] ?? 0)) ?></div>
-                    <div class="small text-success" style="font-size: 0.72rem;"><?= \app\helpers\SvgHelper::icon('cart-check') ?> Reversal &amp; Breakout</div>
+            <div class="kpi-card-unified kpi-accent-emerald h-100 <?= ($params['action'] === 'buy_only') ? 'kpi-selected' : '' ?>">
+                <div class="kpi-card-label">Waktu Beli (Buys)</div>
+                <div class="kpi-card-value text-emerald-700"><?= number_format((int) ($stats['buyCount'] ?? 0)) ?></div>
+                <div class="kpi-card-sub text-emerald-600">
+                    <?= \app\helpers\SvgHelper::icon('cart-check', ['class' => 'me-1']) ?> Reversal &amp; Breakout
                 </div>
             </div>
         </a>
     </div>
 
-    <!-- Card 3: Volume Surge (Konfirmasi Sangat Kuat) -->
+    <!-- Card 3: Volume Surge -->
     <div class="col-6 col-lg-2">
         <a href="<?= $filterWith(['volume_filter' => 'surge_only', 'preset' => '']) ?>" class="text-decoration-none">
-            <div class="card border-0 shadow-sm bg-primary bg-opacity-10 text-center h-100 py-2 border-start border-primary border-4 hover-card <?= ($params['volume_filter'] === 'surge_only') ? 'ring-active' : '' ?>">
-                <div class="card-body p-2">
-                    <div class="text-primary small fw-semibold text-uppercase">Volume Surge 🚀</div>
-                    <div class="h2 mb-0 fw-bold text-primary"><?= number_format((int) ($stats['surgeCount'] ?? 0)) ?></div>
-                    <div class="small text-primary" style="font-size: 0.72rem;"><?= \app\helpers\SvgHelper::icon('lightning-charge-fill') ?> RVOL &ge; 2.0x SMA20</div>
+            <div class="kpi-card-unified kpi-accent-cyan h-100 <?= ($params['volume_filter'] === 'surge_only') ? 'kpi-selected' : '' ?>">
+                <div class="kpi-card-label">Volume Surge</div>
+                <div class="kpi-card-value text-cyan-700"><?= number_format((int) ($stats['surgeCount'] ?? 0)) ?></div>
+                <div class="kpi-card-sub text-cyan-600">
+                    <?= \app\helpers\SvgHelper::icon('lightning-charge-fill', ['class' => 'me-1']) ?> RVOL &ge; 2.0x
                 </div>
             </div>
         </a>
@@ -133,11 +112,11 @@ $badgeAction = [
     <!-- Card 4: Volume Mendukung Kenaikan -->
     <div class="col-6 col-lg-2">
         <a href="<?= $filterWith(['volume_filter' => 'supportive_only', 'preset' => '']) ?>" class="text-decoration-none">
-            <div class="card border-0 shadow-sm bg-info bg-opacity-10 text-center h-100 py-2 border-start border-info border-4 hover-card <?= ($params['volume_filter'] === 'supportive_only') ? 'ring-active' : '' ?>">
-                <div class="card-body p-2">
-                    <div class="text-info-emphasis small fw-semibold text-uppercase">Volume Mendukung</div>
-                    <div class="h2 mb-0 fw-bold text-dark"><?= number_format((int) ($stats['supportiveCount'] ?? 0)) ?></div>
-                    <div class="small text-info-emphasis" style="font-size: 0.72rem;"><?= \app\helpers\SvgHelper::icon('check2-circle') ?> Akumulasi Positif</div>
+            <div class="kpi-card-unified kpi-accent-indigo h-100 <?= ($params['volume_filter'] === 'supportive_only') ? 'kpi-selected' : '' ?>">
+                <div class="kpi-card-label">Volume Mendukung</div>
+                <div class="kpi-card-value text-indigo-700"><?= number_format((int) ($stats['supportiveCount'] ?? 0)) ?></div>
+                <div class="kpi-card-sub text-muted">
+                    <?= \app\helpers\SvgHelper::icon('check2-circle', ['class' => 'me-1']) ?> Akumulasi Positif
                 </div>
             </div>
         </a>
@@ -146,11 +125,11 @@ $badgeAction = [
     <!-- Card 5: Hammer / Pin Reversal -->
     <div class="col-6 col-lg-2">
         <a href="<?= $filterWith(['pattern' => 'HAMMER', 'preset' => '']) ?>" class="text-decoration-none">
-            <div class="card border-0 shadow-sm bg-warning bg-opacity-10 text-center h-100 py-2 border-start border-warning border-4 hover-card <?= ($params['pattern'] === 'HAMMER') ? 'ring-active' : '' ?>">
-                <div class="card-body p-2">
-                    <div class="text-warning-emphasis small fw-semibold text-uppercase">Hammer 🔨</div>
-                    <div class="h2 mb-0 fw-bold text-dark"><?= number_format((int) ($stats['hammerCount'] ?? 0)) ?></div>
-                    <div class="small text-warning-emphasis" style="font-size: 0.72rem;"><?= \app\helpers\SvgHelper::icon('shield-check') ?> Reversal at Dip</div>
+            <div class="kpi-card-unified kpi-accent-amber h-100 <?= ($params['pattern'] === 'HAMMER') ? 'kpi-selected' : '' ?>">
+                <div class="kpi-card-label">Hammer 🔨</div>
+                <div class="kpi-card-value text-amber-700"><?= number_format((int) ($stats['hammerCount'] ?? 0)) ?></div>
+                <div class="kpi-card-sub text-amber-600">
+                    <?= \app\helpers\SvgHelper::icon('shield-check', ['class' => 'me-1']) ?> Reversal at Dip
                 </div>
             </div>
         </a>
@@ -159,118 +138,120 @@ $badgeAction = [
     <!-- Card 6: Alert Jual (Sell Signals) -->
     <div class="col-6 col-lg-2">
         <a href="<?= $filterWith(['action' => 'sell_only', 'preset' => '']) ?>" class="text-decoration-none">
-            <div class="card border-0 shadow-sm bg-danger bg-opacity-10 text-center h-100 py-2 border-start border-danger border-4 hover-card <?= ($params['action'] === 'sell_only') ? 'ring-active' : '' ?>">
-                <div class="card-body p-2">
-                    <div class="text-danger small fw-semibold text-uppercase">Alert Jual ⭐/🔴</div>
-                    <div class="h2 mb-0 fw-bold text-danger"><?= number_format((int) ($stats['sellCount'] ?? 0)) ?></div>
-                    <div class="small text-danger" style="font-size: 0.72rem;"><?= \app\helpers\SvgHelper::icon('exclamation-octagon') ?> Shooting Star / Exit</div>
+            <div class="kpi-card-unified kpi-accent-rose h-100 <?= ($params['action'] === 'sell_only') ? 'kpi-selected' : '' ?>">
+                <div class="kpi-card-label">Alert Jual ⭐/🔴</div>
+                <div class="kpi-card-value text-rose-700"><?= number_format((int) ($stats['sellCount'] ?? 0)) ?></div>
+                <div class="kpi-card-sub text-rose-600">
+                    <?= \app\helpers\SvgHelper::icon('exclamation-octagon', ['class' => 'me-1']) ?> Exit &amp; Reversal
                 </div>
             </div>
         </a>
     </div>
 </div>
 
-<!-- Strategy Quick Presets (1-Klik Filter Cepat) -->
-<div class="card border-0 shadow-sm mb-3 bg-light">
-    <div class="card-body p-3">
-        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
-            <div class="d-flex flex-wrap align-items-center gap-2">
-                <span class="small fw-bold text-muted me-1"><?= \app\helpers\SvgHelper::icon('lightning-fill', ['class' => 'text-warning']) ?> Preset Cepat:</span>
-
-                <?= Html::a(
-                    \app\helpers\SvgHelper::icon('grid-fill') . ' Semua Sinyal',
-                    $filterWith(['preset' => '', 'pattern' => 'all', 'volume_filter' => 'all', 'action' => 'all']),
-                    ['class' => 'btn btn-sm ' . (empty($params['preset']) && $params['pattern'] === 'all' && $params['volume_filter'] === 'all' && $params['action'] === 'all' ? 'btn-dark' : 'btn-outline-dark')]
-                ) ?>
-
-                <?= Html::a(
-                    '🔨 Waktu Beli Hammer',
-                    $filterWith(['preset' => 'buy_hammer']),
-                    ['class' => 'btn btn-sm ' . ($params['preset'] === 'buy_hammer' ? 'btn-success text-white' : 'btn-outline-success')]
-                ) ?>
-
-                <?= Html::a(
-                    \app\helpers\SvgHelper::icon('lightning-charge-fill', ['class' => 'text-warning']) . ' Shakeout Low (' . ($stats['shakeoutCount'] ?? 0) . ')',
-                    $filterWith(['preset' => 'shakeout_low', 'pattern' => 'SHAKEOUT_LOW']),
-                    ['class' => 'btn btn-sm ' . ($params['preset'] === 'shakeout_low' || $params['pattern'] === 'SHAKEOUT_LOW' ? 'btn-warning text-dark active fw-bold' : 'btn-outline-warning text-dark')]
-                ) ?>
-
-                <?= Html::a(
-                    '🟢 Bullish Engulfing',
-                    $filterWith(['preset' => 'buy_engulfing']),
-                    ['class' => 'btn btn-sm ' . ($params['preset'] === 'buy_engulfing' ? 'btn-success text-white' : 'btn-outline-success')]
-                ) ?>
-
-                <?= Html::a(
-                    '⚡ Momentum Marubozu',
-                    $filterWith(['preset' => 'momentum_marubozu']),
-                    ['class' => 'btn btn-sm ' . ($params['preset'] === 'momentum_marubozu' ? 'btn-primary text-white' : 'btn-outline-primary')]
-                ) ?>
-
-                <?= Html::a(
-                    '🚀 Lonjakan Volume (Surge)',
-                    $filterWith(['preset' => 'volume_surge']),
-                    ['class' => 'btn btn-sm ' . ($params['preset'] === 'volume_surge' ? 'btn-info text-white' : 'btn-outline-info')]
-                ) ?>
-
-                <?= Html::a(
-                    '✅ Volume Mendukung Naik',
-                    $filterWith(['preset' => 'supportive_vol']),
-                    ['class' => 'btn btn-sm ' . ($params['preset'] === 'supportive_vol' ? 'btn-info text-white' : 'btn-outline-info')]
-                ) ?>
-
-                <?= Html::a(
-                    '✝️ Doji (Pantau Breakout)',
-                    $filterWith(['preset' => 'doji_watch']),
-                    ['class' => 'btn btn-sm ' . ($params['preset'] === 'doji_watch' ? 'btn-warning text-dark' : 'btn-outline-warning text-dark')]
-                ) ?>
-
-                <?= Html::a(
-                    '🔻 Waktu Jual / Exit',
-                    $filterWith(['preset' => 'sell_alerts']),
-                    ['class' => 'btn btn-sm ' . ($params['preset'] === 'sell_alerts' ? 'btn-danger' : 'btn-outline-danger')]
-                ) ?>
+<!-- Strategy Quick Presets & Filter Form -->
+<div class="filter-card-unified mb-4">
+    <div class="filter-card-header">
+        <div class="filter-card-title">
+            <?= \app\helpers\SvgHelper::icon('funnel', ['class' => 'text-primary me-1']) ?> Parameter Filter Candlestick &amp; Volume
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <div class="dropdown">
+                <button class="btn btn-xs btn-outline-secondary dropdown-toggle shadow-sm py-1 px-2" type="button" data-bs-toggle="dropdown" id="btn-copy-dropdown">
+                    <?= \app\helpers\SvgHelper::icon('clipboard') ?> Salin Simbol (<?= count($symbols) ?>)
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm small">
+                    <li>
+                        <button class="dropdown-item small" type="button" onclick="copyToClipboard('<?= Html::encode($tvSymbolsStr) ?>', 'TradingView')">
+                            <?= \app\helpers\SvgHelper::icon('tv', ['class' => 'me-1 text-primary']) ?> Format TradingView (<?= count($tvSymbols) ?>)
+                        </button>
+                    </li>
+                    <li>
+                        <button class="dropdown-item small" type="button" onclick="copyToClipboard('<?= Html::encode($symbolsStr) ?>', 'Biasa')">
+                            <?= \app\helpers\SvgHelper::icon('card-text', ['class' => 'me-1 text-success']) ?> Format Simbol Biasa (<?= count($symbols) ?>)
+                        </button>
+                    </li>
+                </ul>
             </div>
 
-            <div class="d-flex align-items-center gap-2">
-                <div class="dropdown">
-                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle shadow-sm" type="button" data-bs-toggle="dropdown" id="btn-copy-dropdown">
-                        <?= \app\helpers\SvgHelper::icon('clipboard') ?> Salin Simbol (<?= count($symbols) ?>)
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow">
-                        <li>
-                            <button class="dropdown-item small" type="button" onclick="copyToClipboard('<?= Html::encode($tvSymbolsStr) ?>', 'TradingView')">
-                                <?= \app\helpers\SvgHelper::icon('tv', ['class' => 'me-1 text-primary']) ?> Format TradingView (<?= count($tvSymbols) ?>)
-                            </button>
-                        </li>
-                        <li>
-                            <button class="dropdown-item small" type="button" onclick="copyToClipboard('<?= Html::encode($symbolsStr) ?>', 'Biasa')">
-                                <?= \app\helpers\SvgHelper::icon('card-text', ['class' => 'me-1 text-success']) ?> Format Simbol Biasa (<?= count($symbols) ?>)
-                            </button>
-                        </li>
-                    </ul>
-                </div>
-
-                <?= Html::a(
-                    \app\helpers\SvgHelper::icon('download') . ' Ekspor CSV',
-                    Url::to(array_merge(['/candlestick/export'], $currentGet)),
-                    ['class' => 'btn btn-sm btn-outline-primary shadow-sm', 'id' => 'btn-export-csv']
-                ) ?>
-            </div>
+            <?= Html::a(
+                \app\helpers\SvgHelper::icon('download') . ' CSV',
+                Url::to(array_merge(['/candlestick/export'], $currentGet)),
+                ['class' => 'btn btn-xs btn-outline-success shadow-sm py-1 px-2', 'id' => 'btn-export-csv']
+            ) ?>
         </div>
     </div>
-</div>
 
-<!-- Form Filter & Pencarian Lengkap -->
-<div class="card border-0 shadow-sm mb-4">
-    <div class="card-body p-3">
-        <?= Html::beginForm(['/candlestick/index'], 'get', ['class' => 'row g-2 align-items-end', 'id' => 'candlestick-filter-form']) ?>
+    <!-- Quick Presets Pills -->
+    <div class="preset-pills-bar">
+        <span class="preset-pills-title">
+            <?= \app\helpers\SvgHelper::icon('lightning-fill', ['class' => 'text-warning me-1']) ?> Presets:
+        </span>
+
+        <?= Html::a(
+            \app\helpers\SvgHelper::icon('grid-fill') . ' Semua Sinyal',
+            $filterWith(['preset' => '', 'pattern' => 'all', 'volume_filter' => 'all', 'action' => 'all']),
+            ['class' => 'preset-pill ' . (empty($params['preset']) && $params['pattern'] === 'all' && $params['volume_filter'] === 'all' && $params['action'] === 'all' ? 'active' : '')]
+        ) ?>
+
+        <?= Html::a(
+            '🔨 Hammer Buy',
+            $filterWith(['preset' => 'buy_hammer']),
+            ['class' => 'preset-pill ' . ($params['preset'] === 'buy_hammer' ? 'active' : '')]
+        ) ?>
+
+        <?= Html::a(
+            \app\helpers\SvgHelper::icon('lightning-charge-fill', ['class' => 'text-warning']) . ' Shakeout Low (' . ($stats['shakeoutCount'] ?? 0) . ')',
+            $filterWith(['preset' => 'shakeout_low', 'pattern' => 'SHAKEOUT_LOW']),
+            ['class' => 'preset-pill ' . ($params['preset'] === 'shakeout_low' || $params['pattern'] === 'SHAKEOUT_LOW' ? 'active' : '')]
+        ) ?>
+
+        <?= Html::a(
+            '🟢 Bullish Engulfing',
+            $filterWith(['preset' => 'buy_engulfing']),
+            ['class' => 'preset-pill ' . ($params['preset'] === 'buy_engulfing' ? 'active' : '')]
+        ) ?>
+
+        <?= Html::a(
+            '⚡ Marubozu Momentum',
+            $filterWith(['preset' => 'momentum_marubozu']),
+            ['class' => 'preset-pill ' . ($params['preset'] === 'momentum_marubozu' ? 'active' : '')]
+        ) ?>
+
+        <?= Html::a(
+            '🚀 Volume Surge',
+            $filterWith(['preset' => 'volume_surge']),
+            ['class' => 'preset-pill ' . ($params['preset'] === 'volume_surge' ? 'active' : '')]
+        ) ?>
+
+        <?= Html::a(
+            '✅ Volume Mendukung',
+            $filterWith(['preset' => 'supportive_vol']),
+            ['class' => 'preset-pill ' . ($params['preset'] === 'supportive_vol' ? 'active' : '')]
+        ) ?>
+
+        <?= Html::a(
+            '✝️ Doji Watch',
+            $filterWith(['preset' => 'doji_watch']),
+            ['class' => 'preset-pill ' . ($params['preset'] === 'doji_watch' ? 'active' : '')]
+        ) ?>
+
+        <?= Html::a(
+            '🔻 Alert Jual / Exit',
+            $filterWith(['preset' => 'sell_alerts']),
+            ['class' => 'preset-pill ' . ($params['preset'] === 'sell_alerts' ? 'active' : '')]
+        ) ?>
+    </div>
+
+    <!-- Form Filter & Pencarian Lengkap -->
+    <div class="filter-card-body">
+        <?= Html::beginForm(['/candlestick/index'], 'get', ['class' => 'row g-3 align-items-end', 'id' => 'candlestick-filter-form']) ?>
             <?= Html::hiddenInput('timeframe', $params['timeframe']) ?>
 
             <div class="col-12 col-md-2">
                 <label class="form-label small fw-semibold mb-1">Cari Simbol Ticker</label>
                 <div class="input-group input-group-sm">
-                    <span class="input-group-text bg-white"><?= \app\helpers\SvgHelper::icon('search') ?></span>
+                    <span class="input-group-text bg-light"><?= \app\helpers\SvgHelper::icon('search') ?></span>
                     <?= Html::textInput('symbol', $params['symbol'], [
                         'class' => 'form-control',
                         'placeholder' => 'Misal: AAPL, NVDA...',
@@ -337,7 +318,7 @@ $badgeAction = [
 
             <div class="col-6 col-md-1 d-flex gap-1">
                 <button type="submit" class="btn btn-sm btn-primary w-100 shadow-sm" id="btn-submit-filter">
-                    <?= \app\helpers\SvgHelper::icon('funnel-fill') ?> Filter
+                    <?= \app\helpers\SvgHelper::icon('funnel-fill') ?>
                 </button>
                 <a href="<?= Url::to(['/candlestick/index', 'timeframe' => $params['timeframe']]) ?>" class="btn btn-sm btn-outline-secondary" title="Reset Filter" id="btn-reset-filter">
                     <?= \app\helpers\SvgHelper::icon('arrow-counterclockwise') ?>
@@ -348,8 +329,8 @@ $badgeAction = [
 </div>
 
 <!-- Scanner Results Table -->
-<div class="card border-0 shadow-sm mb-4">
-    <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
+<div class="table-card-unified">
+    <div class="table-card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
         <div>
             <h5 class="mb-0 fw-bold text-dark">
                 <?= \app\helpers\SvgHelper::icon('table', ['class' => 'text-primary me-1']) ?> Hasil Analisa Pola &amp; Sinyal Trading (<?= count($results) ?> Saham)
@@ -363,7 +344,7 @@ $badgeAction = [
         </div>
     </div>
     <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0" id="candlestick-results-table">
+        <table class="table-unified" id="candlestick-results-table">
             <thead class="table-light text-muted small text-uppercase">
                 <tr>
                     <th style="min-width: 140px;">Saham &amp; Sektor</th>

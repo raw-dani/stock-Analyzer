@@ -30,41 +30,48 @@ $badgeAction = [
 ];
 ?>
 
-<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
-    <div>
-        <h1 class="h3 mb-1 fw-bold text-dark">
-            <?= \app\helpers\SvgHelper::icon('graph-up', ['class' => 'text-primary']) ?> <?= Html::encode($this->title) ?>
-        </h1>
-        <p class="text-muted small mb-0">
-            Penentuan posisi beli (*entry*), batas risiko (*stop loss*), dan target keuntungan (*take profit*) presisi menggunakan Moving Average &amp; konfirmasi volume.
-        </p>
-    </div>
-    <div class="d-flex flex-wrap align-items-center gap-2">
-        <!-- MA Type Toggle: SMA vs EMA -->
-        <div class="btn-group btn-group-sm shadow-sm" role="group">
-            <?= Html::a(
-                'SMA',
-                $filterWith(['maType' => 'sma']),
-                ['class' => 'btn btn-sm ' . (($params['maType'] ?? 'sma') === 'sma' ? 'btn-dark' : 'btn-outline-dark')]
-            ) ?>
-            <?= Html::a(
-                'EMA',
-                $filterWith(['maType' => 'ema']),
-                ['class' => 'btn btn-sm ' . (($params['maType'] ?? 'sma') === 'ema' ? 'btn-dark' : 'btn-outline-dark')]
-            ) ?>
+<div class="app-hero-header mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="app-hero-icon text-primary bg-primary bg-opacity-10">
+                <?= \app\helpers\SvgHelper::icon('graph-up') ?>
+            </div>
+            <div>
+                <h1 class="app-hero-title mb-1">
+                    <?= Html::encode($this->title) ?>
+                </h1>
+                <p class="app-hero-desc mb-0">
+                    Penentuan posisi beli (*entry*), batas risiko (*stop loss*), dan target keuntungan (*take profit*) presisi menggunakan Moving Average &amp; konfirmasi volume.
+                </p>
+            </div>
         </div>
-        <div class="btn-group btn-group-sm shadow-sm" role="group">
-            <?php foreach ($timeframes as $tfKey => $tfLabel): ?>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <!-- MA Type Toggle: SMA vs EMA -->
+            <div class="btn-group btn-group-sm shadow-sm" role="group">
                 <?= Html::a(
-                    Html::encode($tfLabel),
-                    $filterWith(['timeframe' => $tfKey]),
-                    ['class' => 'btn btn-sm ' . ((int) $params['timeframe'] === (int) $tfKey ? 'btn-primary' : 'btn-outline-secondary')]
+                    'SMA',
+                    $filterWith(['maType' => 'sma']),
+                    ['class' => 'btn btn-sm ' . (($params['maType'] ?? 'sma') === 'sma' ? 'btn-dark' : 'btn-outline-dark')]
                 ) ?>
-            <?php endforeach; ?>
+                <?= Html::a(
+                    'EMA',
+                    $filterWith(['maType' => 'ema']),
+                    ['class' => 'btn btn-sm ' . (($params['maType'] ?? 'sma') === 'ema' ? 'btn-dark' : 'btn-outline-dark')]
+                ) ?>
+            </div>
+            <div class="btn-group-tf shadow-sm">
+                <?php foreach ($timeframes as $tfKey => $tfLabel): ?>
+                    <?= Html::a(
+                        Html::encode($tfLabel),
+                        $filterWith(['timeframe' => $tfKey]),
+                        ['class' => 'btn-tf ' . ((int) $params['timeframe'] === (int) $tfKey ? 'active' : '')]
+                    ) ?>
+                <?php endforeach; ?>
+            </div>
+            <span class="badge bg-dark px-3 py-2 fs-7 shadow-sm rounded-pill">
+                <?= strtoupper($params['maType'] ?? 'SMA') ?>: <?= Html::encode($maPairs[$params['maPair']] ?? 'MA20 / MA50') ?>
+            </span>
         </div>
-        <span class="badge bg-dark px-3 py-2 fs-7 shadow-sm">
-            <?= strtoupper($params['maType'] ?? 'SMA') ?>: <?= Html::encode($maPairs[$params['maPair']] ?? 'MA20 / MA50') ?>
-        </span>
     </div>
 </div>
 
@@ -77,127 +84,125 @@ $badgeAction = [
 <div class="row g-3 mb-4">
     <div class="col-6 col-md-3">
         <a href="<?= Url::to(['/moving-average/index', 'timeframe' => $params['timeframe'], 'maPair' => $params['maPair']]) ?>" class="text-decoration-none">
-            <div class="card border-0 shadow-sm bg-light text-center h-100 py-2 hover-card">
-                <div class="card-body p-2">
-                    <div class="text-muted small fw-semibold text-uppercase">Total Saham Terfilter</div>
-                    <div class="h2 mb-0 fw-bold text-dark"><?= number_format((int) ($stats['total'] ?? 0)) ?></div>
-                    <div class="small text-muted"><?= \app\helpers\SvgHelper::icon('arrow-counterclockwise') ?> Klik untuk reset filter</div>
+            <div class="kpi-card-unified kpi-accent-indigo h-100 <?= (empty($params['strategy']) || $params['strategy'] === 'all') ? 'kpi-selected' : '' ?>">
+                <div class="kpi-card-label">Total Saham Terfilter</div>
+                <div class="kpi-card-value text-indigo-700"><?= number_format((int) ($stats['total'] ?? 0)) ?></div>
+                <div class="kpi-card-sub text-muted">
+                    <?= \app\helpers\SvgHelper::icon('arrow-counterclockwise', ['class' => 'me-1']) ?> Reset ke semua
                 </div>
             </div>
         </a>
     </div>
     <div class="col-6 col-md-3">
         <a href="<?= $filterWith(['strategy' => 'buy_all']) ?>" class="text-decoration-none">
-            <div class="card border-0 shadow-sm bg-success bg-opacity-10 text-center h-100 py-2 border-start border-success border-4 hover-card <?= ($params['strategy'] === 'buy_all') ? 'ring-active' : '' ?>">
-                <div class="card-body p-2">
-                    <div class="text-success small fw-semibold text-uppercase">Posisi Beli (Buy Setups)</div>
-                    <div class="h2 mb-0 fw-bold text-success"><?= number_format((int) ($stats['buyCount'] ?? 0)) ?></div>
-                    <div class="small text-success"><?= \app\helpers\SvgHelper::icon('check2-circle') ?> Golden Cross &amp; Rebound</div>
+            <div class="kpi-card-unified kpi-accent-emerald h-100 <?= ($params['strategy'] === 'buy_all') ? 'kpi-selected' : '' ?>">
+                <div class="kpi-card-label">Posisi Beli (Buy Setups)</div>
+                <div class="kpi-card-value text-emerald-700"><?= number_format((int) ($stats['buyCount'] ?? 0)) ?></div>
+                <div class="kpi-card-sub text-emerald-600">
+                    <?= \app\helpers\SvgHelper::icon('check2-circle', ['class' => 'me-1']) ?> Golden Cross &amp; Rebound
                 </div>
             </div>
         </a>
     </div>
     <div class="col-6 col-md-3">
         <a href="<?= $filterWith(['strategy' => 'candle_bounce']) ?>" class="text-decoration-none">
-            <div class="card border-0 shadow-sm bg-primary bg-opacity-10 text-center h-100 py-2 border-start border-primary border-4 hover-card <?= ($params['strategy'] === 'candle_bounce') ? 'ring-active' : '' ?>">
-                <div class="card-body p-2">
-                    <div class="text-primary small fw-semibold text-uppercase">Konfirmasi Multi-Strategi</div>
-                    <div class="h2 mb-0 fw-bold text-primary"><?= number_format((int) (($stats['candleBounceCount'] ?? 0) + ($stats['volumeSurgeCount'] ?? 0))) ?></div>
-                    <div class="small text-primary"><?= \app\helpers\SvgHelper::icon('reception-4') ?> Candle Rebound (<?= $stats['candleBounceCount'] ?? 0 ?>) • Vol Surge (<?= $stats['volumeSurgeCount'] ?? 0 ?>)</div>
+            <div class="kpi-card-unified kpi-accent-cyan h-100 <?= ($params['strategy'] === 'candle_bounce') ? 'kpi-selected' : '' ?>">
+                <div class="kpi-card-label">Konfirmasi Multi-Strategi</div>
+                <div class="kpi-card-value text-cyan-700"><?= number_format((int) (($stats['candleBounceCount'] ?? 0) + ($stats['volumeSurgeCount'] ?? 0))) ?></div>
+                <div class="kpi-card-sub text-cyan-600">
+                    <?= \app\helpers\SvgHelper::icon('reception-4', ['class' => 'me-1']) ?> Rebound (<?= $stats['candleBounceCount'] ?? 0 ?>) • Vol (<?= $stats['volumeSurgeCount'] ?? 0 ?>)
                 </div>
             </div>
         </a>
     </div>
     <div class="col-6 col-md-3">
         <a href="<?= $filterWith(['strategy' => 'sell_all']) ?>" class="text-decoration-none">
-            <div class="card border-0 shadow-sm bg-danger bg-opacity-10 text-center h-100 py-2 border-start border-danger border-4 hover-card <?= ($params['strategy'] === 'sell_all') ? 'ring-active' : '' ?>">
-                <div class="card-body p-2">
-                    <div class="text-danger small fw-semibold text-uppercase">Alert Jual / Take Profit</div>
-                    <div class="h2 mb-0 fw-bold text-danger"><?= number_format((int) ($stats['sellCount'] ?? 0)) ?></div>
-                    <div class="small text-danger"><?= \app\helpers\SvgHelper::icon('exclamation-triangle') ?> Exit &amp; Realisasi Profit</div>
+            <div class="kpi-card-unified kpi-accent-rose h-100 <?= ($params['strategy'] === 'sell_all') ? 'kpi-selected' : '' ?>">
+                <div class="kpi-card-label">Alert Jual / Take Profit</div>
+                <div class="kpi-card-value text-rose-700"><?= number_format((int) ($stats['sellCount'] ?? 0)) ?></div>
+                <div class="kpi-card-sub text-rose-600">
+                    <?= \app\helpers\SvgHelper::icon('exclamation-triangle', ['class' => 'me-1']) ?> Exit &amp; Realisasi Profit
                 </div>
             </div>
         </a>
     </div>
 </div>
 
-<!-- Strategy Quick Presets (1-Klik) -->
-<div class="card border-0 shadow-sm mb-3 bg-light">
-    <div class="card-body p-3">
-        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
-            <div class="d-flex flex-wrap align-items-center gap-2">
-                <span class="small fw-bold text-muted me-1"><?= \app\helpers\SvgHelper::icon('lightning-fill', ['class' => 'text-warning']) ?> Preset Strategi Cepat:</span>
-                
-                <?= Html::a(
-                    \app\helpers\SvgHelper::icon('grid-fill') . ' Semua Sinyal',
-                    $filterWith(['strategy' => 'all']),
-                    ['class' => 'btn btn-sm ' . ($params['strategy'] === 'all' ? 'btn-dark' : 'btn-outline-dark')]
-                ) ?>
-
-                <?= Html::a(
-                    \app\helpers\SvgHelper::icon('check-circle-fill') . ' Semua Posisi Beli',
-                    $filterWith(['strategy' => 'buy_all']),
-                    ['class' => 'btn btn-sm ' . ($params['strategy'] === 'buy_all' ? 'btn-success' : 'btn-outline-success')]
-                ) ?>
-
-                <?= Html::a(
-                    \app\helpers\SvgHelper::icon('arrow-repeat') . ' Golden Cross',
-                    $filterWith(['strategy' => 'golden_cross']),
-                    ['class' => 'btn btn-sm ' . ($params['strategy'] === 'golden_cross' ? 'btn-primary' : 'btn-outline-primary')]
-                ) ?>
-
-                <?= Html::a(
-                    \app\helpers\SvgHelper::icon('reception-4') . ' MA + Candle Rebound',
-                    $filterWith(['strategy' => 'candle_bounce']),
-                    ['class' => 'btn btn-sm ' . ($params['strategy'] === 'candle_bounce' ? 'btn-success active fw-bold' : 'btn-outline-success')]
-                ) ?>
-
-                <?= Html::a(
-                    \app\helpers\SvgHelper::icon('bullseye') . ' Pullback Buy (Dip)',
-                    $filterWith(['strategy' => 'pullback']),
-                    ['class' => 'btn btn-sm ' . ($params['strategy'] === 'pullback' ? 'btn-info text-white' : 'btn-outline-info')]
-                ) ?>
-
-                <?= Html::a(
-                    \app\helpers\SvgHelper::icon('lightning-charge-fill', ['class' => 'text-warning']) . ' Shakeout Low (' . ($stats['shakeoutCount'] ?? 0) . ')',
-                    $filterWith(['strategy' => 'shakeout_low']),
-                    ['class' => 'btn btn-sm ' . ($params['strategy'] === 'shakeout_low' ? 'btn-warning text-dark active fw-bold' : 'btn-outline-warning text-dark')]
-                ) ?>
-
-                <?= Html::a(
-                    \app\helpers\SvgHelper::icon('graph-up-arrow') . ' MA Breakout + Vol',
-                    $filterWith(['strategy' => 'breakout']),
-                    ['class' => 'btn btn-sm ' . ($params['strategy'] === 'breakout' ? 'btn-primary' : 'btn-outline-primary')]
-                ) ?>
-
-                <?= Html::a(
-                    \app\helpers\SvgHelper::icon('currency-dollar') . ' Take Profit Climax',
-                    $filterWith(['strategy' => 'take_profit']),
-                    ['class' => 'btn btn-sm ' . ($params['strategy'] === 'take_profit' ? 'btn-warning text-dark' : 'btn-outline-warning text-dark')]
-                ) ?>
-
-                <?= Html::a(
-                    \app\helpers\SvgHelper::icon('x-octagon-fill') . ' Death Cross (Sell)',
-                    $filterWith(['strategy' => 'death_cross']),
-                    ['class' => 'btn btn-sm ' . ($params['strategy'] === 'death_cross' ? 'btn-danger' : 'btn-outline-danger')]
-                ) ?>
-            </div>
-
-            <div class="d-flex align-items-center gap-2">
-                <?= Html::a(\app\helpers\SvgHelper::icon('arrow-counterclockwise') . ' Reset Filter', ['/moving-average/index'], ['class' => 'btn btn-sm btn-outline-secondary']) ?>
-            </div>
+<!-- Strategy Quick Presets & Filter Form -->
+<div class="filter-card-unified mb-4">
+    <div class="filter-card-header">
+        <div class="filter-card-title">
+            <?= \app\helpers\SvgHelper::icon('funnel', ['class' => 'text-primary me-1']) ?> Parameter Filter Moving Average
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-light text-dark border">Pengaturan Setup &amp; Rasio R:R</span>
+            <?= Html::a(\app\helpers\SvgHelper::icon('arrow-counterclockwise') . ' Reset', ['/moving-average/index'], ['class' => 'btn btn-xs btn-outline-secondary py-1 px-2']) ?>
         </div>
     </div>
-</div>
 
-<!-- Detailed Filter Form -->
-<div class="card border-0 shadow-sm mb-4">
-    <div class="card-header bg-white py-2 border-bottom d-flex justify-content-between align-items-center">
-        <strong class="small text-secondary"><?= \app\helpers\SvgHelper::icon('funnel') ?> Parameter Filter Moving Average</strong>
-        <span class="badge bg-light text-dark border">Pengaturan Setup &amp; Rasio R:R</span>
+    <!-- Strategy Quick Presets Pills -->
+    <div class="preset-pills-bar">
+        <span class="preset-pills-title">
+            <?= \app\helpers\SvgHelper::icon('lightning-fill', ['class' => 'text-warning me-1']) ?> Presets:
+        </span>
+        
+        <?= Html::a(
+            \app\helpers\SvgHelper::icon('grid-fill') . ' Semua Sinyal',
+            $filterWith(['strategy' => 'all']),
+            ['class' => 'preset-pill ' . ($params['strategy'] === 'all' ? 'active' : '')]
+        ) ?>
+
+        <?= Html::a(
+            \app\helpers\SvgHelper::icon('check-circle-fill') . ' Semua Posisi Beli',
+            $filterWith(['strategy' => 'buy_all']),
+            ['class' => 'preset-pill ' . ($params['strategy'] === 'buy_all' ? 'active' : '')]
+        ) ?>
+
+        <?= Html::a(
+            \app\helpers\SvgHelper::icon('arrow-repeat') . ' Golden Cross',
+            $filterWith(['strategy' => 'golden_cross']),
+            ['class' => 'preset-pill ' . ($params['strategy'] === 'golden_cross' ? 'active' : '')]
+        ) ?>
+
+        <?= Html::a(
+            \app\helpers\SvgHelper::icon('reception-4') . ' MA + Rebound',
+            $filterWith(['strategy' => 'candle_bounce']),
+            ['class' => 'preset-pill ' . ($params['strategy'] === 'candle_bounce' ? 'active' : '')]
+        ) ?>
+
+        <?= Html::a(
+            \app\helpers\SvgHelper::icon('bullseye') . ' Pullback Buy',
+            $filterWith(['strategy' => 'pullback']),
+            ['class' => 'preset-pill ' . ($params['strategy'] === 'pullback' ? 'active' : '')]
+        ) ?>
+
+        <?= Html::a(
+            \app\helpers\SvgHelper::icon('lightning-charge-fill', ['class' => 'text-warning']) . ' Shakeout Low (' . ($stats['shakeoutCount'] ?? 0) . ')',
+            $filterWith(['strategy' => 'shakeout_low']),
+            ['class' => 'preset-pill ' . ($params['strategy'] === 'shakeout_low' ? 'active' : '')]
+        ) ?>
+
+        <?= Html::a(
+            \app\helpers\SvgHelper::icon('graph-up-arrow') . ' MA Breakout + Vol',
+            $filterWith(['strategy' => 'breakout']),
+            ['class' => 'preset-pill ' . ($params['strategy'] === 'breakout' ? 'active' : '')]
+        ) ?>
+
+        <?= Html::a(
+            \app\helpers\SvgHelper::icon('currency-dollar') . ' Take Profit Climax',
+            $filterWith(['strategy' => 'take_profit']),
+            ['class' => 'preset-pill ' . ($params['strategy'] === 'take_profit' ? 'active' : '')]
+        ) ?>
+
+        <?= Html::a(
+            \app\helpers\SvgHelper::icon('x-octagon-fill') . ' Death Cross (Sell)',
+            $filterWith(['strategy' => 'death_cross']),
+            ['class' => 'preset-pill ' . ($params['strategy'] === 'death_cross' ? 'active' : '')]
+        ) ?>
     </div>
-    <div class="card-body p-3">
-        <?= Html::beginForm(['/moving-average/index'], 'get', ['class' => 'row g-2 align-items-end']) ?>
+
+    <div class="filter-card-body">
+        <?= Html::beginForm(['/moving-average/index'], 'get', ['class' => 'row g-3 align-items-end']) ?>
             <div class="col-md-2 col-6">
                 <label class="form-label small fw-bold text-muted mb-1">Tipe MA</label>
                 <?= Html::dropDownList('maType', $params['maType'] ?? 'sma', [
@@ -242,7 +247,7 @@ $badgeAction = [
                 ], ['class' => 'form-select form-select-sm']) ?>
             </div>
 
-            <div class="col-md-3 col-12 mt-2">
+            <div class="col-md-3 col-12">
                 <label class="form-label small fw-bold text-muted mb-1">Urutan Hasil (Sorting)</label>
                 <?= Html::dropDownList('sort', $params['sort'], [
                     'rr' => 'Risk/Reward Tertinggi',
@@ -253,12 +258,12 @@ $badgeAction = [
                 ], ['class' => 'form-select form-select-sm']) ?>
             </div>
 
-            <div class="col-md-2 col-6 mt-2">
+            <div class="col-md-2 col-6">
                 <label class="form-label small fw-bold text-muted mb-1">Simbol</label>
                 <?= Html::textInput('symbol', $params['symbol'], ['class' => 'form-control form-control-sm text-uppercase', 'placeholder' => 'Cth: NVDA']) ?>
             </div>
 
-            <div class="col-md-2 col-6 mt-2">
+            <div class="col-md-2 col-6">
                 <label class="form-label small fw-bold text-muted mb-1">Bursa</label>
                 <?= Html::dropDownList('exchange', $params['exchange'], [
                     '' => 'Semua Bursa',
@@ -268,14 +273,14 @@ $badgeAction = [
                 ], ['class' => 'form-select form-select-sm']) ?>
             </div>
 
-            <div class="col-md-3 col-12 mt-2">
+            <div class="col-md-3 col-12">
                 <div class="small text-muted pt-2" style="font-size: 0.78rem;">
                     <?= \app\helpers\SvgHelper::icon('shield-check', ['class' => 'text-success me-1']) ?>
-                    <strong>Stop Loss Dinamis ATR</strong> &amp; konfirmasi <strong>Slope MA</strong> aktif untuk presisi sinyal maksimal.
+                    <strong>Stop Loss ATR</strong> &amp; <strong>Slope MA</strong> aktif untuk presisi sinyal maksimal.
                 </div>
             </div>
 
-            <div class="col-md-2 col-12 mt-2 text-end">
+            <div class="col-md-2 col-12 text-end">
                 <?= Html::submitButton(\app\helpers\SvgHelper::icon('search') . ' Pindai Saham', ['class' => 'btn btn-primary btn-sm px-4 fw-bold shadow-sm w-100']) ?>
             </div>
         <?= Html::endForm() ?>
@@ -283,8 +288,8 @@ $badgeAction = [
 </div>
 
 <!-- Table Results with Actions -->
-<div class="card border-0 shadow-sm">
-    <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
+<div class="table-card-unified">
+    <div class="table-card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
         <div class="d-flex align-items-center gap-2">
             <h5 class="mb-0 fw-bold text-dark">
                 <?= \app\helpers\SvgHelper::icon('table', ['class' => 'text-primary me-1']) ?> Sinyal &amp; Rencana Posisi Trading
@@ -333,7 +338,7 @@ $badgeAction = [
     </div>
 
     <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0" id="ma-grid-table">
+        <table class="table-unified" id="ma-grid-table">
             <thead class="table-light small text-uppercase text-muted">
                 <tr>
                     <th style="width: 35px;">#</th>

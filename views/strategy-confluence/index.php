@@ -30,30 +30,44 @@ $badgeAction = [
 ];
 ?>
 
-<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
-    <div>
-        <h1 class="h3 mb-1 fw-bold text-dark">
-            <?= \app\helpers\SvgHelper::icon('crosshair', ['class' => 'text-danger']) ?> <?= Html::encode($this->title) ?>
-        </h1>
-        <p class="text-muted small mb-0">
-            Sistem analisis <strong>Multi-Indikator &amp; Multi-Timeframe</strong>: Support/Resistance MA (SMA/EMA), RSI Oversold, MACD Momentum, dan Fibonacci Golden Pocket (61.8%) untuk akurasi posisi beli &amp; jual presisi.
-        </p>
-    </div>
-    <div class="d-flex flex-wrap align-items-center gap-2">
-        <div class="btn-group btn-group-sm shadow-sm" role="group">
-            <?php foreach ($timeframes as $tfKey => $tfLabel): ?>
-                <?= Html::a(
-                    Html::encode($tfLabel),
-                    $filterWith(['timeframe' => $tfKey]),
-                    ['class' => 'btn btn-sm ' . ((int) $params['timeframe'] === (int) $tfKey ? 'btn-primary active' : 'btn-outline-secondary')]
-                ) ?>
-            <?php endforeach; ?>
+<!-- 1. Unified App Hero Header -->
+<div class="app-hero-header">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="app-hero-icon text-danger" style="background: rgba(239, 68, 68, 0.1);">
+                <?= \app\helpers\SvgHelper::icon('crosshair') ?>
+            </div>
+            <div>
+                <h1 class="app-hero-title">
+                    <?= Html::encode($this->title) ?>
+                </h1>
+                <p class="app-hero-desc">
+                    Sistem analisis <strong>Multi-Indikator &amp; Multi-Timeframe</strong>: Support/Resistance MA (SMA/EMA), RSI Oversold, MACD Momentum, dan Fibonacci Golden Pocket (61.8%) untuk akurasi posisi beli &amp; jual presisi.
+                </p>
+            </div>
         </div>
-        <?= Html::a(
-            \app\helpers\SvgHelper::icon('file-earmark-spreadsheet', ['class' => 'me-1']) . ' Ekspor CSV',
-            Url::to(array_merge(['/strategy-confluence/export'], $currentGet)),
-            ['class' => 'btn btn-sm btn-outline-success shadow-sm']
-        ) ?>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <!-- Timeframe Group -->
+            <div class="btn-group-tf">
+                <?php foreach ($timeframes as $tfKey => $tfLabel): ?>
+                    <?= Html::a(
+                        Html::encode($tfLabel),
+                        $filterWith(['timeframe' => $tfKey]),
+                        ['class' => 'btn-tf ' . ((int) $params['timeframe'] === (int) $tfKey ? 'active' : '')]
+                    ) ?>
+                <?php endforeach; ?>
+            </div>
+
+            <button type="button" class="btn btn-sm btn-outline-secondary shadow-xs" data-bs-toggle="modal" data-bs-target="#tvModal" <?= empty($tvSymbols) ? 'disabled' : '' ?>>
+                <?= \app\helpers\SvgHelper::icon('tv') ?> TradingView (<?= count($tvSymbols) ?>)
+            </button>
+
+            <?= Html::a(
+                \app\helpers\SvgHelper::icon('download') . ' Ekspor CSV',
+                Url::to(array_merge(['/strategy-confluence/export'], $currentGet)),
+                ['class' => 'btn btn-sm btn-outline-success shadow-xs']
+            ) ?>
+        </div>
     </div>
 </div>
 
@@ -62,139 +76,150 @@ $badgeAction = [
     'timeframe' => (int) ($params['timeframe'] ?? 24),
 ]) ?>
 
-<!-- KPI Metric Summary Cards -->
+<!-- 2. Unified KPI Metric Cards -->
 <div class="row g-3 mb-4">
     <div class="col-6 col-md-3">
-        <div class="card border-0 shadow-sm h-100 bg-white border-start border-primary border-4">
-            <div class="card-body p-3">
-                <div class="text-muted small text-uppercase fw-semibold">Total Saham Dianalisis</div>
-                <div class="h3 fw-bold mb-0 text-dark"><?= number_format($stats['total']) ?></div>
-                <div class="small text-muted mt-1"><?= \app\helpers\SvgHelper::icon('check2-circle', ['class' => 'text-primary']) ?> Multi-Timeframe Scan</div>
+        <a href="<?= $filterWith(['strategy' => 'all']) ?>" class="kpi-card-unified kpi-accent-indigo <?= $params['strategy'] === 'all' ? 'kpi-selected' : '' ?>">
+            <div class="kpi-header">
+                <span class="kpi-label">Total Saham Dianalisis</span>
+                <?= \app\helpers\SvgHelper::icon('grid', ['class' => 'text-muted']) ?>
             </div>
-        </div>
+            <div class="kpi-value"><?= number_format($stats['total']) ?></div>
+            <div class="kpi-subtext"><?= \app\helpers\SvgHelper::icon('check2-circle', ['class' => 'text-primary']) ?> Multi-Timeframe Scan</div>
+        </a>
     </div>
+
     <div class="col-6 col-md-3">
-        <div class="card border-0 shadow-sm h-100 bg-white border-start border-success border-4">
-            <div class="card-body p-3">
-                <div class="text-muted small text-uppercase fw-semibold">Strong Buy Confluence</div>
-                <div class="h3 fw-bold mb-0 text-success"><?= number_format($stats['strongBuyCount']) ?></div>
-                <div class="small text-success mt-1"><?= \app\helpers\SvgHelper::icon('lightning-charge-fill') ?> Skor Konfluensi &ge; 75/100</div>
+        <a href="<?= $filterWith(['strategy' => 'strong_buy']) ?>" class="kpi-card-unified kpi-accent-emerald <?= $params['strategy'] === 'strong_buy' ? 'kpi-selected' : '' ?>">
+            <div class="kpi-header">
+                <span class="kpi-label text-success">Strong Buy Confluence</span>
+                <?= \app\helpers\SvgHelper::icon('lightning-charge-fill', ['class' => 'text-success']) ?>
             </div>
-        </div>
+            <div class="kpi-value text-success"><?= number_format($stats['strongBuyCount']) ?></div>
+            <div class="kpi-subtext text-success">Skor Konfluensi &ge; 75/100</div>
+        </a>
     </div>
+
     <div class="col-6 col-md-3">
-        <div class="card border-0 shadow-sm h-100 bg-white border-start border-warning border-4">
-            <div class="card-body p-3">
-                <div class="text-muted small text-uppercase fw-semibold">Fibonacci / Shakeout Low</div>
-                <div class="h3 fw-bold mb-0 text-warning">
-                    <?= number_format($stats['goldenPocketCount']) ?>
-                    <?php if (($stats['shakeoutCount'] ?? 0) > 0): ?>
-                        <span class="fs-6 fw-normal badge bg-warning text-dark ms-1">⚡ <?= $stats['shakeoutCount'] ?> Shakeout</span>
-                    <?php endif; ?>
-                </div>
-                <div class="small text-muted mt-1"><?= \app\helpers\SvgHelper::icon('bullseye', ['class' => 'text-warning']) ?> Golden Pocket &amp; Liquidity Sweep</div>
+        <a href="<?= $filterWith(['strategy' => 'golden_pocket']) ?>" class="kpi-card-unified kpi-accent-amber <?= in_array($params['strategy'], ['golden_pocket', 'shakeout_low'], true) ? 'kpi-selected' : '' ?>">
+            <div class="kpi-header">
+                <span class="kpi-label text-warning-emphasis">Fibonacci / Shakeout</span>
+                <?= \app\helpers\SvgHelper::icon('bullseye', ['class' => 'text-warning']) ?>
             </div>
-        </div>
+            <div class="kpi-value text-dark">
+                <?= number_format($stats['goldenPocketCount']) ?>
+                <?php if (($stats['shakeoutCount'] ?? 0) > 0): ?>
+                    <span class="badge bg-warning-subtle text-warning-emphasis fs-7 ms-1">⚡ <?= $stats['shakeoutCount'] ?> Shakeout</span>
+                <?php endif; ?>
+            </div>
+            <div class="kpi-subtext">Golden Pocket &amp; Liquidity Sweep</div>
+        </a>
     </div>
+
     <div class="col-6 col-md-3">
-        <div class="card border-0 shadow-sm h-100 bg-white border-start border-info border-4">
-            <div class="card-body p-3">
-                <div class="text-muted small text-uppercase fw-semibold">MACD Bullish Cross / RSI</div>
-                <div class="h3 fw-bold mb-0 text-info"><?= number_format($stats['macdCrossCount']) ?> / <?= number_format($stats['oversoldCount']) ?></div>
-                <div class="small text-muted mt-1"><?= \app\helpers\SvgHelper::icon('graph-up-arrow', ['class' => 'text-info']) ?> Golden Cross &amp; Oversold</div>
+        <a href="<?= $filterWith(['strategy' => 'macd_cross']) ?>" class="kpi-card-unified kpi-accent-cyan <?= in_array($params['strategy'], ['macd_cross', 'rsi_oversold'], true) ? 'kpi-selected' : '' ?>">
+            <div class="kpi-header">
+                <span class="kpi-label text-cyan">MACD Cross / RSI</span>
+                <?= \app\helpers\SvgHelper::icon('graph-up-arrow', ['class' => 'text-info']) ?>
             </div>
-        </div>
+            <div class="kpi-value text-info"><?= number_format($stats['macdCrossCount']) ?> / <?= number_format($stats['oversoldCount']) ?></div>
+            <div class="kpi-subtext">Golden Cross &amp; Oversold</div>
+        </a>
     </div>
 </div>
 
-<!-- Filter Box & Preset Bar -->
-<div class="card border-0 shadow-sm mb-4">
-    <div class="card-body p-3">
-        <!-- Preset Strategi Cepat -->
-        <div class="d-flex flex-wrap align-items-center gap-2 mb-3 pb-3 border-bottom">
-            <span class="small fw-bold text-muted me-1"><?= \app\helpers\SvgHelper::icon('sliders2', ['class' => 'text-primary']) ?> Preset Strategi Cepat:</span>
-            <?php foreach ($presets as $pKey => $pLabel): ?>
-                <?= Html::a(
-                    Html::encode($pLabel),
-                    $filterWith(['strategy' => $pKey]),
-                    ['class' => 'btn btn-sm ' . ($params['strategy'] === $pKey ? 'btn-primary active' : 'btn-outline-secondary')]
-                ) ?>
-            <?php endforeach; ?>
+<!-- 3. Unified Filter Card & Presets -->
+<div class="filter-card-unified">
+    <!-- Preset Strategi Cepat -->
+    <div class="preset-pills-bar">
+        <span class="small fw-bold text-muted me-1"><?= \app\helpers\SvgHelper::icon('sliders2', ['class' => 'text-primary']) ?> Preset Cepat:</span>
+        <?php foreach ($presets as $pKey => $pLabel): ?>
+            <?= Html::a(
+                Html::encode($pLabel),
+                $filterWith(['strategy' => $pKey]),
+                ['class' => 'preset-pill ' . ($params['strategy'] === $pKey ? 'active' : '')]
+            ) ?>
+        <?php endforeach; ?>
+    </div>
+
+    <!-- Filter Form -->
+    <form method="get" action="<?= Url::to(['/strategy-confluence/index']) ?>" class="row g-2 align-items-end">
+        <input type="hidden" name="strategy" value="<?= Html::encode($params['strategy']) ?>">
+        <input type="hidden" name="timeframe" value="<?= Html::encode($params['timeframe']) ?>">
+
+        <div class="col-12 col-md-2">
+            <label class="form-label small text-muted mb-1">Cari Simbol</label>
+            <input type="text" name="symbol" class="form-control form-control-sm text-uppercase" placeholder="misal: AAPL, NVDA" value="<?= Html::encode($params['symbol']) ?>">
         </div>
 
-        <!-- Filter Form -->
-        <form method="get" action="<?= Url::to(['/strategy-confluence/index']) ?>" class="row g-2 align-items-end">
-            <input type="hidden" name="strategy" value="<?= Html::encode($params['strategy']) ?>">
-            <input type="hidden" name="timeframe" value="<?= Html::encode($params['timeframe']) ?>">
+        <div class="col-6 col-md-2">
+            <label class="form-label small text-muted mb-1">Min Skor Konfluensi</label>
+            <select name="minScore" class="form-select form-select-sm">
+                <option value="0" <?= $params['minScore'] === 0 ? 'selected' : '' ?>>Semua Skor</option>
+                <option value="60" <?= $params['minScore'] === 60 ? 'selected' : '' ?>>Skor &ge; 60 (Buy Signal)</option>
+                <option value="75" <?= $params['minScore'] === 75 ? 'selected' : '' ?>>Skor &ge; 75 (High Quality)</option>
+                <option value="85" <?= $params['minScore'] === 85 ? 'selected' : '' ?>>Skor &ge; 85 (Ultra Confluence)</option>
+            </select>
+        </div>
 
-            <div class="col-12 col-md-2">
-                <label class="form-label small text-muted mb-1">Cari Simbol</label>
-                <input type="text" name="symbol" class="form-control form-control-sm text-uppercase" placeholder="misal: AAPL, NVDA" value="<?= Html::encode($params['symbol']) ?>">
-            </div>
+        <div class="col-6 col-md-2">
+            <label class="form-label small text-muted mb-1">Minimal Risk/Reward</label>
+            <select name="minRr" class="form-select form-select-sm">
+                <option value="0" <?= $params['minRr'] == 0.0 ? 'selected' : '' ?>>Semua R:R</option>
+                <option value="1.5" <?= $params['minRr'] == 1.5 ? 'selected' : '' ?>>R:R &ge; 1.5x</option>
+                <option value="2.0" <?= $params['minRr'] == 2.0 ? 'selected' : '' ?>>R:R &ge; 2.0x (Sangat Ideal)</option>
+                <option value="3.0" <?= $params['minRr'] == 3.0 ? 'selected' : '' ?>>R:R &ge; 3.0x</option>
+            </select>
+        </div>
 
-            <div class="col-6 col-md-2">
-                <label class="form-label small text-muted mb-1">Min Skor Konfluensi</label>
-                <select name="minScore" class="form-select form-select-sm">
-                    <option value="0" <?= $params['minScore'] === 0 ? 'selected' : '' ?>>Semua Skor</option>
-                    <option value="60" <?= $params['minScore'] === 60 ? 'selected' : '' ?>>Skor &ge; 60 (Buy Signal)</option>
-                    <option value="75" <?= $params['minScore'] === 75 ? 'selected' : '' ?>>Skor &ge; 75 (High Quality)</option>
-                    <option value="85" <?= $params['minScore'] === 85 ? 'selected' : '' ?>>Skor &ge; 85 (Ultra Confluence)</option>
-                </select>
-            </div>
+        <div class="col-6 col-md-2">
+            <label class="form-label small text-muted mb-1">Bursa / Exchange</label>
+            <select name="exchange" class="form-select form-select-sm">
+                <option value="" <?= empty($params['exchange']) ? 'selected' : '' ?>>Semua Bursa</option>
+                <option value="NASDAQ" <?= $params['exchange'] === 'NASDAQ' ? 'selected' : '' ?>>NASDAQ</option>
+                <option value="NYSE" <?= $params['exchange'] === 'NYSE' ? 'selected' : '' ?>>NYSE</option>
+            </select>
+        </div>
 
-            <div class="col-6 col-md-2">
-                <label class="form-label small text-muted mb-1">Minimal Risk/Reward</label>
-                <select name="minRr" class="form-select form-select-sm">
-                    <option value="0" <?= $params['minRr'] == 0.0 ? 'selected' : '' ?>>Semua R:R</option>
-                    <option value="1.5" <?= $params['minRr'] == 1.5 ? 'selected' : '' ?>>R:R &ge; 1.5x</option>
-                    <option value="2.0" <?= $params['minRr'] == 2.0 ? 'selected' : '' ?>>R:R &ge; 2.0x (Sangat Ideal)</option>
-                    <option value="3.0" <?= $params['minRr'] == 3.0 ? 'selected' : '' ?>>R:R &ge; 3.0x</option>
-                </select>
-            </div>
+        <div class="col-6 col-md-2">
+            <label class="form-label small text-muted mb-1">Urutan (Sort)</label>
+            <select name="sort" class="form-select form-select-sm">
+                <option value="score" <?= $params['sort'] === 'score' ? 'selected' : '' ?>>Skor Tertinggi</option>
+                <option value="rr" <?= $params['sort'] === 'rr' ? 'selected' : '' ?>>Risk/Reward Ratio</option>
+                <option value="gain" <?= $params['sort'] === 'gain' ? 'selected' : '' ?>>Potensi Gain TP1</option>
+                <option value="rsi" <?= $params['sort'] === 'rsi' ? 'selected' : '' ?>>RSI Terendah (Oversold)</option>
+                <option value="rvol" <?= $params['sort'] === 'rvol' ? 'selected' : '' ?>>Volume RVOL Tertinggi</option>
+            </select>
+        </div>
 
-            <div class="col-6 col-md-2">
-                <label class="form-label small text-muted mb-1">Bursa / Exchange</label>
-                <select name="exchange" class="form-select form-select-sm">
-                    <option value="" <?= empty($params['exchange']) ? 'selected' : '' ?>>Semua Bursa</option>
-                    <option value="NASDAQ" <?= $params['exchange'] === 'NASDAQ' ? 'selected' : '' ?>>NASDAQ</option>
-                    <option value="NYSE" <?= $params['exchange'] === 'NYSE' ? 'selected' : '' ?>>NYSE</option>
-                </select>
-            </div>
-
-            <div class="col-6 col-md-2">
-                <label class="form-label small text-muted mb-1">Urutkan Berdasarkan</label>
-                <select name="sort" class="form-select form-select-sm">
-                    <option value="score" <?= $params['sort'] === 'score' ? 'selected' : '' ?>>Skor Tertinggi</option>
-                    <option value="rr" <?= $params['sort'] === 'rr' ? 'selected' : '' ?>>Risk/Reward Ratio</option>
-                    <option value="gain" <?= $params['sort'] === 'gain' ? 'selected' : '' ?>>Potensi Gain TP1</option>
-                    <option value="rsi" <?= $params['sort'] === 'rsi' ? 'selected' : '' ?>>RSI Terendah (Oversold)</option>
-                    <option value="rvol" <?= $params['sort'] === 'rvol' ? 'selected' : '' ?>>Volume RVOL Tertinggi</option>
-                </select>
-            </div>
-
-            <div class="col-12 col-md-2 d-flex gap-2">
-                <button type="submit" class="btn btn-sm btn-primary flex-grow-1"><?= \app\helpers\SvgHelper::icon('funnel') ?> Terapkan</button>
-                <a href="<?= Url::to(['/strategy-confluence/index']) ?>" class="btn btn-sm btn-outline-secondary" title="Reset"><?= \app\helpers\SvgHelper::icon('arrow-counterclockwise') ?></a>
-            </div>
-        </form>
-    </div>
+        <div class="col-12 col-md-2 d-flex gap-1">
+            <button type="submit" class="btn btn-primary btn-sm w-100 fw-semibold">
+                <?= \app\helpers\SvgHelper::icon('search') ?> Pindai
+            </button>
+            <a href="<?= Url::to(['/strategy-confluence/index']) ?>" class="btn btn-outline-secondary btn-sm" title="Reset Filter">
+                <?= \app\helpers\SvgHelper::icon('arrow-counterclockwise') ?>
+            </a>
+        </div>
+    </form>
 </div>
 
-<!-- Hasil Tabel Scanner Confluence -->
-<div class="card border-0 shadow-sm">
-    <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
-        <h5 class="mb-0 fw-bold text-dark">
-            <?= \app\helpers\SvgHelper::icon('table', ['class' => 'text-primary me-1']) ?> Daftar Sinyal &amp; Rencana Posisi Trading Confluence
-            <span class="badge bg-light text-dark border ms-2"><?= count($results) ?> Simbol</span>
-        </h5>
+<!-- 4. Tabel Hasil Scanner Unified -->
+<div class="table-card-unified">
+    <div class="table-card-header">
+        <div>
+            <h5 class="mb-0">
+                <?= \app\helpers\SvgHelper::icon('table', ['class' => 'text-primary me-1']) ?> Peluang Saham Terkonfirmasi
+            </h5>
+            <small class="text-muted">Menampilkan <?= count($results) ?> saham teranalisis multi-timeframe</small>
+        </div>
         <div class="small text-muted">
-            <span class="badge bg-success-subtle text-success border border-success me-1">Skor &ge; 75: Strong Buy</span>
-            <span class="badge bg-primary-subtle text-primary border border-primary me-1">Skor &ge; 60: Buy</span>
-            <span class="badge bg-warning-subtle text-warning border border-warning">Golden Pocket: 61.8%</span>
+            <span class="badge bg-success-subtle text-success border border-success-subtle me-1">Skor &ge; 75: Strong Buy</span>
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle me-1">Skor &ge; 60: Buy</span>
+            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">Golden Pocket: 61.8%</span>
         </div>
     </div>
     <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
+        <table class="table table-unified table-hover align-middle mb-0">
             <thead class="table-light text-secondary small text-uppercase">
                 <tr>
                     <th>Simbol / Emiten</th>
