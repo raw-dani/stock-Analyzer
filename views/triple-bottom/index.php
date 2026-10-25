@@ -201,12 +201,12 @@ $filterWith = fn(array $overrides) => \yii\helpers\Url::to(array_merge(['/triple
             <input type="hidden" name="timeframe" value="<?= Html::encode($timeframe) ?>">
 
             <div class="col-lg-3 col-md-6 col-12">
-                <label class="form-label small fw-semibold text-secondary mb-1">Tipe Pola Reversal</label>
+                <label class="form-label small fw-bold text-dark mb-1">Tipe Pola Reversal</label>
                 <?= Html::dropDownList('patternType', $patternType, $patternTypes, ['class' => 'form-select form-select-sm']) ?>
             </div>
 
             <div class="col-lg-3 col-md-6 col-12">
-                <label class="form-label small fw-semibold text-secondary mb-1">Status Eksekusi</label>
+                <label class="form-label small fw-bold text-dark mb-1">Status Eksekusi</label>
                 <?= Html::dropDownList('statusFilter', $statusFilter, [
                     'all' => 'Semua Status Sinyal',
                     'buy_zone' => '🟢 In Breakout Buy Zone (0-3%)',
@@ -218,12 +218,12 @@ $filterWith = fn(array $overrides) => \yii\helpers\Url::to(array_merge(['/triple
             </div>
 
             <div class="col-lg-2 col-md-3 col-6">
-                <label class="form-label small fw-semibold text-secondary mb-1">Risiko False Breakout</label>
+                <label class="form-label small fw-bold text-dark mb-1">Risiko False Breakout</label>
                 <?= Html::dropDownList('falseBreakoutFilter', $falseBreakoutFilter, $falseBreakoutFilters, ['class' => 'form-select form-select-sm']) ?>
             </div>
 
             <div class="col-lg-2 col-md-3 col-6">
-                <label class="form-label small fw-semibold text-secondary mb-1">Min. R:R</label>
+                <label class="form-label small fw-bold text-dark mb-1">Min. R:R</label>
                 <?= Html::dropDownList('minRr', $minRr, [
                     '0' => 'Semua R:R',
                     '1.5' => '≥ 1.5 : 1',
@@ -233,7 +233,7 @@ $filterWith = fn(array $overrides) => \yii\helpers\Url::to(array_merge(['/triple
             </div>
 
             <div class="col-lg-2 col-md-6 col-6">
-                <label class="form-label small fw-semibold text-secondary mb-1">Urutan (Sort)</label>
+                <label class="form-label small fw-bold text-dark mb-1">Urutan (Sort)</label>
                 <?= Html::dropDownList('sort', $sort, [
                     'confidence' => 'Score Confidence',
                     'rr' => 'Risk/Reward Tertinggi',
@@ -245,30 +245,30 @@ $filterWith = fn(array $overrides) => \yii\helpers\Url::to(array_merge(['/triple
             </div>
 
             <div class="col-lg-2 col-md-3 col-6">
-                <label class="form-label small fw-semibold text-secondary mb-1">Lookback (Bars)</label>
+                <label class="form-label small fw-bold text-dark mb-1">Lookback (Bars)</label>
                 <?= Html::input('number', 'lookback', $lookbackDays, ['class' => 'form-control form-control-sm', 'min' => 15, 'max' => 500]) ?>
             </div>
 
             <div class="col-lg-2 col-md-3 col-6">
-                <label class="form-label small fw-semibold text-secondary mb-1">Toleransi Level (%)</label>
+                <label class="form-label small fw-bold text-dark mb-1">Toleransi Level (%)</label>
                 <?= Html::input('number', 'tolerance', round($tolerancePercent, 1), ['class' => 'form-control form-control-sm', 'min' => 0.1, 'max' => 20, 'step' => 0.1]) ?>
             </div>
 
             <div class="col-lg-2 col-md-3 col-6">
-                <label class="form-label small fw-semibold text-secondary mb-1">Min. Confidence (%)</label>
+                <label class="form-label small fw-bold text-dark mb-1">Min. Confidence (%)</label>
                 <?= Html::input('number', 'minConfidence', $minConfidence, ['class' => 'form-control form-control-sm', 'min' => 0, 'max' => 100, 'step' => 5]) ?>
             </div>
 
             <div class="col-lg-3 col-md-6 col-12">
-                <label class="form-label small fw-semibold text-secondary mb-1 d-none d-md-block">&nbsp;</label>
+                <label class="form-label small fw-bold text-dark mb-1 d-none d-md-block">&nbsp;</label>
                 <div class="d-flex align-items-center gap-3 py-1">
                     <div class="form-check mb-0">
                         <?= Html::checkbox('breakoutOnly', $breakoutOnly, ['class' => 'form-check-input', 'id' => 'tb-cb-bo']) ?>
-                        <label class="form-check-label small fw-semibold text-secondary" for="tb-cb-bo">Hanya Breakout</label>
+                        <label class="form-check-label small fw-semibold text-dark" for="tb-cb-bo">Hanya Breakout</label>
                     </div>
                     <div class="form-check mb-0">
                         <?= Html::checkbox('volOnly', $volOnly, ['class' => 'form-check-input', 'id' => 'tb-cb-vol']) ?>
-                        <label class="form-check-label small fw-semibold text-secondary" for="tb-cb-vol">Volume</label>
+                        <label class="form-check-label small fw-semibold text-dark" for="tb-cb-vol">Volume</label>
                     </div>
                 </div>
             </div>

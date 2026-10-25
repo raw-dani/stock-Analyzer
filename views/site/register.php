@@ -54,7 +54,7 @@ $this->title = 'Daftar Akun Baru - Stock Analyzer Pro';
                                         <span class="live-pulse-dot"></span>
                                         <span class="small fw-bold text-white text-uppercase" style="font-size: 0.68rem; letter-spacing: 0.05em;">AKSES ANGGOTA PENUH</span>
                                     </div>
-                                    <span class="badge bg-emerald-subtle text-emerald fw-semibold" style="font-size: 0.68rem;">100% Gratis</span>
+                                    <span class="badge text-white fw-bold" style="background-color: #059669 !important; font-size: 0.68rem;">100% Gratis</span>
                                 </div>
                                 <div class="text-white mb-2">
                                     <div class="fw-bold fs-6">8,000+ Emiten Wall Street &bull; Crypto 24/7</div>
@@ -121,14 +121,14 @@ $this->title = 'Daftar Akun Baru - Stock Analyzer Pro';
                             'options' => ['class' => 'auth-form-needs-validation'],
                             'fieldConfig' => [
                                 'template' => "{label}\n{input}\n{error}",
-                                'labelOptions' => ['class' => 'form-label fw-semibold text-slate-700 small mb-1.5'],
+                                'labelOptions' => ['class' => 'form-label fw-bold text-dark small mb-1.5'],
                                 'errorOptions' => ['class' => 'invalid-feedback small d-block mt-1'],
                             ],
                         ]); ?>
 
                         <!-- Input Username -->
                         <div class="mb-3">
-                            <label class="form-label fw-semibold text-slate-700 small mb-1.5" for="registerform-username">
+                            <label class="form-label fw-bold text-dark small mb-1.5" for="registerform-username">
                                 Username
                             </label>
                             <div class="auth-input-group">
@@ -149,7 +149,7 @@ $this->title = 'Daftar Akun Baru - Stock Analyzer Pro';
 
                         <!-- Input Email -->
                         <div class="mb-3">
-                            <label class="form-label fw-semibold text-slate-700 small mb-1.5" for="registerform-email">
+                            <label class="form-label fw-bold text-dark small mb-1.5" for="registerform-email">
                                 Alamat Email
                             </label>
                             <div class="auth-input-group">
@@ -170,7 +170,7 @@ $this->title = 'Daftar Akun Baru - Stock Analyzer Pro';
 
                         <!-- Input Password -->
                         <div class="mb-4">
-                            <label class="form-label fw-semibold text-slate-700 small mb-1.5" for="registerform-password">
+                            <label class="form-label fw-bold text-dark small mb-1.5" for="registerform-password">
                                 Password
                             </label>
                             <div class="auth-input-group position-relative">
@@ -192,7 +192,7 @@ $this->title = 'Daftar Akun Baru - Stock Analyzer Pro';
                                     <i class="bi bi-eye"></i>
                                 </button>
                             </div>
-                            <div class="form-text text-slate-400 small mt-1" style="font-size: 0.75rem;">
+                            <div class="form-text text-slate-600 fw-medium small mt-1" style="font-size: 0.75rem;">
                                 Gunakan minimal 6 karakter dengan kombinasi yang aman.
                             </div>
                         </div>
@@ -352,13 +352,13 @@ function togglePasswordVisibility(fieldId, btn) {
 
 /* Right Column Elements */
 .auth-badge-pill-emerald {
-    background: #ecfdf5 !important;
-    color: #059669 !important;
-    border: 1px solid #a7f3d0;
+    background: #dcfce7 !important;
+    color: #14532d !important;
+    border: 1px solid #86efac !important;
     padding: 0.35rem 0.75rem;
     border-radius: 9999px;
     font-size: 0.75rem;
-    font-weight: 600;
+    font-weight: 700;
 }
 
 /* Modern Integrated Input Group */

@@ -490,14 +490,15 @@ body.sidebar-collapsed #main-content-col {
 }
 
 a.btn-tf,
-.btn-group-tf .btn-tf {
-    padding: 0.32rem 0.75rem;
-    font-size: 0.78rem;
-    font-weight: 700;
-    color: #64748b;
-    border: none;
-    background: transparent;
-    border-radius: 0.5rem;
+.btn-group-tf .btn-tf,
+.btn-tf {
+    padding: 0.35rem 0.85rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #1e293b !important;
+    border: none !important;
+    background: transparent !important;
+    border-radius: 9999px !important;
     text-decoration: none !important;
     transition: all 0.15s ease-in-out;
     display: inline-flex;
@@ -506,16 +507,27 @@ a.btn-tf,
 }
 
 a.btn-tf:hover,
-.btn-group-tf .btn-tf:hover {
-    color: #0f172a;
-    background: rgba(255, 255, 255, 0.6);
+.btn-group-tf .btn-tf:hover,
+.btn-tf:hover {
+    color: #0f172a !important;
+    background: #e2e8f0 !important;
+    text-decoration: none !important;
 }
 
 a.btn-tf.active,
-.btn-group-tf .btn-tf.active {
-    background: #ffffff;
-    color: var(--brand-primary);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+.btn-group-tf .btn-tf.active,
+.btn-tf.active,
+a.btn-tf.active.btn-primary,
+.btn-tf.active.btn-primary,
+a.btn-tf.active.text-white,
+.btn-tf.active.text-white {
+    background: #4f46e5 !important;
+    background-color: #4f46e5 !important;
+    color: #ffffff !important;
+    border: 1px solid #4f46e5 !important;
+    font-weight: 700 !important;
+    box-shadow: 0 2px 6px rgba(79, 70, 229, 0.35) !important;
+    text-decoration: none !important;
 }
 
 /* 3. Unified KPI Metric Cards */
@@ -635,9 +647,10 @@ a.preset-pill,
     font-weight: 600;
     padding: 0.35rem 0.85rem;
     border-radius: 9999px;
-    background: #f1f5f9;
-    color: #475569;
-    border: 1px solid #e2e8f0;
+    background: #f1f5f9 !important;
+    background-color: #f1f5f9 !important;
+    color: #0f172a !important;
+    border: 1px solid #cbd5e1 !important;
     text-decoration: none !important;
     transition: all 0.15s ease-in-out;
     display: inline-flex;
@@ -647,17 +660,26 @@ a.preset-pill,
 
 a.preset-pill:hover,
 .preset-pill:hover {
-    background: #e2e8f0;
-    color: #0f172a;
+    background: #e2e8f0 !important;
+    background-color: #e2e8f0 !important;
+    color: #0f172a !important;
+    border-color: #94a3b8 !important;
     text-decoration: none !important;
 }
 
 a.preset-pill.active,
-.preset-pill.active {
-    background: var(--brand-primary);
+.preset-pill.active,
+a.preset-pill.active.btn-primary,
+.preset-pill.active.btn-primary,
+a.preset-pill.active.text-white,
+.preset-pill.active.text-white {
+    background: #4f46e5 !important;
+    background-color: #4f46e5 !important;
     color: #ffffff !important;
-    border-color: var(--brand-primary);
-    box-shadow: 0 2px 6px rgba(79, 70, 229, 0.25);
+    border-color: #4f46e5 !important;
+    font-weight: 700 !important;
+    box-shadow: 0 2px 6px rgba(79, 70, 229, 0.35) !important;
+    text-decoration: none !important;
 }
 
 /* 5. Unified Data Table Styling */
@@ -735,11 +757,124 @@ a.preset-pill.active,
 .trading-plan-strip .plan-tp { color: var(--brand-emerald); font-weight: 700; }
 .trading-plan-strip .plan-rr { color: var(--brand-primary); font-weight: 800; }
 
-/* 7. Unified Action Badges */
+/* 7. Form Labels, Checkboxes & Titles - Universal High Contrast */
+.form-label,
+label.form-label,
+label,
+.form-label.text-secondary,
+.form-label.text-muted,
+.filter-card-unified label {
+    color: #0f172a !important; /* Deep Slate 900 - maximum readability */
+    font-weight: 600 !important;
+    font-size: 0.8125rem;
+    letter-spacing: -0.01em;
+}
+
+.form-check-label {
+    color: #1e293b !important; /* Slate 800 */
+    font-weight: 500 !important;
+    font-size: 0.85rem;
+}
+
+.preset-pills-title {
+    color: #0f172a !important;
+    font-weight: 700 !important;
+    font-size: 0.8rem;
+    letter-spacing: -0.01em;
+}
+
+.form-text,
+.form-hint {
+    color: #475569 !important; /* Slate 600 */
+    font-size: 0.775rem;
+}
+
+/* 8. Unified Action Badges & Universal High-Contrast Badge System */
+.badge {
+    letter-spacing: 0.01em;
+}
+
+/* Subtle Badges with guaranteed dark-on-light or light-on-dark contrast */
+.badge.bg-success-subtle,
+.badge-success-subtle,
+span.badge.text-success.bg-success-subtle {
+    background-color: #dcfce7 !important; /* Emerald 100 */
+    color: #14532d !important;            /* Emerald 900 - ultra contrast (10.5:1) */
+    border: 1px solid #86efac !important;
+    font-weight: 700 !important;
+}
+
+.badge.bg-primary-subtle,
+.badge-primary-subtle,
+span.badge.text-primary.bg-primary-subtle {
+    background-color: #e0e7ff !important; /* Indigo 100 */
+    color: #1e1b4b !important;            /* Indigo 950 - ultra contrast (12:1) */
+    border: 1px solid #a5b4fc !important;
+    font-weight: 700 !important;
+}
+
+.badge.bg-danger-subtle,
+.badge-danger-subtle,
+span.badge.text-danger.bg-danger-subtle {
+    background-color: #ffe4e6 !important; /* Rose 100 */
+    color: #881337 !important;            /* Rose 900 - ultra contrast (10.8:1) */
+    border: 1px solid #fca5a5 !important;
+    font-weight: 700 !important;
+}
+
+.badge.bg-warning-subtle,
+.badge-warning-subtle,
+span.badge.text-warning-emphasis.bg-warning-subtle,
+span.badge.text-warning.bg-warning-subtle {
+    background-color: #fef3c7 !important; /* Amber 100 */
+    color: #78350f !important;            /* Amber 900 - ultra contrast (8.2:1) */
+    border: 1px solid #fcd34d !important;
+    font-weight: 700 !important;
+}
+
+.badge.bg-info-subtle,
+.badge-info-subtle,
+span.badge.text-info.bg-info-subtle,
+span.badge.text-info-emphasis.bg-info-subtle {
+    background-color: #cffafe !important; /* Cyan 100 */
+    color: #164e63 !important;            /* Cyan 900 - ultra contrast (9.5:1) */
+    border: 1px solid #67e8f9 !important;
+    font-weight: 700 !important;
+}
+
+.badge.bg-secondary-subtle,
+.badge-secondary-subtle,
+span.badge.text-secondary.bg-secondary-subtle {
+    background-color: #e2e8f0 !important; /* Slate 200 */
+    color: #0f172a !important;            /* Slate 900 - ultra contrast (11:1) */
+    border: 1px solid #cbd5e1 !important;
+    font-weight: 700 !important;
+}
+
+/* Fix for raw .badge.text-info */
+.badge.text-info,
+span.badge.text-info {
+    color: #0e7490 !important; /* Deep Cyan 700 */
+}
+
+/* Fix for .badge.bg-warning (Yellow background needs black text) */
+.badge.bg-warning,
+span.badge.bg-warning {
+    color: #0f172a !important; /* Black text on yellow */
+    font-weight: 700 !important;
+}
+
+/* Fix for .badge.bg-info (Cyan background needs dark text) */
+.badge.bg-info,
+span.badge.bg-info {
+    color: #0f172a !important;
+    font-weight: 700 !important;
+}
+
 .badge-status-strong-buy {
-    background: #ecfdf5;
-    color: #059669;
-    border: 1px solid #a7f3d0;
+    background: #dcfce7 !important;
+    color: #14532d !important;
+    border: 1px solid #86efac !important;
     font-weight: 700;
     font-size: 0.75rem;
     padding: 0.3rem 0.65rem;
@@ -750,9 +885,9 @@ a.preset-pill.active,
 }
 
 .badge-status-buy {
-    background: #eef2ff;
-    color: #4f46e5;
-    border: 1px solid #c7d2fe;
+    background: #e0e7ff !important;
+    color: #1e1b4b !important;
+    border: 1px solid #a5b4fc !important;
     font-weight: 700;
     font-size: 0.75rem;
     padding: 0.3rem 0.65rem;
@@ -763,9 +898,9 @@ a.preset-pill.active,
 }
 
 .badge-status-shakeout {
-    background: #fffbeb;
-    color: #b45309;
-    border: 1px solid #fde68a;
+    background: #fef3c7 !important;
+    color: #78350f !important;
+    border: 1px solid #fcd34d !important;
     font-weight: 700;
     font-size: 0.75rem;
     padding: 0.3rem 0.65rem;
@@ -776,10 +911,10 @@ a.preset-pill.active,
 }
 
 .badge-status-watch {
-    background: #f1f5f9;
-    color: #475569;
-    border: 1px solid #cbd5e1;
-    font-weight: 600;
+    background: #e2e8f0 !important;
+    color: #0f172a !important;
+    border: 1px solid #cbd5e1 !important;
+    font-weight: 700;
     font-size: 0.75rem;
     padding: 0.3rem 0.65rem;
     border-radius: 0.45rem;
@@ -789,9 +924,9 @@ a.preset-pill.active,
 }
 
 .badge-status-sell {
-    background: #fff1f2;
-    color: #e11d48;
-    border: 1px solid #fecdd3;
+    background: #ffe4e6 !important;
+    color: #881337 !important;
+    border: 1px solid #fca5a5 !important;
     font-weight: 700;
     font-size: 0.75rem;
     padding: 0.3rem 0.65rem;

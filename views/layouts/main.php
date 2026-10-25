@@ -258,7 +258,7 @@ if (!empty($systemItems)) {
                 'encode' => false,
             ],
             [
-                'label' => '<i class="bi bi-newspaper me-1 text-info"></i> Blog Info <span class="badge bg-info bg-opacity-25 text-info border border-info border-opacity-25 ms-1" style="font-size:0.65rem;">AI</span>',
+                'label' => '<i class="bi bi-newspaper me-1 text-primary"></i> Blog Info <span class="badge bg-primary-subtle text-primary border border-primary-subtle ms-1 fw-bold" style="font-size:0.65rem;">AI</span>',
                 'url' => ['/blog/index'],
                 'active' => $ctrlId === 'blog' && !in_array($actionId, ['admin', 'settings', 'create', 'update']),
                 'encode' => false,

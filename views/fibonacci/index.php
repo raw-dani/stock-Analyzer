@@ -204,7 +204,7 @@ $badgeAction = [
             <input type="hidden" name="timeframe" value="<?= Html::encode($params['timeframe']) ?>">
 
             <div class="col-lg-3 col-md-6 col-12">
-                <label class="form-label small fw-semibold text-secondary mb-1">Cari Simbol Saham</label>
+                <label class="form-label small fw-bold text-dark mb-1">Cari Simbol Saham</label>
                 <?= Html::textInput('symbol', $params['symbol'] ?? '', [
                     'class' => 'form-control form-control-sm text-uppercase',
                     'placeholder' => 'Contoh: NVDA, AAPL, BBCA',
@@ -212,7 +212,7 @@ $badgeAction = [
             </div>
 
             <div class="col-lg-3 col-md-6 col-12">
-                <label class="form-label small fw-semibold text-secondary mb-1">Strategi Setup</label>
+                <label class="form-label small fw-bold text-dark mb-1">Strategi Setup</label>
                 <?= Html::dropDownList('strategy', $params['strategy'], [
                     'all' => 'Semua Sinyal',
                     'buy_all' => 'Semua Posisi Beli',
@@ -227,7 +227,7 @@ $badgeAction = [
             </div>
 
             <div class="col-lg-2 col-md-4 col-6">
-                <label class="form-label small fw-semibold text-secondary mb-1">Min. Risk/Reward</label>
+                <label class="form-label small fw-bold text-dark mb-1">Min. Risk/Reward</label>
                 <?= Html::dropDownList('minRr', (string) $params['minRr'], [
                     '0' => 'Semua R:R',
                     '1.5' => '≥ 1.5 : 1',
@@ -237,7 +237,7 @@ $badgeAction = [
             </div>
 
             <div class="col-lg-2 col-md-4 col-6">
-                <label class="form-label small fw-semibold text-secondary mb-1">Urutkan (Sort)</label>
+                <label class="form-label small fw-bold text-dark mb-1">Urutkan (Sort)</label>
                 <?= Html::dropDownList('sort', $params['sort'], [
                     'rr' => 'R:R Tertinggi',
                     'gain' => 'Potensi Gain TP1 Terbesar',

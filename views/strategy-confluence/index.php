@@ -161,12 +161,12 @@ $badgeAction = [
             <input type="hidden" name="timeframe" value="<?= Html::encode($params['timeframe']) ?>">
 
             <div class="col-lg-3 col-md-6 col-12">
-                <label class="form-label small fw-semibold text-secondary mb-1">Cari Simbol</label>
+                <label class="form-label small fw-bold text-dark mb-1">Cari Simbol</label>
                 <input type="text" name="symbol" class="form-control form-control-sm text-uppercase" placeholder="misal: AAPL, NVDA" value="<?= Html::encode($params['symbol']) ?>">
             </div>
 
             <div class="col-lg-2 col-md-3 col-6">
-                <label class="form-label small fw-semibold text-secondary mb-1">Min Skor Konfluensi</label>
+                <label class="form-label small fw-bold text-dark mb-1">Min Skor Konfluensi</label>
                 <select name="minScore" class="form-select form-select-sm">
                     <option value="0" <?= $params['minScore'] === 0 ? 'selected' : '' ?>>Semua Skor</option>
                     <option value="60" <?= $params['minScore'] === 60 ? 'selected' : '' ?>>Skor &ge; 60 (Buy Signal)</option>
@@ -176,7 +176,7 @@ $badgeAction = [
             </div>
 
             <div class="col-lg-2 col-md-3 col-6">
-                <label class="form-label small fw-semibold text-secondary mb-1">Minimal Risk/Reward</label>
+                <label class="form-label small fw-bold text-dark mb-1">Minimal Risk/Reward</label>
                 <select name="minRr" class="form-select form-select-sm">
                     <option value="0" <?= $params['minRr'] == 0.0 ? 'selected' : '' ?>>Semua R:R</option>
                     <option value="1.5" <?= $params['minRr'] == 1.5 ? 'selected' : '' ?>>R:R &ge; 1.5x</option>
@@ -186,7 +186,7 @@ $badgeAction = [
             </div>
 
             <div class="col-lg-2 col-md-6 col-6">
-                <label class="form-label small fw-semibold text-secondary mb-1">Bursa / Exchange</label>
+                <label class="form-label small fw-bold text-dark mb-1">Bursa / Exchange</label>
                 <select name="exchange" class="form-select form-select-sm">
                     <option value="" <?= empty($params['exchange']) ? 'selected' : '' ?>>Semua Bursa</option>
                     <option value="NASDAQ" <?= $params['exchange'] === 'NASDAQ' ? 'selected' : '' ?>>NASDAQ</option>
@@ -195,7 +195,7 @@ $badgeAction = [
             </div>
 
             <div class="col-lg-3 col-md-6 col-6">
-                <label class="form-label small fw-semibold text-secondary mb-1">Urutan (Sort)</label>
+                <label class="form-label small fw-bold text-dark mb-1">Urutan (Sort)</label>
                 <select name="sort" class="form-select form-select-sm">
                     <option value="score" <?= $params['sort'] === 'score' ? 'selected' : '' ?>>Skor Tertinggi</option>
                     <option value="rr" <?= $params['sort'] === 'rr' ? 'selected' : '' ?>>Risk/Reward Ratio</option>

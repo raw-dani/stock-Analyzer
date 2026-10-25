@@ -215,7 +215,7 @@ $badgeAction = [
     <div class="card-body p-3 filter-card-body">
         <?= Html::beginForm(['/moving-average/index'], 'get', ['class' => 'row g-3 align-items-end']) ?>
             <div class="col-lg-2 col-md-3 col-6">
-                <label class="form-label small fw-semibold text-secondary mb-1">Tipe MA</label>
+                <label class="form-label small fw-bold text-dark mb-1">Tipe MA</label>
                 <?= Html::dropDownList('maType', $params['maType'] ?? 'sma', [
                     'sma' => 'SMA (Simple)',
                     'ema' => 'EMA (Exponential)',
@@ -223,17 +223,17 @@ $badgeAction = [
             </div>
 
             <div class="col-lg-3 col-md-6 col-6">
-                <label class="form-label small fw-semibold text-secondary mb-1">Kombinasi MA (Periode)</label>
+                <label class="form-label small fw-bold text-dark mb-1">Kombinasi MA (Periode)</label>
                 <?= Html::dropDownList('maPair', $params['maPair'], $maPairs, ['class' => 'form-select form-select-sm', 'onchange' => 'this.form.submit()']) ?>
             </div>
 
             <div class="col-lg-2 col-md-3 col-6">
-                <label class="form-label small fw-semibold text-secondary mb-1">Timeframe</label>
+                <label class="form-label small fw-bold text-dark mb-1">Timeframe</label>
                 <?= Html::dropDownList('timeframe', $params['timeframe'], $timeframes, ['class' => 'form-select form-select-sm', 'onchange' => 'this.form.submit()']) ?>
             </div>
 
             <div class="col-lg-3 col-md-6 col-6">
-                <label class="form-label small fw-semibold text-secondary mb-1">Strategi Spesifik</label>
+                <label class="form-label small fw-bold text-dark mb-1">Strategi Spesifik</label>
                 <?= Html::dropDownList('strategy', $params['strategy'], [
                     'all' => 'Semua Setup Strategi',
                     'buy_all' => '🟢 Semua Setup BELI (BUY)',
@@ -249,7 +249,7 @@ $badgeAction = [
             </div>
 
             <div class="col-lg-2 col-md-6 col-6">
-                <label class="form-label small fw-semibold text-secondary mb-1">Min. R:R</label>
+                <label class="form-label small fw-bold text-dark mb-1">Min. R:R</label>
                 <?= Html::dropDownList('minRr', $params['minRr'], [
                     '0' => 'Semua R:R',
                     '1.5' => '≥ 1.5 : 1 (Standar)',
@@ -259,7 +259,7 @@ $badgeAction = [
             </div>
 
             <div class="col-lg-3 col-md-6 col-12">
-                <label class="form-label small fw-semibold text-secondary mb-1">Urutan Hasil (Sorting)</label>
+                <label class="form-label small fw-bold text-dark mb-1">Urutan Hasil (Sorting)</label>
                 <?= Html::dropDownList('sort', $params['sort'], [
                     'rr' => 'Risk/Reward Tertinggi',
                     'gain' => 'Potensi Gain TP1 Tertinggi (%)',
@@ -270,12 +270,12 @@ $badgeAction = [
             </div>
 
             <div class="col-lg-2 col-md-3 col-6">
-                <label class="form-label small fw-semibold text-secondary mb-1">Simbol</label>
+                <label class="form-label small fw-bold text-dark mb-1">Simbol</label>
                 <?= Html::textInput('symbol', $params['symbol'], ['class' => 'form-control form-control-sm text-uppercase', 'placeholder' => 'Cth: NVDA']) ?>
             </div>
 
             <div class="col-lg-2 col-md-3 col-6">
-                <label class="form-label small fw-semibold text-secondary mb-1">Bursa</label>
+                <label class="form-label small fw-bold text-dark mb-1">Bursa</label>
                 <?= Html::dropDownList('exchange', $params['exchange'], [
                     '' => 'Semua Bursa',
                     'NASDAQ' => 'NASDAQ',

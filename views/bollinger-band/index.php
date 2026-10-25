@@ -219,12 +219,12 @@ $badgeAction = [
             <?= Html::hiddenInput('sort', $params['sort']) ?>
 
             <div class="col-lg-3 col-md-6 col-12">
-                <label class="form-label small fw-semibold text-secondary mb-1">Strategi Bollinger Bands</label>
+                <label class="form-label small fw-bold text-dark mb-1">Strategi Bollinger Bands</label>
                 <?= Html::dropDownList('strategy', $params['strategy'], $presets, ['class' => 'form-select form-select-sm']) ?>
             </div>
 
             <div class="col-lg-2 col-md-3 col-6">
-                <label class="form-label small fw-semibold text-secondary mb-1">Min. Risk:Reward</label>
+                <label class="form-label small fw-bold text-dark mb-1">Min. Risk:Reward</label>
                 <?= Html::dropDownList('minRr', $params['minRr'], [
                     '0' => 'Semua R:R',
                     '1.5' => 'Min. 1.5 : 1',
@@ -234,12 +234,12 @@ $badgeAction = [
             </div>
 
             <div class="col-lg-2 col-md-3 col-6">
-                <label class="form-label small fw-semibold text-secondary mb-1">Cari Simbol</label>
+                <label class="form-label small fw-bold text-dark mb-1">Cari Simbol</label>
                 <?= Html::textInput('symbol', $params['symbol'], ['class' => 'form-control form-control-sm text-uppercase', 'placeholder' => 'Contoh: BBCA, ASII']) ?>
             </div>
 
             <div class="col-lg-3 col-md-6 col-6">
-                <label class="form-label small fw-semibold text-secondary mb-1">Sektor</label>
+                <label class="form-label small fw-bold text-dark mb-1">Sektor</label>
                 <?= Html::textInput('sector', $params['sector'], ['class' => 'form-control form-control-sm', 'placeholder' => 'Semua Sektor']) ?>
             </div>
 

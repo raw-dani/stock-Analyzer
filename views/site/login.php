@@ -54,16 +54,16 @@ $this->title = 'Masuk ke Platform - Stock Analyzer Pro';
                                         <span class="live-pulse-dot"></span>
                                         <span class="small fw-bold text-white text-uppercase" style="font-size: 0.68rem; letter-spacing: 0.05em;">RADAR VOLUME AKTIF</span>
                                     </div>
-                                    <span class="badge bg-white bg-opacity-15 text-light fw-normal" style="font-size: 0.68rem;">8,000+ Saham US</span>
+                                    <span class="badge bg-white bg-opacity-25 text-white fw-bold" style="font-size: 0.68rem;">8,000+ Saham US</span>
                                 </div>
                                 <div class="d-flex align-items-center justify-content-between text-white mb-2">
                                     <div>
-                                        <div class="fw-bold fs-6">NVDA <span class="badge bg-primary bg-opacity-25 text-info ms-1" style="font-size: 0.65rem;">1D</span></div>
-                                        <div class="text-slate-400" style="font-size: 0.72rem;">Confluence Breakout</div>
+                                        <div class="fw-bold fs-6">NVDA <span class="badge bg-white bg-opacity-20 text-white ms-1 fw-bold" style="font-size: 0.65rem;">1D</span></div>
+                                        <div class="text-slate-300" style="font-size: 0.72rem;">Confluence Breakout</div>
                                     </div>
                                     <div class="text-end">
-                                        <div class="fw-bold text-emerald">$143.50</div>
-                                        <div class="badge bg-emerald-subtle text-emerald px-1.5 py-0.5" style="font-size: 0.68rem;">+3.8%</div>
+                                        <div class="fw-bold text-white">$143.50</div>
+                                        <div class="badge text-white px-2 py-0.5 fw-bold" style="background-color: #059669 !important; font-size: 0.68rem;">+3.8%</div>
                                     </div>
                                 </div>
                                 <div class="pt-2 border-top border-white border-opacity-10 d-flex justify-content-between text-slate-300" style="font-size: 0.72rem;">
@@ -127,14 +127,14 @@ $this->title = 'Masuk ke Platform - Stock Analyzer Pro';
                             'options' => ['class' => 'auth-form-needs-validation'],
                             'fieldConfig' => [
                                 'template' => "{label}\n{input}\n{error}",
-                                'labelOptions' => ['class' => 'form-label fw-semibold text-slate-700 small mb-1.5'],
+                                'labelOptions' => ['class' => 'form-label fw-bold text-dark small mb-1.5'],
                                 'errorOptions' => ['class' => 'invalid-feedback small d-block mt-1'],
                             ],
                         ]); ?>
 
                         <!-- Input Username -->
                         <div class="mb-3">
-                            <label class="form-label fw-semibold text-slate-700 small mb-1.5" for="loginform-username">
+                            <label class="form-label fw-bold text-dark small mb-1.5" for="loginform-username">
                                 Username
                             </label>
                             <div class="auth-input-group">
@@ -155,7 +155,7 @@ $this->title = 'Masuk ke Platform - Stock Analyzer Pro';
 
                         <!-- Input Password -->
                         <div class="mb-3">
-                            <label class="form-label fw-semibold text-slate-700 small mb-1.5" for="loginform-password">
+                            <label class="form-label fw-bold text-dark small mb-1.5" for="loginform-password">
                                 Password
                             </label>
                             <div class="auth-input-group position-relative">
@@ -185,7 +185,7 @@ $this->title = 'Masuk ke Platform - Stock Analyzer Pro';
                                 'options' => ['class' => 'mb-0']
                             ])->checkbox([
                                 'class' => 'form-check-input auth-check-input',
-                                'labelOptions' => ['class' => 'form-check-label small text-slate-600 ms-1 user-select-none'],
+                                'labelOptions' => ['class' => 'form-check-label small fw-semibold text-dark ms-1 user-select-none'],
                             ])->label('Ingat sesi saya di browser ini') ?>
                         </div>
 
@@ -341,13 +341,13 @@ function togglePasswordVisibility(fieldId, btn) {
 
 /* Right Column Elements */
 .auth-badge-pill {
-    background: #eef2ff !important;
-    color: #4f46e5 !important;
-    border: 1px solid #e0e7ff;
+    background: #e0e7ff !important;
+    color: #1e1b4b !important;
+    border: 1px solid #a5b4fc !important;
     padding: 0.35rem 0.75rem;
     border-radius: 9999px;
     font-size: 0.75rem;
-    font-weight: 600;
+    font-weight: 700;
 }
 
 /* Modern Integrated Input Group */

@@ -205,7 +205,7 @@ $filterWith = fn(array $overrides) => \yii\helpers\Url::to(array_merge(['/double
             <input type="hidden" name="timeframe" value="<?= Html::encode($timeframe) ?>">
 
             <div class="col-lg-3 col-md-6 col-12">
-                <label class="form-label small fw-semibold text-secondary mb-1">Status Transaksi</label>
+                <label class="form-label small fw-bold text-dark mb-1">Status Transaksi</label>
                 <?= Html::dropDownList('statusFilter', $statusFilter, [
                     'all' => 'Semua Status',
                     'buy_zone' => '🟢 In Golden Buy Zone (0-3%)',
@@ -216,7 +216,7 @@ $filterWith = fn(array $overrides) => \yii\helpers\Url::to(array_merge(['/double
             </div>
 
             <div class="col-lg-2 col-md-3 col-6">
-                <label class="form-label small fw-semibold text-secondary mb-1">Min. Risk/Reward</label>
+                <label class="form-label small fw-bold text-dark mb-1">Min. Risk/Reward</label>
                 <?= Html::dropDownList('minRr', $minRr, [
                     '0' => 'Semua R:R',
                     '1.5' => '≥ 1.5 : 1',
@@ -226,7 +226,7 @@ $filterWith = fn(array $overrides) => \yii\helpers\Url::to(array_merge(['/double
             </div>
 
             <div class="col-lg-3 col-md-3 col-6">
-                <label class="form-label small fw-semibold text-secondary mb-1">Urutan (Sort)</label>
+                <label class="form-label small fw-bold text-dark mb-1">Urutan (Sort)</label>
                 <?= Html::dropDownList('sort', $sort, [
                     'confidence' => 'Score Confidence',
                     'rr' => 'Risk/Reward Tertinggi',
@@ -238,7 +238,7 @@ $filterWith = fn(array $overrides) => \yii\helpers\Url::to(array_merge(['/double
             </div>
 
             <div class="col-lg-2 col-md-6 col-6">
-                <label class="form-label small fw-semibold text-secondary mb-1">Lookback (Candle)</label>
+                <label class="form-label small fw-bold text-dark mb-1">Lookback (Candle)</label>
                 <?= Html::input('number', 'lookback', $lookback, ['class' => 'form-control form-control-sm', 'min' => 5, 'max' => 500]) ?>
             </div>
 
