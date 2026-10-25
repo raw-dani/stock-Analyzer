@@ -38,40 +38,42 @@ $dailyMax = \app\models\DailyPrice::find()->max('date');
 $staleDays = $dailyMax ? (int) floor((time() - strtotime($dailyMax . ' 23:59:00')) / 86400) : null;
 ?>
 
-<div class="app-hero-header mb-4">
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
-        <div class="d-flex align-items-center gap-3">
-            <div class="app-hero-icon text-primary bg-primary bg-opacity-10">
-                <?= \app\helpers\SvgHelper::icon('activity') ?>
+<div class="card border-0 shadow-sm mb-4 app-hero-header">
+    <div class="card-body p-3 p-md-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="app-hero-icon text-primary bg-primary bg-opacity-10">
+                    <?= \app\helpers\SvgHelper::icon('activity') ?>
+                </div>
+                <div>
+                    <h1 class="app-hero-title mb-1">
+                        <?= Html::encode($this->title) ?>
+                    </h1>
+                    <p class="app-hero-desc mb-0">
+                        Sistem analisis RSI Multi-Strategi terintegrasi <strong>Konfirmasi Volume (RVOL)</strong>, <strong>Candlestick Reversal</strong>, dan <strong>Fibonacci Retracement</strong> untuk menentukan <strong>Waktu Beli (Entry)</strong> dan target keuntungan berjenjang <strong>TP1, TP2, TP3</strong> serta Stop Loss terukur.
+                    </p>
+                </div>
             </div>
-            <div>
-                <h1 class="app-hero-title mb-1">
-                    <?= Html::encode($this->title) ?>
-                </h1>
-                <p class="app-hero-desc mb-0">
-                    Sistem analisis RSI Multi-Strategi terintegrasi <strong>Konfirmasi Volume (RVOL)</strong>, <strong>Candlestick Reversal</strong>, dan <strong>Fibonacci Retracement</strong> untuk menentukan <strong>Waktu Beli (Entry)</strong> dan target keuntungan berjenjang <strong>TP1, TP2, TP3</strong> serta Stop Loss terukur.
-                </p>
-            </div>
-        </div>
-        <div class="d-flex align-items-center gap-2">
-            <div class="btn-group-tf shadow-sm" role="group" aria-label="Timeframe Selector">
-                <?php foreach ([24 => '1D (Daily)', 4 => '4H', 2 => '2H', 1 => '1H'] as $tfVal => $tfLabel): ?>
-                    <?= Html::a(
-                        Html::encode($tfLabel),
-                        [
-                            '/rsi-double-bottom/index',
-                            'timeframe' => $tfVal,
-                            'statusFilter' => $statusFilter,
-                            'sortBy' => $sortBy,
-                            'rsiPeriod' => $rsiPeriod,
-                            'lookback' => $lookback,
-                            'maxRsi' => $maxRsi,
-                        ],
-                        [
-                            'class' => 'btn-tf ' . ($timeframe === $tfVal ? 'active' : ''),
-                        ]
-                    ) ?>
-                <?php endforeach; ?>
+            <div class="d-flex align-items-center gap-2">
+                <div class="btn-group-tf btn-group btn-group-sm p-1 bg-light rounded-pill border shadow-sm" role="group" aria-label="Timeframe Selector">
+                    <?php foreach ([24 => '1D (Daily)', 4 => '4H', 2 => '2H', 1 => '1H'] as $tfVal => $tfLabel): ?>
+                        <?= Html::a(
+                            Html::encode($tfLabel),
+                            [
+                                '/rsi-double-bottom/index',
+                                'timeframe' => $tfVal,
+                                'statusFilter' => $statusFilter,
+                                'sortBy' => $sortBy,
+                                'rsiPeriod' => $rsiPeriod,
+                                'lookback' => $lookback,
+                                'maxRsi' => $maxRsi,
+                            ],
+                            [
+                                'class' => 'btn-tf btn btn-sm rounded-pill px-3 ' . ($timeframe === $tfVal ? 'active' : ''),
+                            ]
+                        ) ?>
+                    <?php endforeach; ?>
+                </div>
             </div>
         </div>
     </div>
@@ -95,44 +97,52 @@ $staleDays = $dailyMax ? (int) floor((time() - strtotime($dailyMax . ' 23:59:00'
 <!-- Interactive KPI Summary Cards -->
 <div class="row g-3 mb-4">
     <div class="col-6 col-md-3">
-        <a href="javascript:void(0)" onclick="document.getElementById('filter-status-input').value = 'buy'; document.getElementById('rsi-filter-form').submit();" class="text-decoration-none">
-            <div class="kpi-card-unified kpi-accent-emerald h-100 <?= ($statusFilter === 'buy') ? 'kpi-selected' : '' ?>">
-                <div class="kpi-card-label">Sinyal Waktu Beli</div>
-                <div class="kpi-card-value text-emerald-700"><?= $buyCount ?></div>
-                <div class="kpi-card-sub text-emerald-600">
+        <a href="javascript:void(0)" onclick="document.getElementById('filter-status-input').value = 'buy'; document.getElementById('rsi-filter-form').submit();" class="kpi-card-unified card border-0 shadow-sm text-decoration-none h-100 kpi-accent-emerald <?= ($statusFilter === 'buy') ? 'kpi-selected' : '' ?>">
+            <div class="card-body p-3 d-flex flex-column justify-content-between">
+                <div>
+                    <div class="kpi-card-label">Sinyal Waktu Beli</div>
+                    <div class="kpi-card-value text-emerald-700"><?= $buyCount ?></div>
+                </div>
+                <div class="kpi-card-sub text-emerald-600 mt-2">
                     <?= \app\helpers\SvgHelper::icon('cart-check-fill', ['class' => 'me-1']) ?> Reversal Bounce / Bullish Div
                 </div>
             </div>
         </a>
     </div>
     <div class="col-6 col-md-3">
-        <a href="javascript:void(0)" onclick="document.getElementById('filter-status-input').value = 'sell'; document.getElementById('rsi-filter-form').submit();" class="text-decoration-none">
-            <div class="kpi-card-unified kpi-accent-rose h-100 <?= ($statusFilter === 'sell') ? 'kpi-selected' : '' ?>">
-                <div class="kpi-card-label">Sinyal Waktu Jual / TP</div>
-                <div class="kpi-card-value text-rose-700"><?= $sellCount ?></div>
-                <div class="kpi-card-sub text-rose-600">
+        <a href="javascript:void(0)" onclick="document.getElementById('filter-status-input').value = 'sell'; document.getElementById('rsi-filter-form').submit();" class="kpi-card-unified card border-0 shadow-sm text-decoration-none h-100 kpi-accent-rose <?= ($statusFilter === 'sell') ? 'kpi-selected' : '' ?>">
+            <div class="card-body p-3 d-flex flex-column justify-content-between">
+                <div>
+                    <div class="kpi-card-label">Sinyal Waktu Jual / TP</div>
+                    <div class="kpi-card-value text-rose-700"><?= $sellCount ?></div>
+                </div>
+                <div class="kpi-card-sub text-rose-600 mt-2">
                     <?= \app\helpers\SvgHelper::icon('box-arrow-right', ['class' => 'me-1']) ?> Overbought Exit / Bearish Div
                 </div>
             </div>
         </a>
     </div>
     <div class="col-6 col-md-3">
-        <a href="javascript:void(0)" onclick="document.getElementById('filter-status-input').value = 'volume_surge'; document.getElementById('rsi-filter-form').submit();" class="text-decoration-none">
-            <div class="kpi-card-unified kpi-accent-cyan h-100 <?= in_array($statusFilter, ['volume_surge', 'candle_reversal', 'fib_pocket']) ? 'kpi-selected' : '' ?>">
-                <div class="kpi-card-label">Konfirmasi Multi-Strategi</div>
-                <div class="kpi-card-value text-cyan-700"><?= $volumeSurgeCount + $candleReversalCount + $fibPocketCount ?></div>
-                <div class="kpi-card-sub text-cyan-600">
+        <a href="javascript:void(0)" onclick="document.getElementById('filter-status-input').value = 'volume_surge'; document.getElementById('rsi-filter-form').submit();" class="kpi-card-unified card border-0 shadow-sm text-decoration-none h-100 kpi-accent-cyan <?= in_array($statusFilter, ['volume_surge', 'candle_reversal', 'fib_pocket']) ? 'kpi-selected' : '' ?>">
+            <div class="card-body p-3 d-flex flex-column justify-content-between">
+                <div>
+                    <div class="kpi-card-label">Konfirmasi Multi-Strategi</div>
+                    <div class="kpi-card-value text-cyan-700"><?= $volumeSurgeCount + $candleReversalCount + $fibPocketCount ?></div>
+                </div>
+                <div class="kpi-card-sub text-cyan-600 mt-2">
                     Vol (<?= $volumeSurgeCount ?>) • Candle (<?= $candleReversalCount ?>) • Fib (<?= $fibPocketCount ?>)
                 </div>
             </div>
         </a>
     </div>
     <div class="col-6 col-md-3">
-        <a href="javascript:void(0)" onclick="document.getElementById('filter-status-input').value = 'oversold'; document.getElementById('rsi-filter-form').submit();" class="text-decoration-none">
-            <div class="kpi-card-unified kpi-accent-amber h-100 <?= in_array($statusFilter, ['oversold', 'overbought']) ? 'kpi-selected' : '' ?>">
-                <div class="kpi-card-label">Area Jenuh (Watchlist)</div>
-                <div class="kpi-card-value text-amber-700"><?= $oversoldWatchCount + $overboughtWatchCount ?></div>
-                <div class="kpi-card-sub text-amber-600">
+        <a href="javascript:void(0)" onclick="document.getElementById('filter-status-input').value = 'oversold'; document.getElementById('rsi-filter-form').submit();" class="kpi-card-unified card border-0 shadow-sm text-decoration-none h-100 kpi-accent-amber <?= in_array($statusFilter, ['oversold', 'overbought']) ? 'kpi-selected' : '' ?>">
+            <div class="card-body p-3 d-flex flex-column justify-content-between">
+                <div>
+                    <div class="kpi-card-label">Area Jenuh (Watchlist)</div>
+                    <div class="kpi-card-value text-amber-700"><?= $oversoldWatchCount + $overboughtWatchCount ?></div>
+                </div>
+                <div class="kpi-card-sub text-amber-600 mt-2">
                     Oversold (<?= $oversoldWatchCount ?>) / Overbought (<?= $overboughtWatchCount ?>)
                 </div>
             </div>
@@ -141,9 +151,9 @@ $staleDays = $dailyMax ? (int) floor((time() - strtotime($dailyMax . ' 23:59:00'
 </div>
 
 <!-- Filter Toolbar -->
-<div class="filter-card-unified mb-4">
-    <div class="filter-card-header">
-        <div class="filter-card-title">
+<div class="card border-0 shadow-sm mb-4 filter-card-unified">
+    <div class="card-header bg-white border-bottom py-2 px-3 filter-card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div class="filter-card-title fw-bold text-dark">
             <?= \app\helpers\SvgHelper::icon('funnel', ['class' => 'text-primary me-1']) ?> Parameter Filter &amp; Sinyal RSI
         </div>
         <div class="d-flex align-items-center gap-2">
@@ -154,8 +164,8 @@ $staleDays = $dailyMax ? (int) floor((time() - strtotime($dailyMax . ' 23:59:00'
     </div>
 
     <!-- Quick Presets Pills Bar -->
-    <div class="preset-pills-bar">
-        <span class="preset-pills-title">
+    <div class="px-3 py-2 bg-light border-bottom d-flex flex-wrap align-items-center gap-2 preset-pills-bar">
+        <span class="preset-pills-title text-muted small fw-bold">
             <?= \app\helpers\SvgHelper::icon('lightning-fill', ['class' => 'text-warning me-1']) ?> Sinyal:
         </span>
         <?php
@@ -176,14 +186,14 @@ $staleDays = $dailyMax ? (int) floor((time() - strtotime($dailyMax . ' 23:59:00'
             $active = ($statusFilter === $key);
         ?>
             <button type="button" 
-                    class="preset-pill <?= $active ? 'active' : '' ?>"
+                    class="preset-pill btn btn-sm rounded-pill px-3 py-1 <?= $active ? 'active' : '' ?>"
                     onclick="document.getElementById('filter-status-input').value = '<?= $key ?>'; document.getElementById('rsi-filter-form').submit();">
                 <?= \app\helpers\SvgHelper::icon($meta['icon']) ?> <?= $meta['label'] ?>
             </button>
         <?php endforeach; ?>
     </div>
 
-    <div class="filter-card-body">
+    <div class="card-body p-3 filter-card-body">
         <?= Html::beginForm(['/rsi-double-bottom/index'], 'get', ['id' => 'rsi-filter-form']) ?>
             <?= Html::hiddenInput('timeframe', $timeframe, ['id' => 'filter-timeframe-input']) ?>
             <?= Html::hiddenInput('statusFilter', $statusFilter, ['id' => 'filter-status-input']) ?>

@@ -24,9 +24,9 @@ $isPresetMomentum = ($model->maxPrice == 20 && $model->minVolumeGrowth == 0.3);
 ?>
 
 <!-- Filter & Presets Card -->
-<div class="filter-card-unified mb-4">
-    <div class="filter-card-header">
-        <div class="filter-card-title">
+<div class="card border-0 shadow-sm mb-4 filter-card-unified">
+    <div class="card-header bg-white border-bottom py-2 px-3 filter-card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div class="filter-card-title fw-bold text-dark">
             <?= \app\helpers\SvgHelper::icon('funnel', ['class' => 'text-primary me-1']) ?> Parameter Filter Scanner &amp; Akumulasi
         </div>
         <div class="d-flex align-items-center gap-2">
@@ -36,8 +36,8 @@ $isPresetMomentum = ($model->maxPrice == 20 && $model->minVolumeGrowth == 0.3);
     </div>
 
     <!-- Quick Presets Pills Bar -->
-    <div class="preset-pills-bar">
-        <span class="preset-pills-title">
+    <div class="px-3 py-2 bg-light border-bottom d-flex flex-wrap align-items-center gap-2 preset-pills-bar">
+        <span class="preset-pills-title text-muted small fw-bold">
             <?= \app\helpers\SvgHelper::icon('lightning-fill', ['class' => 'text-warning me-1']) ?> Presets (<?= $isDaily ? 'Daily' : 'Weekly' ?>):
         </span>
         
@@ -45,66 +45,66 @@ $isPresetMomentum = ($model->maxPrice == 20 && $model->minVolumeGrowth == 0.3);
             <?= Html::a(
                 \app\helpers\SvgHelper::icon('rocket-takeoff-fill') . ' Day Breakout (+2% & Acc ≥65%)',
                 ['/scanner/index', 'mode' => 'daily', 'minChangePct' => '2.0', 'minBuyRatio' => '0.65'],
-                ['class' => 'preset-pill ' . ($isPresetDayBreakout ? 'active' : ''), 'title' => 'Momentum kenaikan hari ini dengan dominasi akumulasi buy']
+                ['class' => 'preset-pill btn btn-sm rounded-pill px-3 py-1 ' . ($isPresetDayBreakout ? 'active' : ''), 'title' => 'Momentum kenaikan hari ini dengan dominasi akumulasi buy']
             ) ?>
 
             <?= Html::a(
                 \app\helpers\SvgHelper::icon('fire') . ' High Vol Surge (≥70% Buy)',
                 ['/scanner/index', 'mode' => 'daily', 'minBuyRatio' => '0.70', 'minVolume' => '500000'],
-                ['class' => 'preset-pill ' . ($isPresetDaySpike ? 'active' : ''), 'title' => 'Tekanan beli kuat dengan likuiditas volume tinggi']
+                ['class' => 'preset-pill btn btn-sm rounded-pill px-3 py-1 ' . ($isPresetDaySpike ? 'active' : ''), 'title' => 'Tekanan beli kuat dengan likuiditas volume tinggi']
             ) ?>
 
             <?= Html::a(
                 \app\helpers\SvgHelper::icon('arrow-down-left-square') . ' Absorption (<$50)',
                 ['/scanner/index', 'mode' => 'daily', 'minBuyRatio' => '0.65', 'maxPrice' => '50'],
-                ['class' => 'preset-pill ' . ($isPresetDayAbsorption ? 'active' : ''), 'title' => 'Saham terjangkau dengan akumulasi buy dominan']
+                ['class' => 'preset-pill btn btn-sm rounded-pill px-3 py-1 ' . ($isPresetDayAbsorption ? 'active' : ''), 'title' => 'Saham terjangkau dengan akumulasi buy dominan']
             ) ?>
         <?php else: ?>
             <?= Html::a(
                 \app\helpers\SvgHelper::icon('lightning-charge-fill', ['class' => 'text-warning']) . ' Shakeout Low',
                 ['/candlestick/index', 'preset' => 'shakeout_low'],
-                ['class' => 'preset-pill', 'title' => 'Scan saham dengan pola Shakeout Low / Bear Trap Reversal']
+                ['class' => 'preset-pill btn btn-sm rounded-pill px-3 py-1', 'title' => 'Scan saham dengan pola Shakeout Low / Bear Trap Reversal']
             ) ?>
 
             <?= Html::a(
                 \app\helpers\SvgHelper::icon('buildings') . ' Akumulasi Institusi',
                 ['/scanner/index', 'minBuyRatio' => '0.7', 'minScore' => '60', 'mode' => 'weekly'],
-                ['class' => 'preset-pill ' . ($isPresetInstAcc ? 'active' : ''), 'title' => 'Buy Ratio ≥ 70%, Skor ≥ 60']
+                ['class' => 'preset-pill btn btn-sm rounded-pill px-3 py-1 ' . ($isPresetInstAcc ? 'active' : ''), 'title' => 'Buy Ratio ≥ 70%, Skor ≥ 60']
             ) ?>
 
             <?= Html::a(
                 \app\helpers\SvgHelper::icon('graph-up-arrow') . ' Volume Breakout',
                 ['/scanner/index', 'minVolumeGrowth' => '0.5', 'minScore' => '65', 'mode' => 'weekly'],
-                ['class' => 'preset-pill ' . ($isPresetVolBreakout ? 'active' : ''), 'title' => 'Vol Growth ≥ 50%, Skor ≥ 65']
+                ['class' => 'preset-pill btn btn-sm rounded-pill px-3 py-1 ' . ($isPresetVolBreakout ? 'active' : ''), 'title' => 'Vol Growth ≥ 50%, Skor ≥ 65']
             ) ?>
 
             <?= Html::a(
                 \app\helpers\SvgHelper::icon('gem') . ' Strong Buy Signal',
                 ['/scanner/index', 'signal' => 'STRONG_BUY', 'mode' => 'weekly'],
-                ['class' => 'preset-pill ' . ($isPresetStrongBuy ? 'active' : ''), 'title' => 'Sinyal akumulasi terkuat']
+                ['class' => 'preset-pill btn btn-sm rounded-pill px-3 py-1 ' . ($isPresetStrongBuy ? 'active' : ''), 'title' => 'Sinyal akumulasi terkuat']
             ) ?>
 
             <?= Html::a(
                 \app\helpers\SvgHelper::icon('fire') . ' Lonjakan RVOL (≥ 2.0x)',
                 ['/scanner/index', 'minRvol' => '2.0', 'minScore' => '50', 'mode' => 'weekly'],
-                ['class' => 'preset-pill ' . ($isPresetRvolSurge ? 'active' : ''), 'title' => 'Volume 2x lipat rata-rata mingguan']
+                ['class' => 'preset-pill btn btn-sm rounded-pill px-3 py-1 ' . ($isPresetRvolSurge ? 'active' : ''), 'title' => 'Volume 2x lipat rata-rata mingguan']
             ) ?>
 
             <?= Html::a(
                 \app\helpers\SvgHelper::icon('shield-check') . ' Large Cap Giants (>$10B)',
                 ['/scanner/index', 'minMarketCap' => '10000000000', 'minBuyRatio' => '0.55', 'mode' => 'weekly'],
-                ['class' => 'preset-pill ' . ($isPresetLargeCap ? 'active' : ''), 'title' => 'Saham berkapitalisasi pasar raksasa']
+                ['class' => 'preset-pill btn btn-sm rounded-pill px-3 py-1 ' . ($isPresetLargeCap ? 'active' : ''), 'title' => 'Saham berkapitalisasi pasar raksasa']
             ) ?>
 
             <?= Html::a(
                 \app\helpers\SvgHelper::icon('rocket-takeoff') . ' Momentum Murah (<$20)',
                 ['/scanner/index', 'maxPrice' => '20', 'minVolumeGrowth' => '0.3', 'mode' => 'weekly'],
-                ['class' => 'preset-pill ' . ($isPresetMomentum ? 'active' : ''), 'title' => 'Harga di bawah $20 dengan pertumbuhan volume']
+                ['class' => 'preset-pill btn btn-sm rounded-pill px-3 py-1 ' . ($isPresetMomentum ? 'active' : ''), 'title' => 'Harga di bawah $20 dengan pertumbuhan volume']
             ) ?>
         <?php endif; ?>
     </div>
 
-    <div class="filter-card-body">
+    <div class="card-body p-3 filter-card-body">
         <?php $form = ActiveForm::begin([
             'action' => ['/scanner/index'],
             'method' => 'get',
@@ -225,7 +225,7 @@ $isPresetMomentum = ($model->maxPrice == 20 && $model->minVolumeGrowth == 0.3);
                     btn.disabled = true;
                 }
                 const form = this.closest('form');
-                form.setAttribute('action', '<?= Url::to(['scanner/run-scan']) ?>');
+                form.setAttribute('action', '<?= Url::to(['/scanner/run-scan']) ?>');
                 form.submit();
             });
 

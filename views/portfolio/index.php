@@ -29,31 +29,33 @@ $sellHistoryCount = count($sellHistories);
 
 <div class="portfolio-index">
     <!-- Header Page -->
-    <div class="app-hero-header mb-4">
-        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
-            <div class="d-flex align-items-center gap-3">
-                <div class="app-hero-icon text-primary bg-primary bg-opacity-10">
-                    <?= \app\helpers\SvgHelper::icon('briefcase-fill') ?>
+    <div class="card border-0 shadow-sm mb-4 app-hero-header">
+        <div class="card-body p-3 p-md-4">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="app-hero-icon text-primary bg-primary bg-opacity-10">
+                        <?= \app\helpers\SvgHelper::icon('briefcase-fill') ?>
+                    </div>
+                    <div>
+                        <h1 class="app-hero-title mb-1">
+                            <?= Html::encode($this->title) ?>
+                            <span class="badge bg-light text-primary border fs-6 align-middle ms-2 rounded-pill">
+                                <?= \app\helpers\SvgHelper::icon('person-fill', ['class' => 'me-1']) ?><?= Html::encode(Yii::$app->user->identity->username ?? 'User') ?>
+                            </span>
+                        </h1>
+                        <p class="app-hero-desc mb-0">
+                            Portofolio pribadi Anda: Pantau status untung/rugi saham yang sudah dibeli, set target profit presisi (contoh: 3%), serta jalankan simulasi strategi <strong>Average Down</strong> terintegrasi sinyal teknikal.
+                        </p>
+                    </div>
                 </div>
-                <div>
-                    <h1 class="app-hero-title mb-1">
-                        <?= Html::encode($this->title) ?>
-                        <span class="badge bg-light text-primary border fs-6 align-middle ms-2 rounded-pill">
-                            <?= \app\helpers\SvgHelper::icon('person-fill', ['class' => 'me-1']) ?><?= Html::encode(Yii::$app->user->identity->username ?? 'User') ?>
-                        </span>
-                    </h1>
-                    <p class="app-hero-desc mb-0">
-                        Portofolio pribadi Anda: Pantau status untung/rugi saham yang sudah dibeli, set target profit presisi (contoh: 3%), serta jalankan simulasi strategi <strong>Average Down</strong> terintegrasi sinyal teknikal.
-                    </p>
+                <div class="d-flex gap-2 flex-wrap">
+                    <a href="<?= Url::to(['/portfolio/refresh-prices']) ?>" class="btn btn-outline-success btn-sm px-3 shadow-sm fw-semibold rounded-pill" title="Ambil quote harga realtime terkini dari Yahoo Finance">
+                        <?= \app\helpers\SvgHelper::icon('arrow-repeat', ['class' => 'me-1']) ?> Sinkronkan Harga
+                    </a>
+                    <button type="button" class="btn btn-primary btn-sm px-3 shadow-sm fw-bold rounded-pill" data-bs-toggle="modal" data-bs-target="#modalAddPosition">
+                        <?= \app\helpers\SvgHelper::icon('plus-circle-fill', ['class' => 'me-1']) ?> Tambah Posisi
+                    </button>
                 </div>
-            </div>
-            <div class="d-flex gap-2 flex-wrap">
-                <a href="<?= Url::to(['/portfolio/refresh-prices']) ?>" class="btn btn-outline-success btn-sm px-3 shadow-sm fw-semibold rounded-pill" title="Ambil quote harga realtime terkini dari Yahoo Finance">
-                    <?= \app\helpers\SvgHelper::icon('arrow-repeat', ['class' => 'me-1']) ?> Sinkronkan Harga
-                </a>
-                <button type="button" class="btn btn-primary btn-sm px-3 shadow-sm fw-bold rounded-pill" data-bs-toggle="modal" data-bs-target="#modalAddPosition">
-                    <?= \app\helpers\SvgHelper::icon('plus-circle-fill', ['class' => 'me-1']) ?> Tambah Posisi
-                </button>
             </div>
         </div>
     </div>
@@ -62,33 +64,43 @@ $sellHistoryCount = count($sellHistories);
     <div class="row g-3 mb-4">
         <!-- Total Nilai Portofolio -->
         <div class="col-6 col-md-3">
-            <div class="kpi-card-unified kpi-accent-indigo h-100">
-                <div class="kpi-card-label">Total Nilai Portofolio</div>
-                <div class="kpi-card-value text-indigo-700"><?= $fmt->asCurrency($currentValue) ?></div>
-                <div class="kpi-card-sub text-muted mt-1">Modal: <?= $fmt->asCurrency($totalInvested) ?></div>
+            <div class="kpi-card-unified card border-0 shadow-sm h-100 kpi-accent-indigo">
+                <div class="card-body p-3 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="kpi-card-label">Total Nilai Portofolio</div>
+                        <div class="kpi-card-value text-indigo-700"><?= $fmt->asCurrency($currentValue) ?></div>
+                    </div>
+                    <div class="kpi-card-sub text-muted mt-2">Modal: <?= $fmt->asCurrency($totalInvested) ?></div>
+                </div>
             </div>
         </div>
 
         <!-- Total P/L (Untung/Rugi) -->
         <div class="col-6 col-md-3">
-            <div class="kpi-card-unified <?= $totalPlAmount >= 0 ? 'kpi-accent-emerald' : 'kpi-accent-rose' ?> h-100">
-                <div class="kpi-card-label">Total Floating P/L</div>
-                <div class="kpi-card-value <?= $totalPlAmount >= 0 ? 'text-emerald-700' : 'text-rose-700' ?>">
-                    <?= ($totalPlAmount >= 0 ? '+' : '') . $fmt->asCurrency($totalPlAmount) ?>
-                </div>
-                <div class="kpi-card-sub <?= $totalPlAmount >= 0 ? 'text-emerald-600' : 'text-rose-600' ?> fw-semibold mt-1">
-                    <?= ($totalPlPct >= 0 ? '+' : '') . $totalPlPct ?>%
+            <div class="kpi-card-unified card border-0 shadow-sm h-100 <?= $totalPlAmount >= 0 ? 'kpi-accent-emerald' : 'kpi-accent-rose' ?>">
+                <div class="card-body p-3 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="kpi-card-label">Total Floating P/L</div>
+                        <div class="kpi-card-value <?= $totalPlAmount >= 0 ? 'text-emerald-700' : 'text-rose-700' ?>">
+                            <?= ($totalPlAmount >= 0 ? '+' : '') . $fmt->asCurrency($totalPlAmount) ?>
+                        </div>
+                    </div>
+                    <div class="kpi-card-sub <?= $totalPlAmount >= 0 ? 'text-emerald-600' : 'text-rose-600' ?> fw-semibold mt-2">
+                        <?= ($totalPlPct >= 0 ? '+' : '') . $totalPlPct ?>%
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Posisi Sedang Untung -->
         <div class="col-6 col-md-3">
-            <a href="<?= Url::to(['/portfolio/index', 'tab' => 'profit']) ?>" class="text-decoration-none">
-                <div class="kpi-card-unified kpi-accent-emerald h-100 <?= $tab === 'profit' ? 'kpi-selected' : '' ?>">
-                    <div class="kpi-card-label">Posisi Sedang Untung</div>
-                    <div class="kpi-card-value text-emerald-700"><?= $profitCount ?> Saham</div>
-                    <div class="kpi-card-sub text-emerald-600 mt-1">
+            <a href="<?= Url::to(['/portfolio/index', 'tab' => 'profit']) ?>" class="kpi-card-unified card border-0 shadow-sm text-decoration-none h-100 kpi-accent-emerald <?= $tab === 'profit' ? 'kpi-selected' : '' ?>">
+                <div class="card-body p-3 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="kpi-card-label">Posisi Sedang Untung</div>
+                        <div class="kpi-card-value text-emerald-700"><?= $profitCount ?> Saham</div>
+                    </div>
+                    <div class="kpi-card-sub text-emerald-600 mt-2">
                         <?= \app\helpers\SvgHelper::icon('graph-up-arrow', ['class' => 'me-1']) ?> Monitor Target Jual
                     </div>
                 </div>
@@ -97,13 +109,15 @@ $sellHistoryCount = count($sellHistories);
 
         <!-- Riwayat Jual Saham (Realized P/L) -->
         <div class="col-6 col-md-3">
-            <a href="<?= Url::to(['/portfolio/index', 'tab' => 'history']) ?>" class="text-decoration-none">
-                <div class="kpi-card-unified kpi-accent-cyan h-100 <?= $tab === 'history' ? 'kpi-selected' : '' ?>">
-                    <div class="kpi-card-label">Riwayat Jual Saham</div>
-                    <div class="kpi-card-value <?= $totalRealizedPl >= 0 ? 'text-emerald-700' : 'text-rose-700' ?>">
-                        <?= ($totalRealizedPl >= 0 ? '+' : '') . $fmt->asCurrency($totalRealizedPl) ?>
+            <a href="<?= Url::to(['/portfolio/index', 'tab' => 'history']) ?>" class="kpi-card-unified card border-0 shadow-sm text-decoration-none h-100 kpi-accent-cyan <?= $tab === 'history' ? 'kpi-selected' : '' ?>">
+                <div class="card-body p-3 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="kpi-card-label">Riwayat Jual Saham</div>
+                        <div class="kpi-card-value <?= $totalRealizedPl >= 0 ? 'text-emerald-700' : 'text-rose-700' ?>">
+                            <?= ($totalRealizedPl >= 0 ? '+' : '') . $fmt->asCurrency($totalRealizedPl) ?>
+                        </div>
                     </div>
-                    <div class="kpi-card-sub text-muted mt-1">
+                    <div class="kpi-card-sub text-muted mt-2">
                         <?= \app\helpers\SvgHelper::icon('clock-history', ['class' => 'me-1']) ?><?= $sellHistoryCount ?> Transaksi Jual / Exit
                     </div>
                 </div>
@@ -112,21 +126,21 @@ $sellHistoryCount = count($sellHistories);
     </div>
 
     <!-- Filter Tabs Nav -->
-    <div class="filter-card-unified mb-4">
-        <div class="preset-pills-bar border-0">
-            <span class="preset-pills-title">
+    <div class="card border-0 shadow-sm mb-4 filter-card-unified">
+        <div class="card-body p-2 d-flex flex-wrap align-items-center gap-2 preset-pills-bar border-0">
+            <span class="preset-pills-title text-muted small fw-bold">
                 <?= \app\helpers\SvgHelper::icon('funnel', ['class' => 'text-primary me-1']) ?> Status Portofolio:
             </span>
-            <a class="preset-pill <?= $tab === 'all' ? 'active' : '' ?>" href="<?= Url::to(['/portfolio/index', 'tab' => 'all']) ?>">
+            <a class="preset-pill btn btn-sm rounded-pill px-3 py-1 <?= $tab === 'all' ? 'active' : '' ?>" href="<?= Url::to(['/portfolio/index', 'tab' => 'all']) ?>">
                 Semua Posisi Aktif (<?= $allCount ?>)
             </a>
-            <a class="preset-pill <?= $tab === 'profit' ? 'active' : '' ?>" href="<?= Url::to(['/portfolio/index', 'tab' => 'profit']) ?>">
+            <a class="preset-pill btn btn-sm rounded-pill px-3 py-1 <?= $tab === 'profit' ? 'active' : '' ?>" href="<?= Url::to(['/portfolio/index', 'tab' => 'profit']) ?>">
                 🟢 Sedang Untung (<?= $profitCount ?>)
             </a>
-            <a class="preset-pill <?= $tab === 'loss' ? 'active' : '' ?>" href="<?= Url::to(['/portfolio/index', 'tab' => 'loss']) ?>">
+            <a class="preset-pill btn btn-sm rounded-pill px-3 py-1 <?= $tab === 'loss' ? 'active' : '' ?>" href="<?= Url::to(['/portfolio/index', 'tab' => 'loss']) ?>">
                 🔴 Minus / Butuh Average (<?= $lossCount ?>)
             </a>
-            <a class="preset-pill <?= $tab === 'history' ? 'active' : '' ?>" href="<?= Url::to(['/portfolio/index', 'tab' => 'history']) ?>">
+            <a class="preset-pill btn btn-sm rounded-pill px-3 py-1 <?= $tab === 'history' ? 'active' : '' ?>" href="<?= Url::to(['/portfolio/index', 'tab' => 'history']) ?>">
                 📜 Riwayat Realisasi Jual (<?= $sellHistoryCount ?>)
             </a>
         </div>

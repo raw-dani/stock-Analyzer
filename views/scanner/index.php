@@ -315,33 +315,35 @@ $dailyColumns = [
 ];
 ?>
 
-<div class="app-hero-header mb-4">
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
-        <div class="d-flex align-items-center gap-3">
-            <div class="app-hero-icon text-primary bg-primary bg-opacity-10">
-                <?= \app\helpers\SvgHelper::icon('funnel-fill') ?>
+<div class="card border-0 shadow-sm mb-4 app-hero-header">
+    <div class="card-body p-3 p-md-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="app-hero-icon text-primary bg-primary bg-opacity-10">
+                    <?= \app\helpers\SvgHelper::icon('funnel-fill') ?>
+                </div>
+                <div>
+                    <h1 class="app-hero-title mb-1">
+                        <?= Html::encode($this->title) ?>
+                    </h1>
+                    <p class="app-hero-desc mb-0">
+                        Deteksi aliran dana institusi / bandar melalui analisis rasio volume beli vs jual, lonjakan RVOL, dan scoring komposit.
+                    </p>
+                </div>
             </div>
-            <div>
-                <h1 class="app-hero-title mb-1">
-                    <?= Html::encode($this->title) ?>
-                </h1>
-                <p class="app-hero-desc mb-0">
-                    Deteksi aliran dana institusi / bandar melalui analisis rasio volume beli vs jual, lonjakan RVOL, dan scoring komposit.
-                </p>
+            <div class="d-flex align-items-center gap-2">
+                <div class="btn-group-tf btn-group btn-group-sm p-1 bg-light rounded-pill border shadow-sm">
+                    <?= Html::a(\app\helpers\SvgHelper::icon('calendar3-week', ['class' => 'me-1']) . ' Mode Weekly', $filterWith(['mode' => 'weekly']), [
+                        'class' => 'btn-tf btn btn-sm rounded-pill px-3 ' . (!$isDaily ? 'active' : ''),
+                    ]) ?>
+                    <?= Html::a(\app\helpers\SvgHelper::icon('calendar-day', ['class' => 'me-1']) . ' Mode Daily', $filterWith(['mode' => 'daily']), [
+                        'class' => 'btn-tf btn btn-sm rounded-pill px-3 ' . ($isDaily ? 'active' : ''),
+                    ]) ?>
+                </div>
+                <a href="<?= Url::to(array_merge(['/scanner/run-scan'], $currentGet)) ?>" class="btn btn-warning btn-sm fw-bold px-3 shadow-sm rounded-pill">
+                    <?= \app\helpers\SvgHelper::icon('arrow-clockwise') ?> <?= $isDaily ? 'Scan Harian' : 'Scan Mingguan' ?>
+                </a>
             </div>
-        </div>
-        <div class="d-flex align-items-center gap-2">
-            <div class="btn-group-tf shadow-sm">
-                <?= Html::a(\app\helpers\SvgHelper::icon('calendar3-week', ['class' => 'me-1']) . ' Mode Weekly', $filterWith(['mode' => 'weekly']), [
-                    'class' => 'btn-tf ' . (!$isDaily ? 'active' : ''),
-                ]) ?>
-                <?= Html::a(\app\helpers\SvgHelper::icon('calendar-day', ['class' => 'me-1']) . ' Mode Daily', $filterWith(['mode' => 'daily']), [
-                    'class' => 'btn-tf ' . ($isDaily ? 'active' : ''),
-                ]) ?>
-            </div>
-            <a href="<?= Url::to(array_merge(['scanner/run-scan'], $currentGet)) ?>" class="btn btn-warning btn-sm fw-bold px-3 shadow-sm rounded-pill">
-                <?= \app\helpers\SvgHelper::icon('arrow-clockwise') ?> <?= $isDaily ? 'Scan Harian' : 'Scan Mingguan' ?>
-            </a>
         </div>
     </div>
 </div>
@@ -380,44 +382,52 @@ $dailyColumns = [
 <!-- KPI Metric Summary Cards (Interactive Quick Filters) -->
 <div class="row g-3 mb-4">
     <div class="col-6 col-md-3">
-        <a href="<?= Url::to(['/scanner/index', 'mode' => $searchModel->mode]) ?>" class="text-decoration-none">
-            <div class="kpi-card-unified kpi-accent-indigo h-100">
-                <div class="kpi-card-label">Total Saham Lolos</div>
-                <div class="kpi-card-value text-indigo-700"><?= number_format((int) ($stats['total'] ?? 0)) ?></div>
-                <div class="kpi-card-sub text-muted">
+        <a href="<?= Url::to(['/scanner/index', 'mode' => $searchModel->mode]) ?>" class="kpi-card-unified card border-0 shadow-sm text-decoration-none h-100 kpi-accent-indigo">
+            <div class="card-body p-3 d-flex flex-column justify-content-between">
+                <div>
+                    <div class="kpi-card-label">Total Saham Lolos</div>
+                    <div class="kpi-card-value text-indigo-700"><?= number_format((int) ($stats['total'] ?? 0)) ?></div>
+                </div>
+                <div class="kpi-card-sub text-muted mt-2">
                     <?= \app\helpers\SvgHelper::icon('arrow-counterclockwise', ['class' => 'me-1']) ?> Reset filter
                 </div>
             </div>
         </a>
     </div>
     <div class="col-6 col-md-3">
-        <a href="<?= $isDaily ? $filterWith(['minBuyRatio' => '0.7', 'minChangePct' => '2.0']) : $filterWith(['signal' => 'STRONG_BUY']) ?>" class="text-decoration-none">
-            <div class="kpi-card-unified kpi-accent-emerald h-100 <?= ((!$isDaily && $searchModel->signal === 'STRONG_BUY') || ($isDaily && $searchModel->minBuyRatio == 0.7 && $searchModel->minChangePct == 2.0)) ? 'kpi-selected' : '' ?>">
-                <div class="kpi-card-label"><?= $isDaily ? 'Strong Breakout' : 'Strong Buy Signals' ?></div>
-                <div class="kpi-card-value text-emerald-700"><?= number_format((int) ($stats['strongBuy'] ?? 0)) ?></div>
-                <div class="kpi-card-sub text-emerald-600">
+        <a href="<?= $isDaily ? $filterWith(['minBuyRatio' => '0.7', 'minChangePct' => '2.0']) : $filterWith(['signal' => 'STRONG_BUY']) ?>" class="kpi-card-unified card border-0 shadow-sm text-decoration-none h-100 kpi-accent-emerald <?= ((!$isDaily && $searchModel->signal === 'STRONG_BUY') || ($isDaily && $searchModel->minBuyRatio == 0.7 && $searchModel->minChangePct == 2.0)) ? 'kpi-selected' : '' ?>">
+            <div class="card-body p-3 d-flex flex-column justify-content-between">
+                <div>
+                    <div class="kpi-card-label"><?= $isDaily ? 'Strong Breakout' : 'Strong Buy Signals' ?></div>
+                    <div class="kpi-card-value text-emerald-700"><?= number_format((int) ($stats['strongBuy'] ?? 0)) ?></div>
+                </div>
+                <div class="kpi-card-sub text-emerald-600 mt-2">
                     <?= \app\helpers\SvgHelper::icon('gem', ['class' => 'me-1']) ?> <?= $isDaily ? 'Tekanan Beli & Gain Tinggi' : 'Dominasi Akumulasi Kuat' ?>
                 </div>
             </div>
         </a>
     </div>
     <div class="col-6 col-md-3">
-        <a href="<?= $filterWith(['minBuyRatio' => '0.7']) ?>" class="text-decoration-none">
-            <div class="kpi-card-unified kpi-accent-cyan h-100 <?= ($searchModel->minBuyRatio == 0.7) ? 'kpi-selected' : '' ?>">
-                <div class="kpi-card-label">Akumulasi &ge; 70%</div>
-                <div class="kpi-card-value text-cyan-700"><?= number_format((int) ($stats['heavyAccumulation'] ?? 0)) ?></div>
-                <div class="kpi-card-sub text-cyan-600">
+        <a href="<?= $filterWith(['minBuyRatio' => '0.7']) ?>" class="kpi-card-unified card border-0 shadow-sm text-decoration-none h-100 kpi-accent-cyan <?= ($searchModel->minBuyRatio == 0.7) ? 'kpi-selected' : '' ?>">
+            <div class="card-body p-3 d-flex flex-column justify-content-between">
+                <div>
+                    <div class="kpi-card-label">Akumulasi &ge; 70%</div>
+                    <div class="kpi-card-value text-cyan-700"><?= number_format((int) ($stats['heavyAccumulation'] ?? 0)) ?></div>
+                </div>
+                <div class="kpi-card-sub text-cyan-600 mt-2">
                     <?= \app\helpers\SvgHelper::icon('buildings', ['class' => 'me-1']) ?> Tekanan Beli Tinggi
                 </div>
             </div>
         </a>
     </div>
     <div class="col-6 col-md-3">
-        <a href="<?= $isDaily ? $filterWith(['minChangePct' => '2.0']) : $filterWith(['minRvol' => '1.5']) ?>" class="text-decoration-none">
-            <div class="kpi-card-unified kpi-accent-amber h-100 <?= (($isDaily && $searchModel->minChangePct == 2.0) || (!$isDaily && $searchModel->minRvol == 1.5)) ? 'kpi-selected' : '' ?>">
-                <div class="kpi-card-label"><?= $isDaily ? 'Rata-rata Buy Pressure' : 'Rata-rata RVOL' ?></div>
-                <div class="kpi-card-value text-amber-700"><?= number_format((float) ($stats['avgRvol'] ?? 0), 1) ?><?= $isDaily ? '%' : 'x' ?></div>
-                <div class="kpi-card-sub text-amber-600">
+        <a href="<?= $isDaily ? $filterWith(['minChangePct' => '2.0']) : $filterWith(['minRvol' => '1.5']) ?>" class="kpi-card-unified card border-0 shadow-sm text-decoration-none h-100 kpi-accent-amber <?= (($isDaily && $searchModel->minChangePct == 2.0) || (!$isDaily && $searchModel->minRvol == 1.5)) ? 'kpi-selected' : '' ?>">
+            <div class="card-body p-3 d-flex flex-column justify-content-between">
+                <div>
+                    <div class="kpi-card-label"><?= $isDaily ? 'Rata-rata Buy Pressure' : 'Rata-rata RVOL' ?></div>
+                    <div class="kpi-card-value text-amber-700"><?= number_format((float) ($stats['avgRvol'] ?? 0), 1) ?><?= $isDaily ? '%' : 'x' ?></div>
+                </div>
+                <div class="kpi-card-sub text-amber-600 mt-2">
                     <?= \app\helpers\SvgHelper::icon('lightning-fill', ['class' => 'me-1']) ?> <?= $isDaily ? 'Intensitas Akumulasi' : 'Aktivitas Relatif Mingguan' ?>
                 </div>
             </div>

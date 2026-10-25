@@ -489,6 +489,7 @@ body.sidebar-collapsed #main-content-col {
     gap: 2px;
 }
 
+a.btn-tf,
 .btn-group-tf .btn-tf {
     padding: 0.32rem 0.75rem;
     font-size: 0.78rem;
@@ -497,18 +498,20 @@ body.sidebar-collapsed #main-content-col {
     border: none;
     background: transparent;
     border-radius: 0.5rem;
-    text-decoration: none;
+    text-decoration: none !important;
     transition: all 0.15s ease-in-out;
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
 }
 
+a.btn-tf:hover,
 .btn-group-tf .btn-tf:hover {
     color: #0f172a;
     background: rgba(255, 255, 255, 0.6);
 }
 
+a.btn-tf.active,
 .btn-group-tf .btn-tf.active {
     background: #ffffff;
     color: var(--brand-primary);
@@ -516,6 +519,7 @@ body.sidebar-collapsed #main-content-col {
 }
 
 /* 3. Unified KPI Metric Cards */
+a.kpi-card-unified,
 .kpi-card-unified {
     background: #ffffff;
     border: 1px solid var(--border-light);
@@ -530,12 +534,16 @@ body.sidebar-collapsed #main-content-col {
     justify-content: space-between;
     transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
     text-decoration: none !important;
+    color: inherit !important;
 }
 
+a.kpi-card-unified:hover,
 .kpi-card-unified:hover {
     transform: translateY(-2px);
     box-shadow: var(--shadow-hover);
     border-color: #cbd5e1;
+    text-decoration: none !important;
+    color: inherit !important;
 }
 
 .kpi-card-unified::before {
@@ -597,44 +605,57 @@ body.sidebar-collapsed #main-content-col {
     background: #ffffff;
     border: 1px solid var(--border-light);
     border-radius: 0.875rem;
-    padding: 1.15rem 1.25rem;
+    padding: 0;
     margin-bottom: 1.5rem;
     box-shadow: var(--shadow-soft);
+    overflow: hidden;
+}
+
+.filter-card-unified .filter-card-header {
+    background: #ffffff;
+    border-bottom: 1px solid var(--border-subtle);
+    padding: 0.75rem 1.25rem;
+}
+
+.filter-card-unified .filter-card-body {
+    padding: 1.15rem 1.25rem;
 }
 
 .preset-pills-bar {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 0.5rem;
-    padding-bottom: 0.85rem;
-    margin-bottom: 0.85rem;
-    border-bottom: 1px solid var(--border-subtle);
+    gap: 0.45rem;
+    margin-bottom: 0;
 }
 
+a.preset-pill,
 .preset-pill {
     font-size: 0.78rem;
     font-weight: 600;
-    padding: 0.32rem 0.85rem;
+    padding: 0.35rem 0.85rem;
     border-radius: 9999px;
     background: #f1f5f9;
     color: #475569;
-    border: 1px solid transparent;
-    text-decoration: none;
+    border: 1px solid #e2e8f0;
+    text-decoration: none !important;
     transition: all 0.15s ease-in-out;
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
 }
 
+a.preset-pill:hover,
 .preset-pill:hover {
     background: #e2e8f0;
     color: #0f172a;
+    text-decoration: none !important;
 }
 
+a.preset-pill.active,
 .preset-pill.active {
     background: var(--brand-primary);
-    color: #ffffff;
+    color: #ffffff !important;
     border-color: var(--brand-primary);
     box-shadow: 0 2px 6px rgba(79, 70, 229, 0.25);
 }

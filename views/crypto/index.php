@@ -22,60 +22,62 @@ $tfLabels = CryptoPrice::SUPPORTED_TIMEFRAMES;
 
 <div class="crypto-index pb-5">
     <!-- Header Section with Live Status -->
-    <div class="app-hero-header mb-4">
-        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
-            <div>
-                <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
-                    <div class="app-hero-icon text-warning bg-warning bg-opacity-10">
-                        <i class="bi bi-currency-bitcoin"></i>
-                    </div>
-                    <div>
-                        <div class="d-flex align-items-center gap-2 flex-wrap">
-                            <h1 class="app-hero-title mb-0">Crypto Volume Analyzer</h1>
-                            <span class="badge bg-dark text-warning border border-warning px-2 py-1 d-inline-flex align-items-center gap-1 rounded-pill">
-                                <span class="live-pulse"></span> MARKET 24/7 LIVE
-                            </span>
-                            <span class="badge bg-light text-secondary border px-2 py-1 rounded-pill">Binance Spot</span>
+    <div class="card border-0 shadow-sm mb-4 app-hero-header">
+        <div class="card-body p-3 p-md-4">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                <div>
+                    <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                        <div class="app-hero-icon text-warning bg-warning bg-opacity-10">
+                            <i class="bi bi-currency-bitcoin"></i>
                         </div>
-                        <p class="app-hero-desc mb-0 mt-1">
-                            Deteksi <strong>Real Buying Pressure</strong> koin crypto berdasarkan data asli <em>Taker Buy Volume</em> Binance (aggressor orderflow).
-                        </p>
+                        <div>
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <h1 class="app-hero-title mb-0">Crypto Volume Analyzer</h1>
+                                <span class="badge bg-dark text-warning border border-warning px-2 py-1 d-inline-flex align-items-center gap-1 rounded-pill">
+                                    <span class="live-pulse"></span> MARKET 24/7 LIVE
+                                </span>
+                                <span class="badge bg-light text-secondary border px-2 py-1 rounded-pill">Binance Spot</span>
+                            </div>
+                            <p class="app-hero-desc mb-0 mt-1">
+                                Deteksi <strong>Real Buying Pressure</strong> koin crypto berdasarkan data asli <em>Taker Buy Volume</em> Binance (aggressor orderflow).
+                            </p>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Currency & Timeframe Toolbar -->
-            <div class="d-flex align-items-center gap-2 flex-wrap">
-                <!-- Currency Switcher -->
-                <div class="btn-group btn-group-sm shadow-sm" role="group" title="Pilih Mata Uang Denominasi">
-                    <a href="<?= Url::to(['/crypto/index', 'timeframe' => $timeframe, 'signal' => $signalFilter, 'search' => $search, 'sort' => $sort, 'currency' => 'IDR']) ?>"
-                       class="btn <?= $currency === 'IDR' ? 'btn-success active fw-bold' : 'btn-outline-secondary' ?>">
-                        🇮🇩 IDR (Rp)
-                    </a>
-                    <a href="<?= Url::to(['/crypto/index', 'timeframe' => $timeframe, 'signal' => $signalFilter, 'search' => $search, 'sort' => $sort, 'currency' => 'USDT']) ?>"
-                       class="btn <?= $currency === 'USDT' ? 'btn-primary active fw-bold' : 'btn-outline-secondary' ?>">
-                        💵 USDT ($)
-                    </a>
-                </div>
-
-                <!-- Live Kurs Badge -->
-                <span class="badge bg-light text-dark border shadow-xs d-none d-sm-inline-flex align-items-center gap-1 font-monospace rounded-pill" style="font-size: 0.72rem;" title="Kurs Live USDT/IDR Binance Spot">
-                    <span class="live-pulse" style="width: 6px; height: 6px;"></span>
-                    1 USDT = Rp <?= number_format($usdtIdrRate, 0, ',', '.') ?>
-                </span>
-
-                <div class="btn-group-tf shadow-sm">
-                    <?php foreach ($tfLabels as $tfKey => $tfName): ?>
-                        <a href="<?= Url::to(['/crypto/index', 'timeframe' => $tfKey, 'signal' => $signalFilter, 'search' => $search, 'sort' => $sort, 'currency' => $currency]) ?>"
-                           class="btn-tf <?= $timeframe === $tfKey ? 'active' : '' ?>">
-                            <?= strtoupper($tfKey) ?>
+                <!-- Currency & Timeframe Toolbar -->
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <!-- Currency Switcher -->
+                    <div class="btn-group btn-group-sm shadow-sm" role="group" title="Pilih Mata Uang Denominasi">
+                        <a href="<?= Url::to(['/crypto/index', 'timeframe' => $timeframe, 'signal' => $signalFilter, 'search' => $search, 'sort' => $sort, 'currency' => 'IDR']) ?>"
+                           class="btn <?= $currency === 'IDR' ? 'btn-success active fw-bold' : 'btn-outline-secondary' ?>">
+                            🇮🇩 IDR (Rp)
                         </a>
-                    <?php endforeach; ?>
+                        <a href="<?= Url::to(['/crypto/index', 'timeframe' => $timeframe, 'signal' => $signalFilter, 'search' => $search, 'sort' => $sort, 'currency' => 'USDT']) ?>"
+                           class="btn <?= $currency === 'USDT' ? 'btn-primary active fw-bold' : 'btn-outline-secondary' ?>">
+                            💵 USDT ($)
+                        </a>
+                    </div>
+
+                    <!-- Live Kurs Badge -->
+                    <span class="badge bg-light text-dark border shadow-xs d-none d-sm-inline-flex align-items-center gap-1 font-monospace rounded-pill" style="font-size: 0.72rem;" title="Kurs Live USDT/IDR Binance Spot">
+                        <span class="live-pulse" style="width: 6px; height: 6px;"></span>
+                        1 USDT = Rp <?= number_format($usdtIdrRate, 0, ',', '.') ?>
+                    </span>
+
+                    <div class="btn-group-tf btn-group btn-group-sm p-1 bg-light rounded-pill border shadow-sm">
+                        <?php foreach ($tfLabels as $tfKey => $tfName): ?>
+                            <a href="<?= Url::to(['/crypto/index', 'timeframe' => $tfKey, 'signal' => $signalFilter, 'search' => $search, 'sort' => $sort, 'currency' => $currency]) ?>"
+                               class="btn-tf btn btn-sm rounded-pill px-3 <?= $timeframe === $tfKey ? 'active' : '' ?>">
+                                <?= strtoupper($tfKey) ?>
+                            </a>
+                        <?php endforeach; ?>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-success shadow-sm d-inline-flex align-items-center gap-1 rounded-pill" id="btn-sync-all" onclick="syncAllCrypto()">
+                        <i class="bi bi-arrow-repeat" id="icon-sync-spin"></i>
+                        <span id="text-sync-btn">Refresh Data</span>
+                    </button>
                 </div>
-                <button type="button" class="btn btn-sm btn-outline-success shadow-sm d-inline-flex align-items-center gap-1 rounded-pill" id="btn-sync-all" onclick="syncAllCrypto()">
-                    <i class="bi bi-arrow-repeat" id="icon-sync-spin"></i>
-                    <span id="text-sync-btn">Refresh Data</span>
-                </button>
             </div>
         </div>
     </div>
@@ -88,63 +90,85 @@ $tfLabels = CryptoPrice::SUPPORTED_TIMEFRAMES;
     <!-- KPI Summary Cards -->
     <div class="row g-3 mb-4">
         <div class="col-6 col-md-3">
-            <div class="kpi-card-unified kpi-accent-indigo h-100">
-                <div class="kpi-card-label">Total Dipantau</div>
-                <div class="kpi-card-value text-indigo-700"><?= $stats['filtered'] ?> <span class="fs-6 fw-normal text-muted">/ <?= $stats['total'] ?> Koin</span></div>
-                <div class="kpi-card-sub text-muted mt-1">Top likuiditas USDT</div>
-            </div>
-        </div>
-
-        <div class="col-6 col-md-3">
-            <div class="kpi-card-unified kpi-accent-emerald h-100">
-                <div class="kpi-card-label">Akumulasi Kuat</div>
-                <div class="kpi-card-value text-emerald-700"><?= $stats['strongBuy'] ?> <span class="fs-6 fw-normal text-muted">Koin</span></div>
-                <div class="kpi-card-sub mt-1 d-flex flex-wrap align-items-center gap-1">
-                    <span class="text-emerald-600"><span class="fw-bold"><?= $stats['heavyAccum'] ?></span> Buy &ge;65%</span>
-                    <?php if (($stats['shakeoutCount'] ?? 0) > 0): ?>
-                        <a href="<?= Url::to(['/crypto/index', 'timeframe' => $timeframe, 'signal' => 'shakeout_low', 'currency' => $currency]) ?>" class="badge bg-warning text-dark text-decoration-none border border-warning" title="Lihat koin yang mengalami Shakeout Low / Liquidity Sweep">
-                            ⚡ <?= $stats['shakeoutCount'] ?> Shakeout
-                        </a>
-                    <?php endif; ?>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-6 col-md-3">
-            <div class="kpi-card-unified kpi-accent-cyan h-100">
-                <div class="kpi-card-label">Rata-rata Buy Pressure</div>
-                <div class="kpi-card-value <?= $stats['avgBuyRatio'] >= 50 ? 'text-cyan-700' : 'text-rose-700' ?>">
-                    <?= number_format($stats['avgBuyRatio'], 1) ?>%
-                </div>
-                <div class="progress mt-2" style="height: 6px;">
-                    <div class="progress-bar bg-success" style="width: <?= $stats['avgBuyRatio'] ?>%"></div>
-                    <div class="progress-bar bg-danger" style="width: <?= 100 - $stats['avgBuyRatio'] ?>%"></div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-6 col-md-3">
-            <div class="kpi-card-unified kpi-accent-amber h-100">
-                <div class="kpi-card-label">Top Mover 24H</div>
-                <?php if ($stats['topGainer']): ?>
-                    <div class="fw-bold text-success mb-0 d-flex align-items-center justify-content-between">
-                        <span><?= Html::encode($stats['topGainer']['symbol']) ?></span>
-                        <span>+<?= number_format($stats['topGainer']['change'], 2) ?>%</span>
+            <div class="kpi-card-unified card border-0 shadow-sm h-100 kpi-accent-indigo">
+                <div class="card-body p-3 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="kpi-card-label">Total Dipantau</div>
+                        <div class="kpi-card-value text-indigo-700"><?= $stats['filtered'] ?> <span class="fs-6 fw-normal text-muted">/ <?= $stats['total'] ?> Koin</span></div>
                     </div>
-                <?php endif; ?>
-                <?php if ($stats['topLoser']): ?>
-                    <div class="small text-danger d-flex align-items-center justify-content-between mt-1">
-                        <span><?= Html::encode($stats['topLoser']['symbol']) ?></span>
-                        <span><?= number_format($stats['topLoser']['change'], 2) ?>%</span>
+                    <div class="kpi-card-sub text-muted mt-2">Top likuiditas USDT</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-3">
+            <div class="kpi-card-unified card border-0 shadow-sm h-100 kpi-accent-emerald">
+                <div class="card-body p-3 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="kpi-card-label">Akumulasi Kuat</div>
+                        <div class="kpi-card-value text-emerald-700"><?= $stats['strongBuy'] ?> <span class="fs-6 fw-normal text-muted">Koin</span></div>
                     </div>
-                <?php endif; ?>
+                    <div class="kpi-card-sub mt-2 d-flex flex-wrap align-items-center gap-1">
+                        <span class="text-emerald-600"><span class="fw-bold"><?= $stats['heavyAccum'] ?></span> Buy &ge;65%</span>
+                        <?php if (($stats['shakeoutCount'] ?? 0) > 0): ?>
+                            <a href="<?= Url::to(['/crypto/index', 'timeframe' => $timeframe, 'signal' => 'shakeout_low', 'currency' => $currency]) ?>" class="badge bg-warning text-dark text-decoration-none border border-warning" title="Lihat koin yang mengalami Shakeout Low / Liquidity Sweep">
+                                ⚡ <?= $stats['shakeoutCount'] ?> Shakeout
+                            </a>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-3">
+            <div class="kpi-card-unified card border-0 shadow-sm h-100 kpi-accent-cyan">
+                <div class="card-body p-3 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="kpi-card-label">Rata-rata Buy Pressure</div>
+                        <div class="kpi-card-value <?= $stats['avgBuyRatio'] >= 50 ? 'text-cyan-700' : 'text-rose-700' ?>">
+                            <?= number_format($stats['avgBuyRatio'], 1) ?>%
+                        </div>
+                        <div class="progress mt-2" style="height: 6px;">
+                            <div class="progress-bar bg-success" style="width: <?= $stats['avgBuyRatio'] ?>%"></div>
+                            <div class="progress-bar bg-danger" style="width: <?= 100 - $stats['avgBuyRatio'] ?>%"></div>
+                        </div>
+                    </div>
+                    <div class="kpi-card-sub text-muted mt-2">
+                        Tekanan beli agregat
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-3">
+            <div class="kpi-card-unified card border-0 shadow-sm h-100 kpi-accent-amber">
+                <div class="card-body p-3 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="kpi-card-label">Top Mover 24H</div>
+                        <?php if ($stats['topGainer']): ?>
+                            <div class="fw-bold text-success mb-0 d-flex align-items-center justify-content-between">
+                                <span><?= Html::encode($stats['topGainer']['symbol']) ?></span>
+                                <span>+<?= number_format($stats['topGainer']['change'], 2) ?>%</span>
+                            </div>
+                        <?php endif; ?>
+                        <?php if ($stats['topLoser']): ?>
+                            <div class="small text-danger d-flex align-items-center justify-content-between mt-1">
+                                <span><?= Html::encode($stats['topLoser']['symbol']) ?></span>
+                                <span><?= number_format($stats['topLoser']['change'], 2) ?>%</span>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                    <div class="kpi-card-sub text-muted mt-2">
+                        Pergerakan harga 24 jam
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Filter & Search Toolbar -->
-    <div class="filter-card-unified mb-4">
-        <div class="filter-card-body p-3">
+    <div class="card border-0 shadow-sm mb-4 filter-card-unified">
+        <div class="card-body p-3 filter-card-body">
             <form method="get" action="<?= Url::to(['/crypto/index']) ?>" class="row g-2 align-items-center">
                 <input type="hidden" name="timeframe" value="<?= Html::encode($timeframe) ?>">
 

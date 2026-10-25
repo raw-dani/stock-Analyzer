@@ -30,31 +30,33 @@ $dailyAdvRatio = $totalDaily > 0 ? round(($gainersCount / $totalDaily) * 100, 1)
 
 <div class="dashboard-index">
     <!-- Header Page & Quick Actions -->
-    <div class="app-hero-header mb-4">
-        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
-            <div class="d-flex align-items-center gap-3">
-                <div class="app-hero-icon text-primary bg-primary bg-opacity-10">
-                    <?= \app\helpers\SvgHelper::icon('speedometer2') ?>
+    <div class="card border-0 shadow-sm mb-4 app-hero-header">
+        <div class="card-body p-3 p-md-4">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="app-hero-icon text-primary bg-primary bg-opacity-10">
+                        <?= \app\helpers\SvgHelper::icon('speedometer2') ?>
+                    </div>
+                    <div>
+                        <h1 class="app-hero-title mb-1">
+                            <?= Html::encode($this->title) ?>
+                        </h1>
+                        <p class="app-hero-desc mb-0">
+                            Pusat navigasi dan pemantauan menyeluruh: Volume Breakout Institusi, Pola Reversal, Confluence Multi-Indikator, serta Portofolio Aktif Anda.
+                        </p>
+                    </div>
                 </div>
-                <div>
-                    <h1 class="app-hero-title mb-1">
-                        <?= Html::encode($this->title) ?>
-                    </h1>
-                    <p class="app-hero-desc mb-0">
-                        Pusat navigasi dan pemantauan menyeluruh: Volume Breakout Institusi, Pola Reversal, Confluence Multi-Indikator, serta Portofolio Aktif Anda.
-                    </p>
+                <div class="d-flex gap-2 flex-wrap">
+                    <a href="<?= Url::to(['/strategy-confluence/index']) ?>" class="btn btn-outline-primary btn-sm px-3 shadow-sm fw-semibold rounded-pill">
+                        <?= \app\helpers\SvgHelper::icon('bullseye', ['class' => 'me-1']) ?> Confluence PRO
+                    </a>
+                    <a href="<?= Url::to(['/portfolio/index']) ?>" class="btn btn-success btn-sm px-3 shadow-sm fw-bold rounded-pill">
+                        <?= \app\helpers\SvgHelper::icon('briefcase-fill', ['class' => 'me-1']) ?> Portofolio
+                    </a>
+                    <a href="<?= Url::to(['/scanner/index']) ?>" class="btn btn-primary btn-sm px-3 shadow-sm fw-semibold rounded-pill">
+                        <?= \app\helpers\SvgHelper::icon('search', ['class' => 'me-1']) ?> Volume Scanner
+                    </a>
                 </div>
-            </div>
-            <div class="d-flex gap-2 flex-wrap">
-                <a href="<?= Url::to(['/strategy-confluence/index']) ?>" class="btn btn-outline-primary btn-sm px-3 shadow-sm fw-semibold rounded-pill">
-                    <?= \app\helpers\SvgHelper::icon('bullseye', ['class' => 'me-1']) ?> Confluence PRO
-                </a>
-                <a href="<?= Url::to(['/portfolio/index']) ?>" class="btn btn-success btn-sm px-3 shadow-sm fw-bold rounded-pill">
-                    <?= \app\helpers\SvgHelper::icon('briefcase-fill', ['class' => 'me-1']) ?> Portofolio
-                </a>
-                <a href="<?= Url::to(['/scanner/index']) ?>" class="btn btn-primary btn-sm px-3 shadow-sm fw-semibold rounded-pill">
-                    <?= \app\helpers\SvgHelper::icon('search', ['class' => 'me-1']) ?> Volume Scanner
-                </a>
             </div>
         </div>
     </div>
@@ -161,75 +163,91 @@ $dailyAdvRatio = $totalDaily > 0 ? round(($gainersCount / $totalDaily) * 100, 1)
     <div class="row g-3 mb-4">
         <!-- Market Breadth / Advance-Decline -->
         <div class="col-md-6 col-lg-3">
-            <div class="kpi-card-unified kpi-accent-emerald h-100">
-                <div class="d-flex justify-content-between align-items-center mb-1">
-                    <span class="kpi-card-label mb-0">Market Breadth (Harian)</span>
-                    <span class="badge bg-light text-muted border"><?= Html::encode($lastDailyDate ?? 'N/A') ?></span>
-                </div>
-                <div class="d-flex align-items-baseline gap-2 mb-2">
-                    <div class="kpi-card-value text-emerald-700 mb-0"><?= $gainersCount ?> Naik</div>
-                    <span class="text-muted">vs</span>
-                    <div class="h5 text-danger mb-0"><?= $losersCount ?> Turun</div>
-                </div>
-                <div class="progress" style="height: 6px;">
-                    <div class="progress-bar bg-success" style="width: <?= $dailyAdvRatio ?>%"></div>
-                    <div class="progress-bar bg-danger" style="width: <?= 100 - $dailyAdvRatio ?>%"></div>
-                </div>
-                <div class="d-flex justify-content-between text-muted small mt-2" style="font-size: 0.75rem;">
-                    <span><?= $dailyAdvRatio ?>% Advancing</span>
-                    <span>Total <?= $totalDaily ?> Saham</span>
+            <div class="kpi-card-unified card border-0 shadow-sm h-100 kpi-accent-emerald">
+                <div class="card-body p-3 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="kpi-card-label mb-0">Market Breadth (Harian)</span>
+                            <span class="badge bg-light text-muted border"><?= Html::encode($lastDailyDate ?? 'N/A') ?></span>
+                        </div>
+                        <div class="d-flex align-items-baseline gap-2 mb-2">
+                            <div class="kpi-card-value text-emerald-700 mb-0"><?= $gainersCount ?> Naik</div>
+                            <span class="text-muted">vs</span>
+                            <div class="h5 text-danger mb-0"><?= $losersCount ?> Turun</div>
+                        </div>
+                        <div class="progress" style="height: 6px;">
+                            <div class="progress-bar bg-success" style="width: <?= $dailyAdvRatio ?>%"></div>
+                            <div class="progress-bar bg-danger" style="width: <?= 100 - $dailyAdvRatio ?>%"></div>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between text-muted small mt-2" style="font-size: 0.75rem;">
+                        <span><?= $dailyAdvRatio ?>% Advancing</span>
+                        <span>Total <?= $totalDaily ?> Saham</span>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Market Volume (Mingguan) -->
         <div class="col-md-6 col-lg-3">
-            <div class="kpi-card-unified kpi-accent-indigo h-100">
-                <div class="kpi-card-label">Total Volume Pasar</div>
-                <div class="kpi-card-value text-indigo-700"><?= $fmt->asVolume($marketVolume) ?></div>
-                <div class="kpi-card-sub text-muted mt-2">
-                    Minggu: <strong><?= Html::encode($lastWeek ?? 'N/A') ?></strong>
+            <div class="kpi-card-unified card border-0 shadow-sm h-100 kpi-accent-indigo">
+                <div class="card-body p-3 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="kpi-card-label">Total Volume Pasar</div>
+                        <div class="kpi-card-value text-indigo-700"><?= $fmt->asVolume($marketVolume) ?></div>
+                    </div>
+                    <div class="kpi-card-sub text-muted mt-2">
+                        Minggu: <strong><?= Html::encode($lastWeek ?? 'N/A') ?></strong>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Buy Pressure (Akumulasi Institusi) -->
         <div class="col-md-6 col-lg-3">
-            <div class="kpi-card-unified kpi-accent-cyan h-100">
-                <div class="kpi-card-label">Rasio Tekanan Beli</div>
-                <div class="kpi-card-value text-cyan-700"><?= $fmt->asRatioPercent($buyPressure) ?></div>
-                <div class="progress my-2" style="height: 6px;">
-                    <div class="progress-bar bg-success" style="width: <?= round($buyPressure * 100) ?>%"></div>
-                    <div class="progress-bar bg-danger" style="width: <?= round((1 - $buyPressure) * 100) ?>%"></div>
-                </div>
-                <div class="kpi-card-sub text-muted">
-                    Institusional Akumulasi (Buy / Total)
+            <div class="kpi-card-unified card border-0 shadow-sm h-100 kpi-accent-cyan">
+                <div class="card-body p-3 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="kpi-card-label">Rasio Tekanan Beli</div>
+                        <div class="kpi-card-value text-cyan-700"><?= $fmt->asRatioPercent($buyPressure) ?></div>
+                        <div class="progress my-2" style="height: 6px;">
+                            <div class="progress-bar bg-success" style="width: <?= round($buyPressure * 100) ?>%"></div>
+                            <div class="progress-bar bg-danger" style="width: <?= round((1 - $buyPressure) * 100) ?>%"></div>
+                        </div>
+                    </div>
+                    <div class="kpi-card-sub text-muted mt-2">
+                        Institusional Akumulasi (Buy / Total)
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Total Sinyal Terverifikasi -->
         <div class="col-md-6 col-lg-3">
-            <div class="kpi-card-unified kpi-accent-amber h-100">
-                <?php
-                    $signalMap = [];
-                    foreach ($signalCount as $row) {
-                        $signalMap[$row['signal']] = (int) $row['cnt'];
-                    }
-                    $strongBuy = ($signalMap['STRONG_BUY'] ?? 0) + ($signalMap['BUY'] ?? 0);
-                    $totalSignals = array_sum($signalMap);
-                ?>
-                <div class="d-flex justify-content-between align-items-center mb-1">
-                    <span class="kpi-card-label mb-0">Sinyal Buy / Strong Buy</span>
-                    <span class="badge bg-success-subtle text-success border border-success-subtle"><?= $strongBuy ?> Aktif</span>
-                </div>
-                <div class="kpi-card-value text-amber-700"><?= $strongBuy ?> <span class="fs-6 fw-normal text-muted">/ <?= $totalSignals ?> sinyal</span></div>
-                <div class="d-flex flex-wrap gap-1 mt-2">
-                    <?php foreach ($signalCount as $row): ?>
-                        <span class="badge bg-light text-dark border px-1" style="font-size: 0.7rem;">
-                            <?= Html::encode($row['signal']) ?>: <strong><?= $row['cnt'] ?></strong>
-                        </span>
-                    <?php endforeach; ?>
+            <div class="kpi-card-unified card border-0 shadow-sm h-100 kpi-accent-amber">
+                <div class="card-body p-3 d-flex flex-column justify-content-between">
+                    <div>
+                        <?php
+                            $signalMap = [];
+                            foreach ($signalCount as $row) {
+                                $signalMap[$row['signal']] = (int) $row['cnt'];
+                            }
+                            $strongBuy = ($signalMap['STRONG_BUY'] ?? 0) + ($signalMap['BUY'] ?? 0);
+                            $totalSignals = array_sum($signalMap);
+                        ?>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="kpi-card-label mb-0">Sinyal Buy / Strong Buy</span>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle"><?= $strongBuy ?> Aktif</span>
+                        </div>
+                        <div class="kpi-card-value text-amber-700"><?= $strongBuy ?> <span class="fs-6 fw-normal text-muted">/ <?= $totalSignals ?> sinyal</span></div>
+                    </div>
+                    <div class="d-flex flex-wrap gap-1 mt-2">
+                        <?php foreach ($signalCount as $row): ?>
+                            <span class="badge bg-light text-dark border px-1" style="font-size: 0.7rem;">
+                                <?= Html::encode($row['signal']) ?>: <strong><?= $row['cnt'] ?></strong>
+                            </span>
+                        <?php endforeach; ?>
+                    </div>
                 </div>
             </div>
         </div>

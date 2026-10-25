@@ -31,34 +31,36 @@ $badgeAction = [
 ];
 ?>
 
-<div class="app-hero-header mb-4">
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
-        <div class="d-flex align-items-center gap-3">
-            <div class="app-hero-icon text-primary bg-primary bg-opacity-10">
-                <?= \app\helpers\SvgHelper::icon('bar-chart-steps') ?>
+<div class="card border-0 shadow-sm mb-4 app-hero-header">
+    <div class="card-body p-3 p-md-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="app-hero-icon text-primary bg-primary bg-opacity-10">
+                    <?= \app\helpers\SvgHelper::icon('bar-chart-steps') ?>
+                </div>
+                <div>
+                    <h1 class="app-hero-title mb-1">
+                        <?= Html::encode($this->title) ?>
+                    </h1>
+                    <p class="app-hero-desc mb-0">
+                        Analisa pola potensial (<strong>Hammer, Shooting Star, Engulfing, Doji, Marubozu</strong>) untuk menentukan waktu beli &amp; jual presisi dengan <strong>konfirmasi volume multi-timeframe</strong>.
+                    </p>
+                </div>
             </div>
-            <div>
-                <h1 class="app-hero-title mb-1">
-                    <?= Html::encode($this->title) ?>
-                </h1>
-                <p class="app-hero-desc mb-0">
-                    Analisa pola potensial (<strong>Hammer, Shooting Star, Engulfing, Doji, Marubozu</strong>) untuk menentukan waktu beli &amp; jual presisi dengan <strong>konfirmasi volume multi-timeframe</strong>.
-                </p>
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <div class="btn-group-tf btn-group btn-group-sm p-1 bg-light rounded-pill border shadow-sm" id="tf-button-group">
+                    <?php foreach ($timeframes as $tfKey => $tfLabel): ?>
+                        <?= Html::a(
+                            Html::encode($tfLabel),
+                            $filterWith(['timeframe' => $tfKey]),
+                            ['class' => 'btn-tf btn btn-sm rounded-pill px-3 ' . ((int) $params['timeframe'] === (int) $tfKey ? 'active' : '')]
+                        ) ?>
+                    <?php endforeach; ?>
+                </div>
+                <span class="badge bg-dark px-3 py-2 fs-7 shadow-sm rounded-pill">
+                    TF: <?= Html::encode($timeframes[$params['timeframe']] ?? '1D') ?>
+                </span>
             </div>
-        </div>
-        <div class="d-flex flex-wrap align-items-center gap-2">
-            <div class="btn-group-tf shadow-sm" id="tf-button-group">
-                <?php foreach ($timeframes as $tfKey => $tfLabel): ?>
-                    <?= Html::a(
-                        Html::encode($tfLabel),
-                        $filterWith(['timeframe' => $tfKey]),
-                        ['class' => 'btn-tf ' . ((int) $params['timeframe'] === (int) $tfKey ? 'active' : '')]
-                    ) ?>
-                <?php endforeach; ?>
-            </div>
-            <span class="badge bg-dark px-3 py-2 fs-7 shadow-sm rounded-pill">
-                TF: <?= Html::encode($timeframes[$params['timeframe']] ?? '1D') ?>
-            </span>
         </div>
     </div>
 </div>
@@ -72,11 +74,13 @@ $badgeAction = [
 <div class="row g-3 mb-4">
     <!-- Card 1: Total Pola -->
     <div class="col-6 col-lg-2">
-        <a href="<?= Url::to(['/candlestick/index', 'timeframe' => $params['timeframe']]) ?>" class="text-decoration-none">
-            <div class="kpi-card-unified kpi-accent-indigo h-100 <?= (empty($params['action']) || $params['action'] === 'all') && empty($params['volume_filter']) && empty($params['pattern']) ? 'kpi-selected' : '' ?>">
-                <div class="kpi-card-label">Total Saham</div>
-                <div class="kpi-card-value text-indigo-700"><?= number_format((int) ($stats['total'] ?? 0)) ?></div>
-                <div class="kpi-card-sub text-muted">
+        <a href="<?= Url::to(['/candlestick/index', 'timeframe' => $params['timeframe']]) ?>" class="kpi-card-unified card border-0 shadow-sm text-decoration-none h-100 kpi-accent-indigo <?= (empty($params['action']) || $params['action'] === 'all') && empty($params['volume_filter']) && empty($params['pattern']) ? 'kpi-selected' : '' ?>">
+            <div class="card-body p-3 d-flex flex-column justify-content-between">
+                <div>
+                    <div class="kpi-card-label">Total Saham</div>
+                    <div class="kpi-card-value text-indigo-700"><?= number_format((int) ($stats['total'] ?? 0)) ?></div>
+                </div>
+                <div class="kpi-card-sub text-muted mt-2">
                     <?= \app\helpers\SvgHelper::icon('arrow-counterclockwise', ['class' => 'me-1']) ?> Reset filter
                 </div>
             </div>
@@ -85,11 +89,13 @@ $badgeAction = [
 
     <!-- Card 2: Sinyal Beli (Buy Setups) -->
     <div class="col-6 col-lg-2">
-        <a href="<?= $filterWith(['action' => 'buy_only', 'preset' => '']) ?>" class="text-decoration-none">
-            <div class="kpi-card-unified kpi-accent-emerald h-100 <?= ($params['action'] === 'buy_only') ? 'kpi-selected' : '' ?>">
-                <div class="kpi-card-label">Waktu Beli (Buys)</div>
-                <div class="kpi-card-value text-emerald-700"><?= number_format((int) ($stats['buyCount'] ?? 0)) ?></div>
-                <div class="kpi-card-sub text-emerald-600">
+        <a href="<?= $filterWith(['action' => 'buy_only', 'preset' => '']) ?>" class="kpi-card-unified card border-0 shadow-sm text-decoration-none h-100 kpi-accent-emerald <?= ($params['action'] === 'buy_only') ? 'kpi-selected' : '' ?>">
+            <div class="card-body p-3 d-flex flex-column justify-content-between">
+                <div>
+                    <div class="kpi-card-label">Waktu Beli (Buys)</div>
+                    <div class="kpi-card-value text-emerald-700"><?= number_format((int) ($stats['buyCount'] ?? 0)) ?></div>
+                </div>
+                <div class="kpi-card-sub text-emerald-600 mt-2">
                     <?= \app\helpers\SvgHelper::icon('cart-check', ['class' => 'me-1']) ?> Reversal &amp; Breakout
                 </div>
             </div>
@@ -98,11 +104,13 @@ $badgeAction = [
 
     <!-- Card 3: Volume Surge -->
     <div class="col-6 col-lg-2">
-        <a href="<?= $filterWith(['volume_filter' => 'surge_only', 'preset' => '']) ?>" class="text-decoration-none">
-            <div class="kpi-card-unified kpi-accent-cyan h-100 <?= ($params['volume_filter'] === 'surge_only') ? 'kpi-selected' : '' ?>">
-                <div class="kpi-card-label">Volume Surge</div>
-                <div class="kpi-card-value text-cyan-700"><?= number_format((int) ($stats['surgeCount'] ?? 0)) ?></div>
-                <div class="kpi-card-sub text-cyan-600">
+        <a href="<?= $filterWith(['volume_filter' => 'surge_only', 'preset' => '']) ?>" class="kpi-card-unified card border-0 shadow-sm text-decoration-none h-100 kpi-accent-cyan <?= ($params['volume_filter'] === 'surge_only') ? 'kpi-selected' : '' ?>">
+            <div class="card-body p-3 d-flex flex-column justify-content-between">
+                <div>
+                    <div class="kpi-card-label">Volume Surge</div>
+                    <div class="kpi-card-value text-cyan-700"><?= number_format((int) ($stats['surgeCount'] ?? 0)) ?></div>
+                </div>
+                <div class="kpi-card-sub text-cyan-600 mt-2">
                     <?= \app\helpers\SvgHelper::icon('lightning-charge-fill', ['class' => 'me-1']) ?> RVOL &ge; 2.0x
                 </div>
             </div>
@@ -111,11 +119,13 @@ $badgeAction = [
 
     <!-- Card 4: Volume Mendukung Kenaikan -->
     <div class="col-6 col-lg-2">
-        <a href="<?= $filterWith(['volume_filter' => 'supportive_only', 'preset' => '']) ?>" class="text-decoration-none">
-            <div class="kpi-card-unified kpi-accent-indigo h-100 <?= ($params['volume_filter'] === 'supportive_only') ? 'kpi-selected' : '' ?>">
-                <div class="kpi-card-label">Volume Mendukung</div>
-                <div class="kpi-card-value text-indigo-700"><?= number_format((int) ($stats['supportiveCount'] ?? 0)) ?></div>
-                <div class="kpi-card-sub text-muted">
+        <a href="<?= $filterWith(['volume_filter' => 'supportive_only', 'preset' => '']) ?>" class="kpi-card-unified card border-0 shadow-sm text-decoration-none h-100 kpi-accent-indigo <?= ($params['volume_filter'] === 'supportive_only') ? 'kpi-selected' : '' ?>">
+            <div class="card-body p-3 d-flex flex-column justify-content-between">
+                <div>
+                    <div class="kpi-card-label">Volume Mendukung</div>
+                    <div class="kpi-card-value text-indigo-700"><?= number_format((int) ($stats['supportiveCount'] ?? 0)) ?></div>
+                </div>
+                <div class="kpi-card-sub text-muted mt-2">
                     <?= \app\helpers\SvgHelper::icon('check2-circle', ['class' => 'me-1']) ?> Akumulasi Positif
                 </div>
             </div>
@@ -124,11 +134,13 @@ $badgeAction = [
 
     <!-- Card 5: Hammer / Pin Reversal -->
     <div class="col-6 col-lg-2">
-        <a href="<?= $filterWith(['pattern' => 'HAMMER', 'preset' => '']) ?>" class="text-decoration-none">
-            <div class="kpi-card-unified kpi-accent-amber h-100 <?= ($params['pattern'] === 'HAMMER') ? 'kpi-selected' : '' ?>">
-                <div class="kpi-card-label">Hammer 🔨</div>
-                <div class="kpi-card-value text-amber-700"><?= number_format((int) ($stats['hammerCount'] ?? 0)) ?></div>
-                <div class="kpi-card-sub text-amber-600">
+        <a href="<?= $filterWith(['pattern' => 'HAMMER', 'preset' => '']) ?>" class="kpi-card-unified card border-0 shadow-sm text-decoration-none h-100 kpi-accent-amber <?= ($params['pattern'] === 'HAMMER') ? 'kpi-selected' : '' ?>">
+            <div class="card-body p-3 d-flex flex-column justify-content-between">
+                <div>
+                    <div class="kpi-card-label">Hammer 🔨</div>
+                    <div class="kpi-card-value text-amber-700"><?= number_format((int) ($stats['hammerCount'] ?? 0)) ?></div>
+                </div>
+                <div class="kpi-card-sub text-amber-600 mt-2">
                     <?= \app\helpers\SvgHelper::icon('shield-check', ['class' => 'me-1']) ?> Reversal at Dip
                 </div>
             </div>
@@ -137,11 +149,13 @@ $badgeAction = [
 
     <!-- Card 6: Alert Jual (Sell Signals) -->
     <div class="col-6 col-lg-2">
-        <a href="<?= $filterWith(['action' => 'sell_only', 'preset' => '']) ?>" class="text-decoration-none">
-            <div class="kpi-card-unified kpi-accent-rose h-100 <?= ($params['action'] === 'sell_only') ? 'kpi-selected' : '' ?>">
-                <div class="kpi-card-label">Alert Jual ⭐/🔴</div>
-                <div class="kpi-card-value text-rose-700"><?= number_format((int) ($stats['sellCount'] ?? 0)) ?></div>
-                <div class="kpi-card-sub text-rose-600">
+        <a href="<?= $filterWith(['action' => 'sell_only', 'preset' => '']) ?>" class="kpi-card-unified card border-0 shadow-sm text-decoration-none h-100 kpi-accent-rose <?= ($params['action'] === 'sell_only') ? 'kpi-selected' : '' ?>">
+            <div class="card-body p-3 d-flex flex-column justify-content-between">
+                <div>
+                    <div class="kpi-card-label">Alert Jual ⭐/🔴</div>
+                    <div class="kpi-card-value text-rose-700"><?= number_format((int) ($stats['sellCount'] ?? 0)) ?></div>
+                </div>
+                <div class="kpi-card-sub text-rose-600 mt-2">
                     <?= \app\helpers\SvgHelper::icon('exclamation-octagon', ['class' => 'me-1']) ?> Exit &amp; Reversal
                 </div>
             </div>
@@ -150,9 +164,9 @@ $badgeAction = [
 </div>
 
 <!-- Strategy Quick Presets & Filter Form -->
-<div class="filter-card-unified mb-4">
-    <div class="filter-card-header">
-        <div class="filter-card-title">
+<div class="card border-0 shadow-sm mb-4 filter-card-unified">
+    <div class="card-header bg-white border-bottom py-2 px-3 filter-card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div class="filter-card-title fw-bold text-dark">
             <?= \app\helpers\SvgHelper::icon('funnel', ['class' => 'text-primary me-1']) ?> Parameter Filter Candlestick &amp; Volume
         </div>
         <div class="d-flex align-items-center gap-2">
@@ -183,63 +197,63 @@ $badgeAction = [
     </div>
 
     <!-- Quick Presets Pills -->
-    <div class="preset-pills-bar">
-        <span class="preset-pills-title">
+    <div class="px-3 py-2 bg-light border-bottom d-flex flex-wrap align-items-center gap-2 preset-pills-bar">
+        <span class="preset-pills-title text-muted small fw-bold">
             <?= \app\helpers\SvgHelper::icon('lightning-fill', ['class' => 'text-warning me-1']) ?> Presets:
         </span>
 
         <?= Html::a(
             \app\helpers\SvgHelper::icon('grid-fill') . ' Semua Sinyal',
             $filterWith(['preset' => '', 'pattern' => 'all', 'volume_filter' => 'all', 'action' => 'all']),
-            ['class' => 'preset-pill ' . (empty($params['preset']) && $params['pattern'] === 'all' && $params['volume_filter'] === 'all' && $params['action'] === 'all' ? 'active' : '')]
+            ['class' => 'preset-pill btn btn-sm rounded-pill px-3 py-1 ' . (empty($params['preset']) && $params['pattern'] === 'all' && $params['volume_filter'] === 'all' && $params['action'] === 'all' ? 'active' : '')]
         ) ?>
 
         <?= Html::a(
             '🔨 Hammer Buy',
             $filterWith(['preset' => 'buy_hammer']),
-            ['class' => 'preset-pill ' . ($params['preset'] === 'buy_hammer' ? 'active' : '')]
+            ['class' => 'preset-pill btn btn-sm rounded-pill px-3 py-1 ' . ($params['preset'] === 'buy_hammer' ? 'active' : '')]
         ) ?>
 
         <?= Html::a(
             \app\helpers\SvgHelper::icon('lightning-charge-fill', ['class' => 'text-warning']) . ' Shakeout Low (' . ($stats['shakeoutCount'] ?? 0) . ')',
             $filterWith(['preset' => 'shakeout_low', 'pattern' => 'SHAKEOUT_LOW']),
-            ['class' => 'preset-pill ' . ($params['preset'] === 'shakeout_low' || $params['pattern'] === 'SHAKEOUT_LOW' ? 'active' : '')]
+            ['class' => 'preset-pill btn btn-sm rounded-pill px-3 py-1 ' . ($params['preset'] === 'shakeout_low' || $params['pattern'] === 'SHAKEOUT_LOW' ? 'active' : '')]
         ) ?>
 
         <?= Html::a(
             '🟢 Bullish Engulfing',
             $filterWith(['preset' => 'buy_engulfing']),
-            ['class' => 'preset-pill ' . ($params['preset'] === 'buy_engulfing' ? 'active' : '')]
+            ['class' => 'preset-pill btn btn-sm rounded-pill px-3 py-1 ' . ($params['preset'] === 'buy_engulfing' ? 'active' : '')]
         ) ?>
 
         <?= Html::a(
             '⚡ Marubozu Momentum',
             $filterWith(['preset' => 'momentum_marubozu']),
-            ['class' => 'preset-pill ' . ($params['preset'] === 'momentum_marubozu' ? 'active' : '')]
+            ['class' => 'preset-pill btn btn-sm rounded-pill px-3 py-1 ' . ($params['preset'] === 'momentum_marubozu' ? 'active' : '')]
         ) ?>
 
         <?= Html::a(
             '🚀 Volume Surge',
             $filterWith(['preset' => 'volume_surge']),
-            ['class' => 'preset-pill ' . ($params['preset'] === 'volume_surge' ? 'active' : '')]
+            ['class' => 'preset-pill btn btn-sm rounded-pill px-3 py-1 ' . ($params['preset'] === 'volume_surge' ? 'active' : '')]
         ) ?>
 
         <?= Html::a(
             '✅ Volume Mendukung',
             $filterWith(['preset' => 'supportive_vol']),
-            ['class' => 'preset-pill ' . ($params['preset'] === 'supportive_vol' ? 'active' : '')]
+            ['class' => 'preset-pill btn btn-sm rounded-pill px-3 py-1 ' . ($params['preset'] === 'supportive_vol' ? 'active' : '')]
         ) ?>
 
         <?= Html::a(
             '✝️ Doji Watch',
             $filterWith(['preset' => 'doji_watch']),
-            ['class' => 'preset-pill ' . ($params['preset'] === 'doji_watch' ? 'active' : '')]
+            ['class' => 'preset-pill btn btn-sm rounded-pill px-3 py-1 ' . ($params['preset'] === 'doji_watch' ? 'active' : '')]
         ) ?>
 
         <?= Html::a(
             '🔻 Alert Jual / Exit',
             $filterWith(['preset' => 'sell_alerts']),
-            ['class' => 'preset-pill ' . ($params['preset'] === 'sell_alerts' ? 'active' : '')]
+            ['class' => 'preset-pill btn btn-sm rounded-pill px-3 py-1 ' . ($params['preset'] === 'sell_alerts' ? 'active' : '')]
         ) ?>
     </div>
 

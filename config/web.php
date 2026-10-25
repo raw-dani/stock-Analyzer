@@ -44,6 +44,11 @@ $config = [
             // !!! insert a secret key in the following (if it is empty) - this is required by cookie validation
             'cookieValidationKey' => 'C1GrSXlc54F01tB7cTQCvJxkXbmBeNDk',
         ],
+        'assetManager' => [
+            'appendTimestamp' => true,
+            'basePath' => '@webroot/assets',
+            'baseUrl' => '@web/assets',
+        ],
         'cache' => [
             'class' => 'yii\caching\FileCache',
         ],
