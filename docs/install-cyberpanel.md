@@ -220,17 +220,67 @@ Jika saat membuka menu (misal menu `/crypto`), muncul error:
 Penyebabnya adalah skema tabel modul belum dibuat di database MySQL CyberPanel atau masalah case-sensitivity pada Linux.
 
 ### Solusi 1: Jalankan Migrasi Database via SSH (Direkomendasikan)
+Jalankan perintah migrasi Yii2 di terminal SSH server:
 ```bash
 cd /home/stock.pemain12.com/public_html
-php yii migrate
+/usr/local/lsws/lsphp81/bin/php yii migrate --interactive=0
 ```
-Ketik `yes` saat konfirmasi untuk membuat tabel yang kurang (`crypto_asset`, `crypto_price`, `crypto_analysis`, dll).
+Perintah ini akan secara otomatis membuat seluruh tabel modul terbaru (`stock_dividend`, `stock_dividend_summary`, `blog_post`, `crypto_asset`, dll).
 
 ### Solusi 2: Buat Tabel via phpMyAdmin CyberPanel
 Jika tidak memiliki akses terminal SSH:
 1. Buka dashboard CyberPanel &rarr; **Databases** &rarr; **phpMyAdmin**.
-2. Pilih database website Anda.
-3. Buka tab **SQL**, paste query pembuatan tabel (misal tabel modul crypto), lalu klik **Go**.
+2. Pilih database website Anda (misal `stock_pemain12`).
+3. Buka tab **SQL**, paste query berikut lalu klik **Go**:
+
+```sql
+-- 1. Tabel Riwayat Dividen
+CREATE TABLE IF NOT EXISTS `stock_dividend` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `stock_id` INT NOT NULL,
+  `symbol` VARCHAR(16) NOT NULL,
+  `ex_date` VARCHAR(10) NOT NULL,
+  `amount` DECIMAL(10, 4) NOT NULL,
+  `record_date` VARCHAR(10) NULL,
+  `payment_date` VARCHAR(10) NULL,
+  `created_at` INT NOT NULL,
+  `updated_at` INT NOT NULL,
+  INDEX `idx-stock-div-sym` (`symbol`),
+  INDEX `idx-stock-div-stock-id` (`stock_id`),
+  INDEX `idx-stock-div-ex-date` (`ex_date`),
+  UNIQUE KEY `uidx-stock-div-sym-date` (`symbol`, `ex_date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 2. Tabel Ringkasan Metrik Dividen (Screener & Ranking)
+CREATE TABLE IF NOT EXISTS `stock_dividend_summary` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `stock_id` INT NOT NULL UNIQUE,
+  `symbol` VARCHAR(16) NOT NULL UNIQUE,
+  `company_name` VARCHAR(255) NULL,
+  `sector` VARCHAR(64) NULL,
+  `current_price` DECIMAL(12, 4) NOT NULL DEFAULT 0.0000,
+  `ttm_dividend` DECIMAL(10, 4) NOT NULL DEFAULT 0.0000,
+  `dividend_yield` DECIMAL(8, 2) NOT NULL DEFAULT 0.00,
+  `payout_frequency` VARCHAR(20) NOT NULL DEFAULT 'quarterly',
+  `payouts_per_year` INT NOT NULL DEFAULT 4,
+  `last_ex_date` VARCHAR(10) NULL,
+  `last_amount` DECIMAL(10, 4) NULL,
+  `estimated_next_ex_date` VARCHAR(10) NULL,
+  `consecutive_years` INT NOT NULL DEFAULT 1,
+  `safety_score` VARCHAR(32) NOT NULL DEFAULT 'Moderate',
+  `created_at` INT NOT NULL,
+  `updated_at` INT NOT NULL,
+  INDEX `idx-div-sum-yield` (`dividend_yield`),
+  INDEX `idx-div-sum-freq` (`payout_frequency`),
+  INDEX `idx-div-sum-next-date` (`estimated_next_ex_date`),
+  INDEX `idx-div-sum-sector` (`sector`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 3. Catat versi migrasi ke tabel migration
+INSERT INTO `migration` (`version`, `apply_time`) 
+VALUES ('m261026_213000_create_dividend_tables', UNIX_TIMESTAMP())
+ON DUPLICATE KEY UPDATE `apply_time` = UNIX_TIMESTAMP();
+```
 
 ### Solusi 3: Case-Sensitivity Table Names di Linux MySQL
 Linux MariaDB/MySQL bersifat case-sensitive. Jika nama tabel berbeda huruf kapital:
