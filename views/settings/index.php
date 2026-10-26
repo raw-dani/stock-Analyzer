@@ -198,6 +198,40 @@ $this->params['breadcrumbs'][] = $this->title;
                         </div>
                     </div>
                 </div>
+
+                <!-- 5. php yii dividend/sync-all -->
+                <div class="col-12 mt-3">
+                    <div class="card border bg-light shadow-sm">
+                        <div class="card-body p-3 d-flex justify-content-between align-items-center flex-wrap gap-3">
+                            <div class="d-flex align-items-center gap-3">
+                                <span class="badge bg-success text-white p-2 fs-5 rounded-3"><i class="bi bi-gem"></i></span>
+                                <div>
+                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                        <h6 class="fw-bold text-dark mb-0">💎 Sync Data Dividen Pasar (Dividend Hunter)</h6>
+                                        <span class="badge bg-success bg-opacity-10 text-success border border-success font-monospace" style="font-size:0.72rem;">dividend/sync-all</span>
+                                    </div>
+                                    <div class="text-muted small">Tarik riwayat dividen, yield %, frekuensi (bulanan/kuartalan), dan estimasi Ex-Date untuk seluruh saham aktif dari Yahoo Finance.</div>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <label class="form-label small text-muted fw-semibold mb-0" style="font-size:0.75rem;">Limit:</label>
+                                <select class="form-select form-select-sm" id="limit-sync-dividend" style="width: auto;">
+                                    <option value="25" selected>25 Saham Pertama (~3-5 dtk)</option>
+                                    <option value="50">50 Saham Pertama (~10 dtk)</option>
+                                    <option value="100">100 Saham Pertama (~20 dtk)</option>
+                                    <option value="0">Semua Saham Aktif (~45 dtk)</option>
+                                </select>
+                                <button type="button" class="btn btn-success fw-bold btn-run-cmd shadow-sm text-nowrap"
+                                    data-cmd="dividend/sync-all"
+                                    data-limit-id="limit-sync-dividend"
+                                    data-title="Sync Dividen Pasar (Dividend Hunter)"
+                                    data-cli="php yii dividend/sync-all">
+                                    <?= \app\helpers\SvgHelper::icon('play-circle-fill', ['class' => 'me-1']) ?> Jalankan Sync Dividen
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Master Action Banner: Jalankan Semua Pipeline Sekaligus -->

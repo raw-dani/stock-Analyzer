@@ -214,12 +214,13 @@ if (!empty($systemItems)) {
         $isMarketActive = in_array($ctrlId, [
             'strategy-confluence', 'bullish-pattern', 'double-bottom', 'triple-bottom', 
             'rsi-double-bottom', 'scanner', 'moving-average', 'bollinger-band', 
-            'fibonacci', 'candlestick', 'crypto'
+            'fibonacci', 'candlestick', 'crypto', 'dividend'
         ], true);
 
         // Grouped Items untuk "Pasar & Scanner"
         $marketItems = [
             '<div class="dropdown-header text-primary fw-bold d-flex align-items-center gap-1"><i class="bi bi-graph-up"></i> PASAR SAHAM US</div>',
+            ['label' => '<i class="bi bi-cash-coin text-success me-2"></i> Dividend Hunter (Yield &amp; Kalender) <span class="badge bg-success-subtle text-success border border-success-subtle ms-1 fw-bold" style="font-size:0.65rem;">NEW</span>', 'url' => ['/dividend/index'], 'encode' => false],
             ['label' => '<i class="bi bi-bullseye text-warning me-2"></i> Confluence Strategy (PRO)', 'url' => ['/strategy-confluence/index'], 'encode' => false],
             ['label' => '<i class="bi bi-rocket-takeoff text-success me-2"></i> Bullish Breakout Patterns', 'url' => ['/bullish-pattern/index'], 'encode' => false],
             ['label' => '<i class="bi bi-graph-down text-primary me-2"></i> Double Bottom Scanner (Core)', 'url' => ['/double-bottom/index'], 'encode' => false],

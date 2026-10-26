@@ -60,6 +60,15 @@ final class SettingsController extends Controller
             'btnClass' => 'info text-dark',
             'hasLimit' => true,
         ],
+        'dividend/sync-all' => [
+            'key' => 'dividend/sync-all',
+            'title' => 'Sync Dividen Pasar (All Stocks)',
+            'cli' => 'dividend/sync-all',
+            'desc' => 'Tarik dan perbarui data riwayat dividen, yield %, frekuensi, dan estimasi Ex-Date untuk saham aktif',
+            'badge' => 'Dividend Hunter',
+            'btnClass' => 'success',
+            'hasLimit' => true,
+        ],
         'all' => [
             'key' => 'all',
             'title' => 'Jalankan Semua Sinkronisasi',
