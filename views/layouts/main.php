@@ -239,26 +239,26 @@ if (!empty($systemItems)) {
 
         $topNavItems = [
             [
-                'label' => '<i class="bi bi-speedometer2 me-1 text-primary"></i> Dashboard',
+                'label' => 'Dashboard',
                 'url' => ['/dashboard/index'],
                 'active' => $ctrlId === 'dashboard',
                 'encode' => false,
             ],
             [
-                'label' => '<i class="bi bi-sliders me-1 text-primary"></i> Pasar & Scanner <i class="bi bi-chevron-down ms-1 text-muted small" style="font-size:0.65rem;"></i>',
+                'label' => 'Pasar & Scanner <i class="bi bi-chevron-down ms-1 text-muted small" style="font-size:0.65rem;"></i>',
                 'encode' => false,
                 'active' => $isMarketActive,
                 'dropdownOptions' => ['class' => 'dropdown-menu shadow-lg border dropdown-menu-scrollable'],
                 'items' => $marketItems,
             ],
             [
-                'label' => '<i class="bi bi-briefcase me-1 text-warning"></i> Portofolio',
+                'label' => 'Portofolio',
                 'url' => ['/portfolio/index'],
                 'active' => $ctrlId === 'portfolio',
                 'encode' => false,
             ],
             [
-                'label' => '<i class="bi bi-newspaper me-1 text-primary"></i> Blog Info <span class="badge bg-primary-subtle text-primary border border-primary-subtle ms-1 fw-bold" style="font-size:0.65rem;">AI</span>',
+                'label' => 'Blog Info <span class="badge bg-primary-subtle text-primary border border-primary-subtle ms-1 fw-bold" style="font-size:0.65rem;">AI</span>',
                 'url' => ['/blog/index'],
                 'active' => $ctrlId === 'blog' && !in_array($actionId, ['admin', 'settings', 'create', 'update']),
                 'encode' => false,

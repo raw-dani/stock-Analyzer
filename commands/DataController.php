@@ -198,20 +198,31 @@ final class DataController extends Controller
 
     /**
      * Pipeline klasifikasi buy/sell + agregasi mingguan + scoring (Modul 3+4).
+     * Contoh: php yii data/analyze [--limit=50]
      */
-    public function actionAnalyze(?string $symbol = null): int
+    public function actionAnalyze(?string $symbol = null, ?int $limit = null): int
     {
+        $limit ??= $this->limit;
         $analyzer = new VolumeAnalyzerService();
         $engine = new SignalEngineService();
 
-        $stocks = $symbol !== null
-            ? Stock::findAll(['symbol' => MarketDataService::normalizeSymbol($symbol)])
-            : Stock::findAll(['active' => true]);
+        if ($symbol !== null) {
+            $stocks = Stock::findAll(['symbol' => MarketDataService::normalizeSymbol($symbol)]);
+        } else {
+            $q = Stock::find()->where(['active' => true])->orderBy(['symbol' => SORT_ASC]);
+            if ($limit > 0) {
+                $q->limit($limit);
+            }
+            $stocks = $q->all();
+        }
 
-        foreach ($stocks as $stock) {
+        $total = count($stocks);
+        foreach ($stocks as $i => $stock) {
             $weeks = $analyzer->analyzeStock($stock->id);
             $scored = $engine->scoreStock($stock);
-            $this->stdout("Analyzed {$stock->symbol}: {$weeks} weeks, {$scored} scored\n", Console::FG_GREEN);
+            $this->stdout(sprintf('[%d/%d] Analyzed %s: %d weeks, %d scored', $i + 1, $total, $stock->symbol, $weeks, $scored) . "\n", Console::FG_GREEN);
+            // Jeda mikro (15ms) agar CPU tidak 100% dan halaman web tetap cepat responsif
+            usleep(15000);
         }
 
         return ExitCode::OK;

@@ -55,10 +55,10 @@ final class SettingsController extends Controller
             'key' => 'data/analyze',
             'title' => 'Analyze Weekly Volume & Signals',
             'cli' => 'data/analyze',
-            'desc' => 'Jalankan kalkulasi transaksi Metode A, akumulasi mingguan, RVOL, dan scoring sinyal untuk semua saham',
+            'desc' => 'Jalankan kalkulasi transaksi Metode A, akumulasi mingguan, RVOL, dan scoring sinyal untuk seluruh saham aktif',
             'badge' => 'Analysis & Scoring',
             'btnClass' => 'info text-dark',
-            'hasLimit' => false,
+            'hasLimit' => true,
         ],
         'all' => [
             'key' => 'all',
@@ -153,7 +153,7 @@ final class SettingsController extends Controller
         if ($cmdKey === 'all') {
             $commandsToRun[] = ['cli' => 'market/refresh-stocklist', 'title' => '1/4: Refresh Stock List'];
             $commandsToRun[] = ['cli' => 'data/refresh-all' . ($limit > 0 ? " --limit={$limit}" : ''), 'title' => '2/4: Refresh Daily Data'];
-            $commandsToRun[] = ['cli' => 'data/analyze', 'title' => '3/4: Analisis Volume Mingguan & Scoring'];
+            $commandsToRun[] = ['cli' => 'data/analyze' . ($limit > 0 ? " --limit={$limit}" : ''), 'title' => '3/4: Analisis Volume Mingguan & Scoring'];
             $commandsToRun[] = ['cli' => 'data/sync-intraday-all' . ($limit > 0 ? " --limit={$limit}" : ''), 'title' => '4/4: Sync Intraday Data'];
         } else {
             $cli = self::ALLOWED_COMMANDS[$cmdKey]['cli'];
@@ -240,7 +240,9 @@ final class SettingsController extends Controller
         foreach ($commands as $idx => $cmdInfo) {
             $cli = $cmdInfo['cli'];
             $title = $cmdInfo['title'];
-            $fullCmd = sprintf('"%s" "%s" %s 2>&1', $phpBin, $yiiBin, $cli);
+            $isUnix = PHP_OS_FAMILY !== 'Windows';
+            $nicePrefix = $isUnix ? 'nice -n 15 ' : '';
+            $fullCmd = sprintf('%s"%s" "%s" %s 2>&1', $nicePrefix, $phpBin, $yiiBin, $cli);
 
             echo "data: " . json_encode([
                 'type' => 'cmd_start',
@@ -322,7 +324,9 @@ final class SettingsController extends Controller
 
         foreach ($commands as $cmdInfo) {
             $cli = $cmdInfo['cli'];
-            $fullCmd = sprintf('"%s" "%s" %s 2>&1', $phpBin, $yiiBin, $cli);
+            $isUnix = PHP_OS_FAMILY !== 'Windows';
+            $nicePrefix = $isUnix ? 'nice -n 15 ' : '';
+            $fullCmd = sprintf('%s"%s" "%s" %s 2>&1', $nicePrefix, $phpBin, $yiiBin, $cli);
             $descriptors = [0 => ['pipe', 'r'], 1 => ['pipe', 'w']];
             $process = proc_open($fullCmd, $descriptors, $pipes, $appDir);
 

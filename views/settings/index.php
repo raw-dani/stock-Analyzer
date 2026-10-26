@@ -134,12 +134,23 @@ $this->params['breadcrumbs'][] = $this->title;
                                 </span>
                             </div>
                             <h6 class="fw-bold text-dark mb-1">📊 Analisis Volume &amp; Sinyal</h6>
-                            <p class="text-muted small flex-grow-1 mb-3" style="font-size:0.80rem;">
+                            <p class="text-muted small flex-grow-1 mb-2" style="font-size:0.80rem;">
                                 Hitung transaksi Metode A (buyer vs seller), akumulasi mingguan, lonjakan RVOL, dan update scoring sinyal seluruh saham aktif.
                             </p>
+                            <div class="mb-2">
+                                <label class="form-label small text-muted fw-semibold mb-1" style="font-size:0.75rem;">Limit Saham:</label>
+                                <select class="form-select form-select-sm" id="limit-analyze">
+                                    <option value="0" selected>Semua Saham Aktif</option>
+                                    <option value="10">10 Saham Pertama (Tes Cepat)</option>
+                                    <option value="25">25 Saham Pertama</option>
+                                    <option value="50">50 Saham Pertama</option>
+                                    <option value="100">100 Saham Pertama</option>
+                                </select>
+                            </div>
                             <div class="pt-2 border-top">
                                 <button type="button" class="btn btn-info text-dark w-100 fw-bold btn-run-cmd shadow-sm"
                                     data-cmd="data/analyze"
+                                    data-limit-id="limit-analyze"
                                     data-title="Analyze Weekly Volume &amp; Signals"
                                     data-cli="php yii data/analyze">
                                     <?= \app\helpers\SvgHelper::icon('play-circle-fill', ['class' => 'me-1']) ?> Jalankan Analisis &amp; Scoring
@@ -194,23 +205,32 @@ $this->params['breadcrumbs'][] = $this->title;
                 <div class="d-flex align-items-center gap-3">
                     <div class="display-6 text-primary"><?= \app\helpers\SvgHelper::icon('rocket-takeoff-fill') ?></div>
                     <div>
-                        <h6 class="fw-bold text-dark mb-1">Jalankan Rangkaian Sinkronisasi Lengkap (All-in-One)</h6>
+                        <h6 class="fw-bold text-dark mb-1 d-flex align-items-center gap-2 flex-wrap">
+                            <span>Jalankan Rangkaian Sinkronisasi Lengkap (All-in-One)</span>
+                            <span class="badge bg-success bg-opacity-10 text-success border border-success fw-normal" style="font-size:0.72rem;">
+                                <?= \app\helpers\SvgHelper::icon('shield-check', ['class' => 'me-1']) ?>Non-blocking WAL &amp; Low-CPU
+                            </span>
+                        </h6>
                         <div class="small text-muted">
                             Mengeksekusi secara otomatis dan berurutan: 
-                            <strong>1. Refresh Stock List</strong> &rarr; 
-                            <strong>2. Refresh Daily Data</strong> &rarr; 
-                            <strong>3. Analisis Volume &amp; Scoring</strong> &rarr; 
-                            <strong>4. Sync Intraday Data</strong>
+                            <strong>1. Stock List</strong> &rarr; 
+                            <strong>2. Daily Data</strong> &rarr; 
+                            <strong>3. Analisis Volume</strong> &rarr; 
+                            <strong>4. Intraday Data</strong>.
+                            <span class="text-success fw-semibold">Database WAL mode aktif: Halaman web lain tetap cepat dibuka saat sync berjalan.</span>
                         </div>
                     </div>
                 </div>
                 <div class="d-flex align-items-center gap-2 flex-wrap">
-                    <select class="form-select form-select-sm" id="limit-sync-all" style="width: auto;">
-                        <option value="0" selected>Semua Saham</option>
-                        <option value="10">Limit 10 Saham</option>
-                        <option value="25">Limit 25 Saham</option>
-                        <option value="50">Limit 50 Saham</option>
-                    </select>
+                    <div class="d-flex flex-column">
+                        <select class="form-select form-select-sm" id="limit-sync-all" style="min-width: 230px;">
+                            <option value="25" selected>⚡ Limit 25 Saham (Rekomendasi - Cepat &amp; Ringan)</option>
+                            <option value="10">🧪 Limit 10 Saham (Pengujian Cepat ~30 dtk)</option>
+                            <option value="50">📈 Limit 50 Saham (Sedang ~3-4 mnt)</option>
+                            <option value="100">🚀 Limit 100 Saham (Skala Besar ~7 mnt)</option>
+                            <option value="0">🌐 Semua Saham Aktif (~15-20 mnt)</option>
+                        </select>
+                    </div>
                     <button type="button" class="btn btn-dark fw-bold btn-run-cmd px-3 shadow-sm"
                         data-cmd="all"
                         data-limit-id="limit-sync-all"
