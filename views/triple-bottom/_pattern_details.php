@@ -61,11 +61,11 @@ $mitigationStrategies = (array) ($pattern['mitigation_strategies'] ?? []);
             <div class="d-flex align-items-center gap-2 mb-1">
                 <span class="text-uppercase small fw-bold" style="letter-spacing: 0.05rem;">Sinyal Eksekusi <?= Html::encode($patternName) ?></span>
                 <?php if ($isIhs): ?>
-                    <span class="badge" style="background-color: rgba(255,255,255,0.3); font-size: 0.75rem;"><?= \app\helpers\SvgHelper::icon('person-arms-up') ?> Inverse H&amp;S Reversal</span>
+                    <span class="badge text-white" style="background-color: rgba(255,255,255,0.3); font-size: 0.75rem;"><?= \app\helpers\SvgHelper::icon('person-arms-up') ?> Inverse H&amp;S Reversal</span>
                 <?php elseif (!empty($pattern['is_shakeout_low'])): ?>
-                    <span class="badge" style="background-color: rgba(255,255,255,0.3); font-size: 0.75rem;"><?= \app\helpers\SvgHelper::icon('lightning-charge') ?> Shakeout Low (Liquidity Sweep)</span>
+                    <span class="badge text-white" style="background-color: rgba(255,255,255,0.3); font-size: 0.75rem;"><?= \app\helpers\SvgHelper::icon('lightning-charge') ?> Shakeout Low (Liquidity Sweep)</span>
                 <?php else: ?>
-                    <span class="badge" style="background-color: rgba(255,255,255,0.3); font-size: 0.75rem;"><?= \app\helpers\SvgHelper::icon('triangle-half') ?> Triple Bottom Reversal</span>
+                    <span class="badge text-white" style="background-color: rgba(255,255,255,0.3); font-size: 0.75rem;"><?= \app\helpers\SvgHelper::icon('triangle-half') ?> Triple Bottom Reversal</span>
                 <?php endif; ?>
             </div>
             <h4 class="mb-0 fw-bold">
@@ -218,7 +218,7 @@ $mitigationStrategies = (array) ($pattern['mitigation_strategies'] ?? []);
                             <td class="ps-3 text-muted">Tipe &amp; Rentang Pola</td>
                             <td class="text-end pe-3 fw-bold">
                                 <?php if ($isIhs): ?>
-                                    <span class="badge" style="background-color: #6f42c1;">Inverted Head &amp; Shoulders</span>
+                                    <span class="badge text-white" style="background-color: #6f42c1;">Inverted Head &amp; Shoulders</span>
                                 <?php elseif (!empty($pattern['is_shakeout_low'])): ?>
                                     <span class="badge bg-secondary text-white"><?= \app\helpers\SvgHelper::icon('lightning-charge') ?> Triple Bottom (Shakeout Low)</span>
                                 <?php else: ?>
@@ -439,11 +439,11 @@ $mitigationStrategies = (array) ($pattern['mitigation_strategies'] ?? []);
             <div class="card-body">
                 <div class="row g-2 mb-3">
                     <div class="col-6">
-                        <label class="form-label small text-muted">Modal Trading ($)</label>
+                        <label class="form-label small fw-bold text-dark">Modal Trading ($)</label>
                         <input type="number" id="tb-calc-capital" class="form-control form-control-sm" value="10000" step="500">
                     </div>
                     <div class="col-6">
-                        <label class="form-label small text-muted">Toleransi Risiko (%)</label>
+                        <label class="form-label small fw-bold text-dark">Toleransi Risiko (%)</label>
                         <input type="number" id="tb-calc-risk" class="form-control form-control-sm" value="1.5" step="0.5">
                     </div>
                 </div>

@@ -62,7 +62,7 @@ $this->params['breadcrumbs'][] = $this->title;
                                 <span class="badge bg-primary bg-opacity-10 text-primary border border-primary font-monospace" style="font-size:0.75rem;">
                                     market/refresh-stocklist
                                 </span>
-                                <span class="badge bg-info bg-opacity-10 text-info border border-info" style="font-size:0.68rem;">
+                                <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle" style="font-size:0.68rem;">
                                     <?= \app\helpers\SvgHelper::icon('lightning-charge-fill') ?> Cepat (~1-2 dtk)
                                 </span>
                             </div>
@@ -99,7 +99,7 @@ $this->params['breadcrumbs'][] = $this->title;
                                 Ambil update candle harian (*Daily OHLCV*) secara incremental untuk seluruh saham aktif (lanjut dari tanggal terakhir di DB).
                             </p>
                             <div class="mb-2">
-                                <label class="form-label small text-muted fw-semibold mb-1" style="font-size:0.75rem;">Limit Saham:</label>
+                                <label class="form-label small text-dark fw-bold mb-1" style="font-size:0.75rem;">Limit Saham:</label>
                                 <select class="form-select form-select-sm" id="limit-refresh-daily">
                                     <option value="0" selected>Semua Saham Aktif</option>
                                     <option value="10">10 Saham Pertama (Tes Cepat)</option>
@@ -126,10 +126,10 @@ $this->params['breadcrumbs'][] = $this->title;
                     <div class="card h-100 border bg-light shadow-sm">
                         <div class="card-body d-flex flex-column p-3">
                             <div class="d-flex justify-content-between align-items-start mb-2">
-                                <span class="badge bg-info bg-opacity-10 text-info border border-info font-monospace" style="font-size:0.75rem;">
+                                <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle font-monospace" style="font-size:0.75rem;">
                                     data/analyze
                                 </span>
-                                <span class="badge bg-info bg-opacity-10 text-info border border-info" style="font-size:0.68rem;">
+                                <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle" style="font-size:0.68rem;">
                                     Metode A &amp; Scoring
                                 </span>
                             </div>
@@ -138,7 +138,7 @@ $this->params['breadcrumbs'][] = $this->title;
                                 Hitung transaksi Metode A (buyer vs seller), akumulasi mingguan, lonjakan RVOL, dan update scoring sinyal seluruh saham aktif.
                             </p>
                             <div class="mb-2">
-                                <label class="form-label small text-muted fw-semibold mb-1" style="font-size:0.75rem;">Limit Saham:</label>
+                                <label class="form-label small text-dark fw-bold mb-1" style="font-size:0.75rem;">Limit Saham:</label>
                                 <select class="form-select form-select-sm" id="limit-analyze">
                                     <option value="0" selected>Semua Saham Aktif</option>
                                     <option value="10">10 Saham Pertama (Tes Cepat)</option>
@@ -165,10 +165,10 @@ $this->params['breadcrumbs'][] = $this->title;
                     <div class="card h-100 border bg-light shadow-sm">
                         <div class="card-body d-flex flex-column p-3">
                             <div class="d-flex justify-content-between align-items-start mb-2">
-                                <span class="badge bg-warning bg-opacity-10 text-warning border border-warning font-monospace" style="font-size:0.75rem;">
+                                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle font-monospace" style="font-size:0.75rem;">
                                     data/sync-intraday-all
                                 </span>
-                                <span class="badge bg-warning bg-opacity-10 text-warning border border-warning" style="font-size:0.68rem;">
+                                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle" style="font-size:0.68rem;">
                                     Candle 1H (Intraday)
                                 </span>
                             </div>
@@ -177,7 +177,7 @@ $this->params['breadcrumbs'][] = $this->title;
                                 Ambil update candle 1 jam (*1-Hour Bars*) secara incremental untuk analisis multi-timeframe (1H, 2H, 4H, 1D) dan volume scanner.
                             </p>
                             <div class="mb-2">
-                                <label class="form-label small text-muted fw-semibold mb-1" style="font-size:0.75rem;">Limit Saham:</label>
+                                <label class="form-label small text-dark fw-bold mb-1" style="font-size:0.75rem;">Limit Saham:</label>
                                 <select class="form-select form-select-sm" id="limit-sync-intraday">
                                     <option value="0" selected>Semua Saham Aktif</option>
                                     <option value="10">10 Saham Pertama (Tes Cepat)</option>
@@ -214,7 +214,7 @@ $this->params['breadcrumbs'][] = $this->title;
                                 </div>
                             </div>
                             <div class="d-flex align-items-center gap-2 flex-wrap">
-                                <label class="form-label small text-muted fw-semibold mb-0" style="font-size:0.75rem;">Limit:</label>
+                                <label class="form-label small text-dark fw-bold mb-0" style="font-size:0.75rem;">Limit:</label>
                                 <select class="form-select form-select-sm" id="limit-sync-dividend" style="width: auto;">
                                     <option value="25" selected>25 Saham Pertama (~3-5 dtk)</option>
                                     <option value="50">50 Saham Pertama (~10 dtk)</option>

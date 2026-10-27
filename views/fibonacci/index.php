@@ -398,7 +398,7 @@ $badgeAction = [
                                 <div class="fw-semibold text-dark">
                                     $<?= number_format($r['target_3'], 2) ?>
                                 </div>
-                                <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25" style="font-size: 0.7rem;">
+                                <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle" style="font-size: 0.7rem;">
                                     +<?= number_format($r['target_3_pct'], 1) ?>%
                                 </span>
                             </td>

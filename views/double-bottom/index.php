@@ -253,22 +253,22 @@ $filterWith = fn(array $overrides) => \yii\helpers\Url::to(array_merge(['/double
                     <summary class="small fw-semibold text-secondary" style="cursor: pointer;">Pengaturan Lanjutan (Separasi candle, Neckline depth, Min. Conf, Vol Only)</summary>
                     <div class="row g-2 mt-2 pt-2 border-top">
                         <div class="col-md-3 col-6">
-                            <label class="form-label small text-muted mb-1">Toleransi Low (%)</label>
+                            <label class="form-label small fw-bold text-dark mb-1">Toleransi Low (%)</label>
                             <?= Html::input('number', 'tolerance', round($tolerancePercent, 1), ['class' => 'form-control form-control-sm', 'min' => 0.1, 'max' => 20, 'step' => 0.1]) ?>
                         </div>
                         <div class="col-md-3 col-6">
-                            <label class="form-label small text-muted mb-1">Separasi Min - Maks</label>
+                            <label class="form-label small fw-bold text-dark mb-1">Separasi Min - Maks</label>
                             <div class="input-group input-group-sm">
                                 <?= Html::input('number', 'minSeparation', $minSeparation, ['class' => 'form-control', 'min' => 2, 'title' => 'Separasi minimum']) ?>
                                 <?= Html::input('number', 'maxSeparation', $maxSeparation, ['class' => 'form-control', 'min' => 2, 'title' => 'Separasi maksimum']) ?>
                             </div>
                         </div>
                         <div class="col-md-3 col-6">
-                            <label class="form-label small text-muted mb-1">Neckline Min Depth (%)</label>
+                            <label class="form-label small fw-bold text-dark mb-1">Neckline Min Depth (%)</label>
                             <?= Html::input('number', 'necklineMinDepth', round($necklineMinDepth * 100, 1), ['class' => 'form-control form-control-sm', 'min' => 0, 'max' => 50, 'step' => 0.1]) ?>
                         </div>
                         <div class="col-md-3 col-6">
-                            <label class="form-label small text-muted mb-1">Confidence Minimum</label>
+                            <label class="form-label small fw-bold text-dark mb-1">Confidence Minimum</label>
                             <?= Html::input('number', 'minConfidence', $minConfidence, ['class' => 'form-control form-control-sm', 'min' => 0, 'max' => 100]) ?>
                         </div>
                         <div class="col-12 mt-2">

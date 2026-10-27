@@ -34,7 +34,7 @@ if ($isAdmin) {
 $sideMenuGroups = [
     'Overview' => [
         ['label' => \app\helpers\SvgHelper::icon('speedometer2', ['class' => 'me-2']) . 'Dashboard', 'url' => ['/dashboard/index'], 'active' => $ctrlId === 'dashboard'],
-        ['label' => \app\helpers\SvgHelper::icon('newspaper', ['class' => 'me-2 text-info']) . 'Blog Info Saham', 'url' => ['/blog/index'], 'active' => $ctrlId === 'blog' && !in_array($actionId, ['admin', 'settings', 'create', 'update']), 'badge' => 'AI'],
+        ['label' => \app\helpers\SvgHelper::icon('newspaper', ['class' => 'me-2 text-info']) . 'Blog Info Saham', 'url' => ['/blog/index'], 'active' => $ctrlId === 'blog' && !in_array($actionId, ['admin', 'settings', 'create', 'update'])],
         ['label' => \app\helpers\SvgHelper::icon('briefcase', ['class' => 'me-2']) . 'Portofolio & Averaging', 'url' => ['/portfolio/index'], 'active' => $ctrlId === 'portfolio'],
         ['label' => \app\helpers\SvgHelper::icon('info-circle', ['class' => 'me-2']) . 'Tentang Aplikasi', 'url' => ['/site/about'], 'active' => $ctrlId === 'site' && $actionId === 'about'],
     ],
@@ -77,9 +77,10 @@ if (!empty($systemItems)) {
         .sidebar .nav-link svg { flex-shrink: 0; }
         .sidebar .nav-link:hover { background: #e9ecef; color: #0d6efd; }
         .sidebar .nav-link.active { background: #0d6efd; color: #fff; }
-        .sidebar-heading { font-size: .72rem; font-weight: 700; text-transform: uppercase; color: #6c757d; letter-spacing: .05rem; padding: .6rem .75rem .25rem; }
+        .sidebar-heading { font-size: .72rem; font-weight: 800; text-transform: uppercase; color: #334155; letter-spacing: .05rem; padding: .6rem .75rem .25rem; }
         .kpi { font-size: 1.6rem; font-weight: 700; }
-        .badge-core { background: linear-gradient(135deg, #0d6efd, #0dcaf0); color: #fff; font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; }
+        .badge-core { background: #e0e7ff; color: #1e1b4b; border: 1px solid #a5b4fc; font-size: 0.65rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; }
+        .sidebar .nav-link.active .badge-core { background: #ffffff !important; color: #0d6efd !important; border-color: #ffffff !important; font-weight: 800 !important; }
 
         /* Clean Modern Light Navbar */
         .navbar-custom {
@@ -261,7 +262,7 @@ if (!empty($systemItems)) {
                 'encode' => false,
             ],
             [
-                'label' => 'Blog Info <span class="badge bg-primary-subtle text-primary border border-primary-subtle ms-1 fw-bold" style="font-size:0.65rem;">AI</span>',
+                'label' => 'Blog Info',
                 'url' => ['/blog/index'],
                 'active' => $ctrlId === 'blog' && !in_array($actionId, ['admin', 'settings', 'create', 'update']),
                 'encode' => false,

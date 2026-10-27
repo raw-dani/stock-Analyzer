@@ -339,7 +339,7 @@ $sellHistoryCount = count($sellHistories);
 
                                                         <div class="row g-3 mb-3">
                                                             <div class="col-6">
-                                                                <label class="form-label small fw-bold text-muted">Harga Eksekusi Jual ($)</label>
+                                                                <label class="form-label small fw-bold text-dark">Harga Eksekusi Jual ($)</label>
                                                                 <div class="input-group">
                                                                     <span class="input-group-text">$</span>
                                                                     <input type="number" step="0.01" name="sell_price" class="form-control fw-bold text-success" value="<?= $pos->getCurrentPrice() ?>" required>
@@ -347,7 +347,7 @@ $sellHistoryCount = count($sellHistories);
                                                                 <div class="form-text small" style="font-size:0.70rem;">Bisa disesuaikan dengan harga real antrean order.</div>
                                                             </div>
                                                             <div class="col-6">
-                                                                <label class="form-label small fw-bold text-muted">Jumlah Lembar Jual</label>
+                                                                <label class="form-label small fw-bold text-dark">Jumlah Lembar Jual</label>
                                                                 <div class="input-group">
                                                                     <input type="number" step="any" name="sell_shares" class="form-control fw-bold" value="<?= $pos->shares ?>" max="<?= $pos->shares ?>" min="0.0001" required>
                                                                     <span class="input-group-text">lbr</span>
@@ -357,7 +357,7 @@ $sellHistoryCount = count($sellHistories);
                                                         </div>
 
                                                         <div class="mb-3">
-                                                            <label class="form-label small fw-bold text-muted">Catatan Jual / Rencana Exit (Opsional)</label>
+                                                            <label class="form-label small fw-bold text-dark">Catatan Jual / Rencana Exit (Opsional)</label>
                                                             <input type="text" name="notes" class="form-control form-control-sm" placeholder="Misal: Jual 50% porsi amankan target +3%, sisanya trailing stop">
                                                         </div>
 
@@ -409,7 +409,7 @@ $sellHistoryCount = count($sellHistories);
 
                                                         <div class="row g-3 mb-3">
                                                             <div class="col-6">
-                                                                <label class="form-label small fw-bold text-muted">Harga Eksekusi Cut ($)</label>
+                                                                <label class="form-label small fw-bold text-dark">Harga Eksekusi Cut ($)</label>
                                                                 <div class="input-group">
                                                                     <span class="input-group-text">$</span>
                                                                     <input type="number" step="0.01" name="exit_price" class="form-control fw-bold text-danger" value="<?= $pos->getCurrentPrice() ?>" required>
@@ -417,7 +417,7 @@ $sellHistoryCount = count($sellHistories);
                                                                 <div class="form-text small" style="font-size:0.70rem;">Harga jual riil saat order dieksekusi.</div>
                                                             </div>
                                                             <div class="col-6">
-                                                                <label class="form-label small fw-bold text-muted">Jumlah Lembar Dipotong</label>
+                                                                <label class="form-label small fw-bold text-dark">Jumlah Lembar Dipotong</label>
                                                                 <div class="input-group">
                                                                     <input type="number" step="any" name="cut_shares" class="form-control fw-bold" value="<?= $pos->shares ?>" max="<?= $pos->shares ?>" min="0.0001" required>
                                                                     <span class="input-group-text">lbr</span>
@@ -427,7 +427,7 @@ $sellHistoryCount = count($sellHistories);
                                                         </div>
 
                                                         <div class="mb-3">
-                                                            <label class="form-label small fw-bold text-muted">Alasan Cut Loss (Opsional)</label>
+                                                            <label class="form-label small fw-bold text-dark">Alasan Cut Loss (Opsional)</label>
                                                             <input type="text" name="notes" class="form-control form-control-sm" placeholder="Misal: Breakdown support teknikal MA50 / ganti ke saham momentum lain">
                                                         </div>
 
@@ -598,7 +598,7 @@ $sellHistoryCount = count($sellHistories);
             </div>
             <div class="modal-body p-4">
                 <div class="mb-3">
-                    <label class="form-label small fw-bold text-muted">Simbol Saham</label>
+                    <label class="form-label small fw-bold text-dark">Simbol Saham</label>
                     <input list="stockList" name="symbol" class="form-control text-uppercase fw-bold" placeholder="Cth: NVDA, AAPL, TSLA" required autofocus autocomplete="off">
                     <datalist id="stockList">
                         <?php foreach ($availableStocks as $stk): ?>
@@ -610,11 +610,11 @@ $sellHistoryCount = count($sellHistories);
 
                 <div class="row g-2 mb-3">
                     <div class="col-6">
-                        <label class="form-label small fw-bold text-muted">Harga Beli Awal ($)</label>
+                        <label class="form-label small fw-bold text-dark">Harga Beli Awal ($)</label>
                         <input type="number" step="0.0001" name="PortfolioPosition[buy_price]" class="form-control" placeholder="Cth: 125.50" required>
                     </div>
                     <div class="col-6">
-                        <label class="form-label small fw-bold text-muted">Jumlah Lembar (Shares)</label>
+                        <label class="form-label small fw-bold text-dark">Jumlah Lembar (Shares)</label>
                         <input type="number" step="any" min="0.0001" name="PortfolioPosition[shares]" class="form-control" placeholder="Cth: 100 atau 10.5" required>
                         <div class="form-text small" style="font-size:0.70rem;">Bisa bilangan bulat atau pecahan/desimal.</div>
                     </div>
@@ -622,7 +622,7 @@ $sellHistoryCount = count($sellHistories);
 
                 <div class="row g-2 mb-3">
                     <div class="col-6">
-                        <label class="form-label small fw-bold text-muted">Target Untung (%)</label>
+                        <label class="form-label small fw-bold text-dark">Target Untung (%)</label>
                         <div class="input-group">
                             <input type="number" step="0.1" name="PortfolioPosition[target_profit_pct]" class="form-control" value="3.0" required>
                             <span class="input-group-text">%</span>
@@ -630,13 +630,13 @@ $sellHistoryCount = count($sellHistories);
                         <div class="form-text small">Contoh: 3% untuk target jual cepat.</div>
                     </div>
                     <div class="col-6">
-                        <label class="form-label small fw-bold text-muted">Tanggal Pembelian</label>
+                        <label class="form-label small fw-bold text-dark">Tanggal Pembelian</label>
                         <input type="date" name="PortfolioPosition[buy_date]" class="form-control" value="<?= date('Y-m-d') ?>">
                     </div>
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label small fw-bold text-muted">Catatan / Alasan Entry (Opsional)</label>
+                    <label class="form-label small fw-bold text-dark">Catatan / Alasan Entry (Opsional)</label>
                     <textarea name="PortfolioPosition[notes]" class="form-control" rows="2" placeholder="Cth: Beli saat Golden Cross MA20, stop loss di bawah $120"></textarea>
                 </div>
             </div>

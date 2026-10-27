@@ -110,7 +110,7 @@ $this->title = 'Daftar Akun Baru - Stock Analyzer Pro';
                             <h2 class="h3 fw-bold text-slate-900 mb-1" style="color: #0f172a; letter-spacing: -0.02em;">
                                 Buat Akun Trader Anda
                             </h2>
-                            <p class="text-slate-500 small mb-0" style="color: #64748b;">
+                            <p class="text-slate-700 small mb-0" style="color: #334155; font-weight: 500;">
                                 Bergabung dalam hitungan detik untuk mulai memantau sinyal saham Wall Street.
                             </p>
                         </div>
@@ -263,7 +263,7 @@ function togglePasswordVisibility(fieldId, btn) {
 .text-slate-900 { color: #0f172a !important; }
 .text-slate-700 { color: #334155 !important; }
 .text-slate-600 { color: #475569 !important; }
-.text-slate-500 { color: #64748b !important; }
+.text-slate-500 { color: #334155 !important; } /* High contrast Slate 700 (8.5:1) */
 .text-slate-400 { color: #94a3b8 !important; }
 .text-slate-300 { color: #cbd5e1 !important; }
 .text-emerald { color: #10b981 !important; }

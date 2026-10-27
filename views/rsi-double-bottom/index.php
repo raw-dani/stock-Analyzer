@@ -200,7 +200,7 @@ $staleDays = $dailyMax ? (int) floor((time() - strtotime($dailyMax . ' 23:59:00'
 
             <div class="row g-3 align-items-end">
                 <div class="col-md-3 col-6">
-                    <label class="form-label small fw-bold text-muted mb-1">Timeframe Analisis</label>
+                    <label class="form-label small fw-bold text-dark mb-1">Timeframe Analisis</label>
                     <select class="form-select form-select-sm" onchange="document.getElementById('filter-timeframe-input').value = this.value; document.getElementById('rsi-filter-form').submit();">
                         <?php foreach ($timeframes as $val => $lbl): ?>
                             <option value="<?= $val ?>" <?= $timeframe === $val ? 'selected' : '' ?>><?= Html::encode($lbl) ?></option>
@@ -209,7 +209,7 @@ $staleDays = $dailyMax ? (int) floor((time() - strtotime($dailyMax . ' 23:59:00'
                 </div>
 
                 <div class="col-md-3 col-6">
-                    <label class="form-label small fw-bold text-muted mb-1">Urutan Hasil (Sorting)</label>
+                    <label class="form-label small fw-bold text-dark mb-1">Urutan Hasil (Sorting)</label>
                     <?= Html::dropDownList('sortBy', $sortBy, [
                         'confidence' => 'Confidence Tertinggi',
                         'rr' => 'Risk/Reward Tertinggi',
@@ -231,15 +231,15 @@ $staleDays = $dailyMax ? (int) floor((time() - strtotime($dailyMax . ' 23:59:00'
             <div class="collapse mt-3 pt-3 border-top" id="advancedParams">
                 <div class="row g-3 align-items-end">
                     <div class="col-md-3 col-6">
-                        <label class="form-label small fw-bold text-muted mb-1">RSI Period</label>
+                        <label class="form-label small fw-bold text-dark mb-1">RSI Period</label>
                         <?= Html::input('number', 'rsiPeriod', $rsiPeriod, ['class' => 'form-control form-control-sm', 'min' => 2, 'max' => 50]) ?>
                     </div>
                     <div class="col-md-3 col-6">
-                        <label class="form-label small fw-bold text-muted mb-1">Lookback Candles</label>
+                        <label class="form-label small fw-bold text-dark mb-1">Lookback Candles</label>
                         <?= Html::input('number', 'lookback', $lookback, ['class' => 'form-control form-control-sm', 'min' => 20, 'max' => 300]) ?>
                     </div>
                     <div class="col-md-3 col-6">
-                        <label class="form-label small fw-bold text-muted mb-1">Ambang Lembah Max</label>
+                        <label class="form-label small fw-bold text-dark mb-1">Ambang Lembah Max</label>
                         <?= Html::input('number', 'maxRsi', $maxRsi, ['class' => 'form-control form-control-sm', 'min' => 20, 'max' => 70, 'step' => 5]) ?>
                     </div>
                     <div class="col-md-3 col-6">

@@ -301,11 +301,11 @@ $markLines = [
                     <?= \app\helpers\SvgHelper::icon('graph-up', ['class' => 'text-primary me-1']) ?> Chart Candlestick &amp; Level Fibonacci
                 </h5>
                 <div class="d-flex flex-wrap align-items-center gap-1 small">
-                    <span class="badge" style="background-color: #2ecc71; color: #fff;">⭐ Golden Pocket 61.8%</span>
-                    <span class="badge" style="background-color: #f39c12; color: #fff;">50.0% Half</span>
-                    <span class="badge" style="background-color: #3498db; color: #fff;">38.2% Dip</span>
-                    <span class="badge" style="background-color: #9b59b6; color: #fff;">TP2 (1.272)</span>
-                    <span class="badge" style="background-color: #d35400; color: #fff;">TP3 (1.618)</span>
+                    <span class="badge" style="background-color: #dcfce7; color: #14532d; border: 1px solid #86efac; font-weight: 700;">⭐ Golden Pocket 61.8%</span>
+                    <span class="badge" style="background-color: #fef3c7; color: #78350f; border: 1px solid #fcd34d; font-weight: 700;">50.0% Half</span>
+                    <span class="badge" style="background-color: #e0e7ff; color: #1e1b4b; border: 1px solid #a5b4fc; font-weight: 700;">38.2% Dip</span>
+                    <span class="badge" style="background-color: #f3e8ff; color: #581c87; border: 1px solid #d8b4fe; font-weight: 700;">TP2 (1.272)</span>
+                    <span class="badge" style="background-color: #ffedd5; color: #7c2d12; border: 1px solid #fed7aa; font-weight: 700;">TP3 (1.618)</span>
                 </div>
             </div>
             <div class="card-body p-2">

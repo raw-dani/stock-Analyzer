@@ -436,11 +436,11 @@ $badgeAction = [
                     Salin daftar simbol di bawah ini untuk dimasukkan langsung ke Watchlist TradingView Anda:
                 </p>
                 <div class="mb-3">
-                    <label class="form-label small fw-bold text-muted">Format Simbol dengan Bursa (IDX:BBCA, ...)</label>
+                    <label class="form-label small fw-bold text-dark">Format Simbol dengan Bursa (IDX:BBCA, ...)</label>
                     <textarea id="tvSymbolsArea" class="form-control form-control-sm" rows="4" readonly><?= Html::encode($tvSymbolsStr) ?></textarea>
                 </div>
                 <div>
-                    <label class="form-label small fw-bold text-muted">Format Simbol Standar (BBCA, ASII, ...)</label>
+                    <label class="form-label small fw-bold text-dark">Format Simbol Standar (BBCA, ASII, ...)</label>
                     <textarea id="plainSymbolsArea" class="form-control form-control-sm" rows="3" readonly><?= Html::encode($symbolsStr) ?></textarea>
                 </div>
             </div>

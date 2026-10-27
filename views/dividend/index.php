@@ -163,7 +163,7 @@ $this->params['breadcrumbs'][] = $this->title;
                         
                         <!-- Search Box -->
                         <div class="col-md-3">
-                            <label class="form-label small fw-semibold text-muted mb-1">Cari Saham / Simbol:</label>
+                            <label class="form-label small fw-bold text-dark mb-1">Cari Saham / Simbol:</label>
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-search"></i></span>
                                 <input type="text" name="search" class="form-control form-control-sm border-start-0" placeholder="e.g. JNJ, O, KO, Apple..." value="<?= Html::encode($filters['search'] ?? '') ?>">
@@ -172,7 +172,7 @@ $this->params['breadcrumbs'][] = $this->title;
 
                         <!-- Min Yield Filter -->
                         <div class="col-md-2 col-sm-6">
-                            <label class="form-label small fw-semibold text-muted mb-1">Min. Dividend Yield:</label>
+                            <label class="form-label small fw-bold text-dark mb-1">Min. Dividend Yield:</label>
                             <select name="min_yield" class="form-select form-select-sm">
                                 <option value="" <?= ($filters['min_yield'] === '') ? 'selected' : '' ?>>Semua Yield (>0%)</option>
                                 <option value="2" <?= ($filters['min_yield'] === '2') ? 'selected' : '' ?>>&gt; 2.0% (Standar)</option>
@@ -184,7 +184,7 @@ $this->params['breadcrumbs'][] = $this->title;
 
                         <!-- Payout Frequency Filter -->
                         <div class="col-md-2 col-sm-6">
-                            <label class="form-label small fw-semibold text-muted mb-1">Frekuensi Dividen:</label>
+                            <label class="form-label small fw-bold text-dark mb-1">Frekuensi Dividen:</label>
                             <select name="frequency" class="form-select form-select-sm">
                                 <option value="all" <?= ($filters['frequency'] === 'all') ? 'selected' : '' ?>>Semua Frekuensi</option>
                                 <option value="monthly" <?= ($filters['frequency'] === 'monthly') ? 'selected' : '' ?>>Bulanan (Monthly ~12x)</option>
@@ -196,7 +196,7 @@ $this->params['breadcrumbs'][] = $this->title;
 
                         <!-- Safety Status Filter -->
                         <div class="col-md-2 col-sm-6">
-                            <label class="form-label small fw-semibold text-muted mb-1">Kategori Keamanan:</label>
+                            <label class="form-label small fw-bold text-dark mb-1">Kategori Keamanan:</label>
                             <select name="safety" class="form-select form-select-sm">
                                 <option value="all" <?= ($filters['safety'] === 'all') ? 'selected' : '' ?>>Semua Kategori</option>
                                 <option value="Aristocrat" <?= ($filters['safety'] === 'Aristocrat') ? 'selected' : '' ?>>👑 Dividend Aristocrat</option>
@@ -208,7 +208,7 @@ $this->params['breadcrumbs'][] = $this->title;
 
                         <!-- Sorting -->
                         <div class="col-md-2 col-sm-6">
-                            <label class="form-label small fw-semibold text-muted mb-1">Urutkan Berdasarkan:</label>
+                            <label class="form-label small fw-bold text-dark mb-1">Urutkan Berdasarkan:</label>
                             <select name="sort" class="form-select form-select-sm">
                                 <option value="yield_desc" <?= ($filters['sort'] === 'yield_desc') ? 'selected' : '' ?>>Yield Tertinggi</option>
                                 <option value="payout_desc" <?= ($filters['sort'] === 'payout_desc') ? 'selected' : '' ?>>Nominal Payout Terbesar</option>
@@ -283,15 +283,15 @@ $this->params['breadcrumbs'][] = $this->title;
                                         StockDividendSummary::SAFETY_ARISTOCRAT => '<span class="badge bg-warning bg-opacity-15 text-dark border border-warning fw-semibold"><i class="bi bi-trophy-fill text-warning me-1"></i>Aristocrat</span>',
                                         StockDividendSummary::SAFETY_SAFE => '<span class="badge bg-success bg-opacity-15 text-success border border-success fw-semibold"><i class="bi bi-shield-check me-1"></i>Safe &amp; Steady</span>',
                                         StockDividendSummary::SAFETY_WARNING => '<span class="badge bg-danger bg-opacity-15 text-danger border border-danger fw-semibold" title="Yield sangat tinggi, waspadai risiko pemangkasan dividen!"><i class="bi bi-exclamation-triangle-fill me-1"></i>Yield Warning</span>',
-                                        default => '<span class="badge bg-info bg-opacity-10 text-info border border-info fw-semibold">Moderate</span>',
+                                        default => '<span class="badge bg-info-subtle text-info-emphasis border border-info-subtle fw-semibold">Moderate</span>',
                                     };
 
                                     $freqLabel = match ($item->payout_frequency) {
                                         StockDividendSummary::FREQ_MONTHLY => '<span class="badge bg-primary rounded-pill px-2" style="font-size:0.72rem;">Bulanan (12x)</span>',
                                         StockDividendSummary::FREQ_QUARTERLY => '<span class="badge bg-light text-dark border rounded-pill px-2" style="font-size:0.72rem;">Kuartalan (4x)</span>',
-                                        StockDividendSummary::FREQ_SEMI_ANNUAL => '<span class="badge bg-light text-secondary border rounded-pill px-2" style="font-size:0.72rem;">Semester (2x)</span>',
-                                        StockDividendSummary::FREQ_ANNUAL => '<span class="badge bg-light text-secondary border rounded-pill px-2" style="font-size:0.72rem;">Tahunan (1x)</span>',
-                                        default => '<span class="badge bg-light text-muted border rounded-pill px-2" style="font-size:0.72rem;">N/A</span>',
+                                        StockDividendSummary::FREQ_SEMI_ANNUAL => '<span class="badge bg-light text-dark border rounded-pill px-2" style="font-size:0.72rem;">Semester (2x)</span>',
+                                        StockDividendSummary::FREQ_ANNUAL => '<span class="badge bg-light text-dark border rounded-pill px-2" style="font-size:0.72rem;">Tahunan (1x)</span>',
+                                        default => '<span class="badge bg-light text-dark border rounded-pill px-2" style="font-size:0.72rem;">N/A</span>',
                                     };
                                     ?>
                                     <tr id="row-<?= Html::encode($item->symbol) ?>">
@@ -536,7 +536,7 @@ $this->params['breadcrumbs'][] = $this->title;
                         <div class="card-body p-4">
                             <!-- Pilihan Saham Target -->
                             <div class="mb-3">
-                                <label class="form-label small fw-semibold text-muted">Pilih Saham Dividen Acuan:</label>
+                                <label class="form-label small fw-bold text-dark">Pilih Saham Dividen Acuan:</label>
                                 <select class="form-select" id="calc-stock-select">
                                     <option value="" data-yield="4.50" data-price="100.00">-- Custom Yield (Kustomisasi Bebas) --</option>
                                     <?php foreach ($dividendStocksList as $stk): ?>
@@ -553,7 +553,7 @@ $this->params['breadcrumbs'][] = $this->title;
                             <!-- Modal Investasi ($ USD) -->
                             <div class="mb-3">
                                 <div class="d-flex justify-content-between align-items-center mb-1">
-                                    <label class="form-label small fw-semibold text-muted mb-0">Modal Investasi Awal (USD):</label>
+                                    <label class="form-label small fw-bold text-dark mb-0">Modal Investasi Awal (USD):</label>
                                     <span class="fw-bold text-primary fs-5" id="calc-capital-display">$10,000</span>
                                 </div>
                                 <div class="input-group mb-2">
@@ -572,7 +572,7 @@ $this->params['breadcrumbs'][] = $this->title;
                             <!-- Dividend Yield Slider -->
                             <div class="mb-4">
                                 <div class="d-flex justify-content-between align-items-center mb-1">
-                                    <label class="form-label small fw-semibold text-muted mb-0">Estimasi Dividend Yield (%):</label>
+                                    <label class="form-label small fw-bold text-dark mb-0">Estimasi Dividend Yield (%):</label>
                                     <span class="fw-bold text-success fs-5" id="calc-yield-display">5.67%</span>
                                 </div>
                                 <input type="range" class="form-range" id="calc-yield-slider" min="0.5" max="15.0" step="0.1" value="5.67">
@@ -684,7 +684,7 @@ $this->params['breadcrumbs'][] = $this->title;
             </div>
             <div class="modal-body p-4">
                 <div class="mb-3">
-                    <label class="form-label small fw-semibold text-muted">Batas Jumlah Saham yang Di-sync:</label>
+                    <label class="form-label small fw-bold text-dark">Batas Jumlah Saham yang Di-sync:</label>
                     <select class="form-select form-select-sm" id="modal-sync-limit">
                         <option value="25" selected>⚡ 25 Saham Pertama (Rekomendasi Cepat ~3-5 dtk)</option>
                         <option value="50">📈 50 Saham Pertama (~10 dtk)</option>

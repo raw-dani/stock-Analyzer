@@ -341,7 +341,7 @@ $filterWith = fn(array $overrides) => \yii\helpers\Url::to(array_merge(['/triple
                                     <strong><?= Html::encode($p['symbol']) ?></strong>
                                     <small class="text-muted d-block"><?= Html::encode($p['sector'] ?? '-') ?></small>
                                     <?php if ($isIhs): ?>
-                                        <span class="badge" style="background-color: #6f42c1; font-size: 0.7rem;" title="Inverted Head and Shoulders"><?= \app\helpers\SvgHelper::icon('person-arms-up') ?> Inverted H&amp;S</span>
+                                        <span class="badge text-white" style="background-color: #6f42c1; font-size: 0.7rem;" title="Inverted Head and Shoulders"><?= \app\helpers\SvgHelper::icon('person-arms-up') ?> Inverted H&amp;S</span>
                                     <?php elseif (($p['pattern_type'] ?? '') === TripleBottomService::PATTERN_SHAKEOUT_LOW || !empty($p['is_shakeout_low'])): ?>
                                         <span class="badge bg-secondary text-white" style="font-size: 0.7rem;" title="Triple Bottom dengan Shakeout Low (Liquidity Sweep)"><?= \app\helpers\SvgHelper::icon('lightning-charge') ?> Shakeout Low</span>
                                     <?php else: ?>

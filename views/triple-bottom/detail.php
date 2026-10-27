@@ -43,7 +43,7 @@ $chartId = 'tb-chart';
         <span class="badge bg-light text-dark border"><?= Html::encode($stock->exchange ?? '-') ?></span>
         <?php if ($pattern !== null): ?>
             <?php if ($isIhs): ?>
-                <span class="badge" style="background-color: #6f42c1;"><?= \app\helpers\SvgHelper::icon('person-arms-up') ?> Inverted Head &amp; Shoulders</span>
+                <span class="badge text-white" style="background-color: #6f42c1;"><?= \app\helpers\SvgHelper::icon('person-arms-up') ?> Inverted Head &amp; Shoulders</span>
             <?php elseif ($isShakeout): ?>
                 <span class="badge bg-secondary text-white"><?= \app\helpers\SvgHelper::icon('lightning-charge') ?> Triple Bottom (Shakeout Low)</span>
             <?php else: ?>

@@ -609,7 +609,7 @@ $this->params['breadcrumbs'][] = 'Bullish Patterns';
                                                                     <?php 
                                                                         $upside2 = round((($r['target_tp2'] - $price) / $price) * 100, 2);
                                                                     ?>
-                                                                    <span class="badge bg-info-subtle text-info font-monospace" style="font-size: 0.7rem;">
+                                                                    <span class="badge bg-info-subtle text-info-emphasis font-monospace" style="font-size: 0.7rem;">
                                                                         +<?= $upside2 ?>% Runner
                                                                     </span>
                                                                 </div>

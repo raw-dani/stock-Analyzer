@@ -358,8 +358,8 @@ $this->registerMetaTag(['property' => 'og:url', 'content' => Url::home(true)]);
             <div class="col-md-6 col-lg-4">
                 <div class="card h-100 border-0 shadow-sm rounded-4 p-4 bg-white feature-card transition-all">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <span class="badge bg-info bg-opacity-15 text-info border border-info border-opacity-25 px-2.5 py-1">Pola Reversal Klasik</span>
-                        <span class="badge bg-light text-slate-500 border">1H, 2H, 4H, 1D</span>
+                        <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle px-2.5 py-1">Pola Reversal Klasik</span>
+                        <span class="badge bg-light text-dark border">1H, 2H, 4H, 1D</span>
                     </div>
                     <h4 class="h5 fw-bold text-slate-900 mb-2">📉 Double Bottom Core Scanner</h4>
                     <p class="text-slate-600 small mb-4 flex-grow-1" style="line-height: 1.6;">

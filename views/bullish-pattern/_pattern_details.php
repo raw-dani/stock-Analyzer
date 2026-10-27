@@ -431,11 +431,11 @@ $mitigationStrategies = (array) ($pattern['mitigation_strategies'] ?? []);
             <div class="card-body">
                 <div class="row g-2 mb-3">
                     <div class="col-6">
-                        <label class="form-label small text-muted">Modal Trading ($)</label>
+                        <label class="form-label small fw-bold text-dark">Modal Trading ($)</label>
                         <input type="number" id="bp-calc-capital" class="form-control form-control-sm" value="10000" step="500">
                     </div>
                     <div class="col-6">
-                        <label class="form-label small text-muted">Toleransi Risiko (%)</label>
+                        <label class="form-label small fw-bold text-dark">Toleransi Risiko (%)</label>
                         <input type="number" id="bp-calc-risk" class="form-control form-control-sm" value="1.5" step="0.5">
                     </div>
                 </div>

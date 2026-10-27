@@ -758,21 +758,39 @@ a.preset-pill.active.text-white,
 .trading-plan-strip .plan-rr { color: var(--brand-primary); font-weight: 800; }
 
 /* 7. Form Labels, Checkboxes & Titles - Universal High Contrast */
+label,
 .form-label,
 label.form-label,
-label,
-.form-label.text-secondary,
+label.text-muted,
+label.text-secondary,
 .form-label.text-muted,
-.filter-card-unified label {
-    color: #0f172a !important; /* Deep Slate 900 - maximum readability */
+.form-label.text-secondary,
+label[class*="text-muted"],
+label[class*="text-secondary"],
+.filter-card-unified label,
+.filter-card-unified label.text-muted,
+.filter-card-unified label.text-secondary,
+.card label,
+.card label.text-muted,
+.card label.text-secondary,
+.modal label,
+.modal label.text-muted,
+.modal label.text-secondary,
+form label,
+form label.text-muted,
+form label.text-secondary {
+    color: #0f172a !important; /* Deep Slate 900 - maximum readability (15:1 contrast) */
     font-weight: 600 !important;
     font-size: 0.8125rem;
     letter-spacing: -0.01em;
 }
 
-.form-check-label {
-    color: #1e293b !important; /* Slate 800 */
-    font-weight: 500 !important;
+.form-check-label,
+label.form-check-label,
+.form-check-label.text-muted,
+.form-check-label.text-secondary {
+    color: #1e293b !important; /* Slate 800 - 13:1 contrast */
+    font-weight: 600 !important;
     font-size: 0.85rem;
 }
 
@@ -784,9 +802,54 @@ label,
 }
 
 .form-text,
-.form-hint {
-    color: #475569 !important; /* Slate 600 */
+.form-hint,
+.form-text.text-muted,
+.form-text.text-secondary {
+    color: #334155 !important; /* Slate 700 - 8:1 contrast against white */
     font-size: 0.775rem;
+    font-weight: 500;
+}
+
+/* KPI Labels High Contrast Across All Dashboard and Scanner Cards */
+.kpi-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #334155 !important; /* Slate 700 - 8:1 contrast */
+}
+
+.kpi-label.text-muted,
+.kpi-label.text-secondary {
+    color: #334155 !important; /* Slate 700 */
+}
+
+.kpi-label.text-info,
+.kpi-label.text-cyan {
+    color: #0e7490 !important; /* Deep Cyan 700 - 6.5:1 contrast against white */
+}
+
+.kpi-label.text-warning,
+.kpi-label.text-warning-emphasis {
+    color: #92400e !important; /* Deep Amber 800 - 6.8:1 contrast against white */
+}
+
+.kpi-label.text-success {
+    color: #14532d !important; /* Deep Emerald 900 - 9:1 contrast */
+}
+
+.kpi-label.text-danger {
+    color: #9f1239 !important; /* Deep Rose 800 - 8:1 contrast */
+}
+
+.kpi-label.text-primary {
+    color: #312e81 !important; /* Deep Indigo 900 - 11:1 contrast */
+}
+
+.card .text-cyan,
+.table .text-cyan,
+span.text-cyan {
+    color: #0e7490 !important; /* High contrast cyan on light cards */
 }
 
 /* 8. Unified Action Badges & Universal High-Contrast Badge System */
@@ -797,6 +860,9 @@ label,
 /* Subtle Badges with guaranteed dark-on-light or light-on-dark contrast */
 .badge.bg-success-subtle,
 .badge-success-subtle,
+.badge.bg-success.bg-opacity-10,
+.badge.bg-success.bg-opacity-20,
+.badge.bg-success.bg-opacity-25,
 span.badge.text-success.bg-success-subtle {
     background-color: #dcfce7 !important; /* Emerald 100 */
     color: #14532d !important;            /* Emerald 900 - ultra contrast (10.5:1) */
@@ -806,6 +872,9 @@ span.badge.text-success.bg-success-subtle {
 
 .badge.bg-primary-subtle,
 .badge-primary-subtle,
+.badge.bg-primary.bg-opacity-10,
+.badge.bg-primary.bg-opacity-20,
+.badge.bg-primary.bg-opacity-25,
 span.badge.text-primary.bg-primary-subtle {
     background-color: #e0e7ff !important; /* Indigo 100 */
     color: #1e1b4b !important;            /* Indigo 950 - ultra contrast (12:1) */
@@ -815,6 +884,9 @@ span.badge.text-primary.bg-primary-subtle {
 
 .badge.bg-danger-subtle,
 .badge-danger-subtle,
+.badge.bg-danger.bg-opacity-10,
+.badge.bg-danger.bg-opacity-20,
+.badge.bg-danger.bg-opacity-25,
 span.badge.text-danger.bg-danger-subtle {
     background-color: #ffe4e6 !important; /* Rose 100 */
     color: #881337 !important;            /* Rose 900 - ultra contrast (10.8:1) */
@@ -824,8 +896,12 @@ span.badge.text-danger.bg-danger-subtle {
 
 .badge.bg-warning-subtle,
 .badge-warning-subtle,
+.badge.bg-warning.bg-opacity-10,
+.badge.bg-warning.bg-opacity-20,
+.badge.bg-warning.bg-opacity-25,
 span.badge.text-warning-emphasis.bg-warning-subtle,
-span.badge.text-warning.bg-warning-subtle {
+span.badge.text-warning.bg-warning-subtle,
+span.badge.text-warning {
     background-color: #fef3c7 !important; /* Amber 100 */
     color: #78350f !important;            /* Amber 900 - ultra contrast (8.2:1) */
     border: 1px solid #fcd34d !important;
@@ -834,8 +910,12 @@ span.badge.text-warning.bg-warning-subtle {
 
 .badge.bg-info-subtle,
 .badge-info-subtle,
+.badge.bg-info.bg-opacity-10,
+.badge.bg-info.bg-opacity-20,
+.badge.bg-info.bg-opacity-25,
 span.badge.text-info.bg-info-subtle,
-span.badge.text-info-emphasis.bg-info-subtle {
+span.badge.text-info-emphasis.bg-info-subtle,
+span.badge.text-info {
     background-color: #cffafe !important; /* Cyan 100 */
     color: #164e63 !important;            /* Cyan 900 - ultra contrast (9.5:1) */
     border: 1px solid #67e8f9 !important;
@@ -844,33 +924,122 @@ span.badge.text-info-emphasis.bg-info-subtle {
 
 .badge.bg-secondary-subtle,
 .badge-secondary-subtle,
-span.badge.text-secondary.bg-secondary-subtle {
+.badge.bg-secondary.bg-opacity-10,
+span.badge.text-secondary.bg-secondary-subtle,
+span.badge.text-secondary {
     background-color: #e2e8f0 !important; /* Slate 200 */
     color: #0f172a !important;            /* Slate 900 - ultra contrast (11:1) */
     border: 1px solid #cbd5e1 !important;
     font-weight: 700 !important;
 }
 
-/* Fix for raw .badge.text-info */
-.badge.text-info,
-span.badge.text-info {
-    color: #0e7490 !important; /* Deep Cyan 700 */
+/* Light Badges Fix (Slate-100 base with Slate-900 text) */
+.badge.bg-light,
+.badge.bg-light.text-secondary,
+.badge.bg-light.text-muted,
+.badge.bg-light.text-dark {
+    background-color: #f1f5f9 !important;
+    color: #0f172a !important;
+    border: 1px solid #cbd5e1 !important;
+    font-weight: 700 !important;
 }
 
-/* Fix for .badge.bg-warning (Yellow background needs black text) */
+/* Fix for raw .badge.text-info & .badge.text-warning (Context-aware contrast) */
+.badge:not(.bg-dark):not(.bg-black).text-info,
+span.badge:not(.bg-dark):not(.bg-black).text-info {
+    color: #164e63 !important; /* Deep Cyan 900 on light backgrounds */
+}
+
+.badge:not(.bg-dark):not(.bg-black).text-warning,
+span.badge:not(.bg-dark):not(.bg-black).text-warning {
+    color: #78350f !important; /* Deep Amber 900 on light backgrounds */
+}
+
+.badge.bg-dark.text-warning,
+.badge.bg-black.text-warning,
+.badge.bg-dark .text-warning {
+    color: #fcd34d !important; /* Bright Gold on Dark badges (13:1 contrast) */
+}
+
+.badge.bg-dark.text-info,
+.badge.bg-black.text-info,
+.badge.bg-dark .text-info {
+    color: #38bdf8 !important; /* Bright Sky on Dark badges (10:1 contrast) */
+}
+
+/* Fix for .badge.bg-warning (Solid Yellow background needs dark slate text) */
 .badge.bg-warning,
 span.badge.bg-warning {
-    color: #0f172a !important; /* Black text on yellow */
+    color: #0f172a !important; /* Solid Black/Slate on yellow (12:1) */
     font-weight: 700 !important;
 }
 
-/* Fix for .badge.bg-info (Cyan background needs dark text) */
+/* Fix for .badge.bg-info (Solid Cyan background needs dark slate text) */
 .badge.bg-info,
 span.badge.bg-info {
-    color: #0f172a !important;
+    color: #0f172a !important; /* Solid Black/Slate on cyan (10:1) */
     font-weight: 700 !important;
 }
 
+/* Fix for purple badges */
+.badge.bg-purple,
+.badge[style*="6f42c1"],
+span.badge[style*="6f42c1"] {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+}
+
+/* Timeframe Buttons Contrast Fix */
+.btn-tf,
+a.btn-tf {
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 0.35rem 0.85rem;
+    border-radius: 9999px;
+    transition: all 0.15s ease-in-out;
+}
+
+.btn-tf:not(.active),
+a.btn-tf:not(.active) {
+    background: #f1f5f9 !important;
+    background-color: #f1f5f9 !important;
+    color: #0f172a !important;
+    border: 1px solid #cbd5e1 !important;
+    font-weight: 600 !important;
+}
+
+.btn-tf:not(.active):hover,
+a.btn-tf:not(.active):hover {
+    background: #e2e8f0 !important;
+    background-color: #e2e8f0 !important;
+    color: #0f172a !important;
+    border-color: #94a3b8 !important;
+}
+
+.btn-tf.active,
+a.btn-tf.active,
+.btn-tf.active.btn-primary,
+a.btn-tf.active.btn-primary,
+.btn-tf.active.text-white,
+a.btn-tf.active.text-white {
+    background: #1e1b4b !important; /* Deep Indigo 950 */
+    background-color: #1e1b4b !important;
+    color: #ffffff !important;
+    border-color: #1e1b4b !important;
+    font-weight: 700 !important;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.3) !important;
+    text-decoration: none !important;
+}
+
+/* Active Navlink Badge in Sidebar */
+.sidebar .nav-link.active .badge-core,
+.nav-link.active .badge-core {
+    background: #ffffff !important;
+    color: #0d6efd !important;
+    font-weight: 800 !important;
+}
+
+/* Status Badges */
 .badge-status-strong-buy {
     background: #dcfce7 !important;
     color: #14532d !important;

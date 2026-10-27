@@ -461,7 +461,7 @@ $fib = $signals['fibonacci'] ?? null;
 
                     <div class="row g-3 align-items-end mb-3">
                         <div class="col-md-3 col-6">
-                            <label class="form-label small fw-bold text-muted">Rencana Harga Beli ($)</label>
+                            <label class="form-label small fw-bold text-dark">Rencana Harga Beli ($)</label>
                             <input type="number" step="any" min="0.0001" id="custom-add-price" class="form-control fw-bold text-primary" value="<?= $currentPrice ?>">
                             <div class="d-flex gap-1 mt-1 flex-wrap">
                                 <button type="button" class="btn btn-outline-secondary btn-xs py-0 px-1" style="font-size:0.70rem;" id="btn-use-current-price" title="Gunakan harga real-time saat ini">
@@ -477,21 +477,21 @@ $fib = $signals['fibonacci'] ?? null;
 
                         <!-- Mode Lembar -->
                         <div class="col-md-3 col-6" id="input-shares-container">
-                            <label class="form-label small fw-bold text-muted">Rencana Lembar Tambahan</label>
+                            <label class="form-label small fw-bold text-dark">Rencana Lembar Tambahan</label>
                             <input type="number" step="any" min="0.000001" id="custom-add-shares" class="form-control fw-bold" value="<?= $shares ?>">
                             <div class="form-text small" style="font-size:0.70rem;">Bisa pecahan/desimal</div>
                         </div>
 
                         <!-- Mode Budget Modal ($) -->
                         <div class="col-md-3 col-6 d-none" id="input-budget-container">
-                            <label class="form-label small fw-bold text-muted">Budget Modal Tersedia ($)</label>
+                            <label class="form-label small fw-bold text-dark">Budget Modal Tersedia ($)</label>
                             <input type="number" step="any" min="0.01" id="custom-budget" class="form-control fw-bold" value="<?= round($currentPrice * $shares, 2) ?>">
                             <div class="form-text small" style="font-size:0.70rem;">Alokasi dana Anda dalam USD</div>
                         </div>
 
                         <!-- Mode Target Pantulan (%) -->
                         <div class="col-md-3 col-6 d-none" id="input-rebound-container">
-                            <label class="form-label small fw-bold text-muted">Target Pantulan ke Impas (%)</label>
+                            <label class="form-label small fw-bold text-dark">Target Pantulan ke Impas (%)</label>
                             <div class="input-group">
                                 <input type="number" step="0.5" min="0.1" id="custom-rebound-target" class="form-control fw-bold" value="5.0">
                                 <span class="input-group-text">%</span>
@@ -500,7 +500,7 @@ $fib = $signals['fibonacci'] ?? null;
                         </div>
 
                         <div class="col-md-3 col-6">
-                            <label class="form-label small fw-bold text-muted">Target Untung Diinginkan (%)</label>
+                            <label class="form-label small fw-bold text-dark">Target Untung Diinginkan (%)</label>
                             <div class="input-group">
                                 <input type="number" step="0.1" min="0.1" id="custom-target-pct" class="form-control" value="<?= $targetPct ?>">
                                 <span class="input-group-text">%</span>
@@ -984,11 +984,11 @@ $fib = $signals['fibonacci'] ?? null;
             <div class="modal-body p-4">
                 <div class="row g-2 mb-3">
                     <div class="col-6">
-                        <label class="form-label small fw-bold text-muted">Harga Beli Awal ($)</label>
+                        <label class="form-label small fw-bold text-dark">Harga Beli Awal ($)</label>
                         <input type="number" step="0.0001" name="PortfolioPosition[buy_price]" class="form-control" value="<?= $position->buy_price ?>" required>
                     </div>
                     <div class="col-6">
-                        <label class="form-label small fw-bold text-muted">Jumlah Lembar (Shares)</label>
+                        <label class="form-label small fw-bold text-dark">Jumlah Lembar (Shares)</label>
                         <input type="number" step="any" min="0.0001" name="PortfolioPosition[shares]" class="form-control" value="<?= $position->shares ?>" required>
                         <div class="form-text small" style="font-size:0.70rem;">Bisa bilangan bulat atau pecahan/desimal.</div>
                     </div>
@@ -996,20 +996,20 @@ $fib = $signals['fibonacci'] ?? null;
 
                 <div class="row g-2 mb-3">
                     <div class="col-6">
-                        <label class="form-label small fw-bold text-muted">Target Untung (%)</label>
+                        <label class="form-label small fw-bold text-dark">Target Untung (%)</label>
                         <div class="input-group">
                             <input type="number" step="0.1" name="PortfolioPosition[target_profit_pct]" class="form-control" value="<?= $position->target_profit_pct ?>" required>
                             <span class="input-group-text">%</span>
                         </div>
                     </div>
                     <div class="col-6">
-                        <label class="form-label small fw-bold text-muted">Tanggal Pembelian</label>
+                        <label class="form-label small fw-bold text-dark">Tanggal Pembelian</label>
                         <input type="date" name="PortfolioPosition[buy_date]" class="form-control" value="<?= $position->buy_date ?>">
                     </div>
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label small fw-bold text-muted">Catatan / Alasan Entry</label>
+                    <label class="form-label small fw-bold text-dark">Catatan / Alasan Entry</label>
                     <textarea name="PortfolioPosition[notes]" class="form-control" rows="3"><?= Html::encode($position->notes) ?></textarea>
                 </div>
             </div>
@@ -1054,14 +1054,14 @@ $fib = $signals['fibonacci'] ?? null;
 
                 <div class="row g-3 mb-3">
                     <div class="col-6">
-                        <label class="form-label small fw-bold text-muted">Harga Eksekusi Jual ($)</label>
+                        <label class="form-label small fw-bold text-dark">Harga Eksekusi Jual ($)</label>
                         <div class="input-group">
                             <span class="input-group-text">$</span>
                             <input type="number" step="0.01" name="sell_price" class="form-control fw-bold text-success" value="<?= $currentPrice ?>" required>
                         </div>
                     </div>
                     <div class="col-6">
-                        <label class="form-label small fw-bold text-muted">Jumlah Lembar Jual</label>
+                        <label class="form-label small fw-bold text-dark">Jumlah Lembar Jual</label>
                         <div class="input-group">
                             <input type="number" step="any" name="sell_shares" class="form-control fw-bold" value="<?= $shares ?>" max="<?= $shares ?>" min="0.0001" required>
                             <span class="input-group-text">lbr</span>
@@ -1071,7 +1071,7 @@ $fib = $signals['fibonacci'] ?? null;
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label small fw-bold text-muted">Catatan Jual / Rencana Exit (Opsional)</label>
+                    <label class="form-label small fw-bold text-dark">Catatan Jual / Rencana Exit (Opsional)</label>
                     <input type="text" name="notes" class="form-control form-control-sm" placeholder="Misal: Jual 50% porsi amankan target +3%, sisanya trailing stop">
                 </div>
 
@@ -1123,14 +1123,14 @@ $fib = $signals['fibonacci'] ?? null;
 
                 <div class="row g-3 mb-3">
                     <div class="col-6">
-                        <label class="form-label small fw-bold text-muted">Harga Eksekusi Cut ($)</label>
+                        <label class="form-label small fw-bold text-dark">Harga Eksekusi Cut ($)</label>
                         <div class="input-group">
                             <span class="input-group-text">$</span>
                             <input type="number" step="0.01" name="exit_price" class="form-control fw-bold text-danger" value="<?= $currentPrice ?>" required>
                         </div>
                     </div>
                     <div class="col-6">
-                        <label class="form-label small fw-bold text-muted">Jumlah Lembar Dipotong</label>
+                        <label class="form-label small fw-bold text-dark">Jumlah Lembar Dipotong</label>
                         <div class="input-group">
                             <input type="number" step="any" name="cut_shares" class="form-control fw-bold" value="<?= $shares ?>" max="<?= $shares ?>" min="0.0001" required>
                             <span class="input-group-text">lbr</span>
@@ -1140,7 +1140,7 @@ $fib = $signals['fibonacci'] ?? null;
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label small fw-bold text-muted">Alasan Cut Loss (Opsional)</label>
+                    <label class="form-label small fw-bold text-dark">Alasan Cut Loss (Opsional)</label>
                     <input type="text" name="notes" class="form-control form-control-sm" placeholder="Misal: Breakdown support teknikal MA50 / ganti ke saham momentum lain">
                 </div>
 
