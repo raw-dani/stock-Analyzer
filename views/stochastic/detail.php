@@ -75,6 +75,15 @@ $markLines = [
     ],
 ];
 
+if (!empty($analysis['shakeout_low']['detected']) && !empty($analysis['shakeout_low']['support_level'])) {
+    $markLines[] = [
+        'yAxis' => $analysis['shakeout_low']['support_level'],
+        'name' => 'Support (Reclaimed)',
+        'lineStyle' => ['color' => '#f59e0b', 'type' => 'dotted', 'width' => 1.8],
+        'label' => ['formatter' => 'Support Reclaimed: $' . number_format($analysis['shakeout_low']['support_level'], 2), 'position' => 'insideStartTop', 'color' => '#b45309'],
+    ];
+}
+
 $chartId = 'stochastic-echarts-container';
 ?>
 
@@ -116,7 +125,23 @@ $chartId = 'stochastic-echarts-container';
                 <?php endforeach; ?>
             </div>
         </div>
-    </div>
+    <?php if (!empty($analysis['shakeout_low']['detected'])): ?>
+        <!-- Shakeout Low (Wyckoff Spring) Highlight Card -->
+        <div class="alert alert-warning border border-warning shadow-sm rounded-4 mb-4 d-flex align-items-center gap-3 p-3">
+            <div class="rounded-circle d-flex align-items-center justify-content-center bg-warning text-dark flex-shrink-0" style="width: 48px; height: 48px; font-size: 1.5rem;">
+                <i class="bi bi-shield-shaded"></i>
+            </div>
+            <div class="flex-grow-1">
+                <div class="fw-bold text-dark d-flex align-items-center gap-2 flex-wrap">
+                    <span>Pola Shakeout Low (Wyckoff Spring Reclaim) Terkonfirmasi!</span>
+                    <span class="badge bg-danger text-white rounded-pill px-2 py-0" style="font-size:0.68rem;">HIGH WIN-RATE SETUP</span>
+                </div>
+                <div class="small text-muted mt-1">
+                    Harga sempat menembus level support <strong class="text-dark">$<?= number_format($analysis['shakeout_low']['support_level'], 2) ?></strong> hingga titik terendah <strong class="text-danger">$<?= number_format($analysis['shakeout_low']['shakeout_low'], 2) ?></strong> (-<?= $analysis['shakeout_low']['sweep_pct'] ?>%) untuk memicu <em>stop-loss</em> ritel, lalu langsung di-<em>reclaim</em> kembali oleh penyerapan akumulasi cerdas dengan Stochastic %K di level <strong><?= $analysis['curr_k'] ?></strong>. Stop loss diatur ketat tepat di bawah jarum <em>sweep low</em>.
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
 
     <!-- Main Content Grid -->
     <div class="row g-4 mb-4">

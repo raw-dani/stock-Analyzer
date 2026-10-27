@@ -58,74 +58,94 @@ $currentTimeframe = (int) ($params['timeframe'] ?? StochasticService::TIMEFRAME_
         </div>
     </div>
 
-    <!-- 4 Key Metric Summary Cards -->
+    <!-- 5 Key Metric Summary Cards -->
     <div class="row g-3 mb-4">
         <!-- Metric 1: Golden Cross Oversold -->
-        <div class="col-xl-3 col-sm-6">
+        <div class="col-xxl col-lg-4 col-sm-6">
             <div class="card border-0 shadow-sm h-100 rounded-4" style="background: #ffffff; border-left: 5px solid #10b981 !important;">
                 <div class="card-body p-3 d-flex align-items-center justify-content-between">
                     <div>
-                        <div class="text-muted small fw-semibold text-uppercase" style="font-size:0.72rem; letter-spacing:0.5px;">Golden Cross Oversold</div>
+                        <div class="text-muted small fw-semibold text-uppercase" style="font-size:0.70rem; letter-spacing:0.5px;">Golden Cross Oversold</div>
                         <div class="h3 fw-bold text-dark mb-0 mt-1"><?= (int) $stats['golden_cross_oversold'] ?> <span class="text-muted fw-normal" style="font-size:0.85rem;">emiten</span></div>
-                        <div class="text-success small mt-1" style="font-size:0.78rem;">
+                        <div class="text-success small mt-1" style="font-size:0.75rem;">
                             <i class="bi bi-lightning-charge-fill me-1"></i>Cross %K &gt; %D di &lt; 20
                         </div>
                     </div>
-                    <div class="rounded-circle d-flex align-items-center justify-content-center bg-success bg-opacity-10 text-success" style="width: 52px; height: 52px; font-size: 1.5rem;">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center bg-success bg-opacity-10 text-success" style="width: 48px; height: 48px; font-size: 1.35rem;">
                         <i class="bi bi-rocket-takeoff-fill"></i>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Metric 2: Bullish Divergence -->
-        <div class="col-xl-3 col-sm-6">
+        <!-- Metric 2: Shakeout Low (Spring) -->
+        <div class="col-xxl col-lg-4 col-sm-6">
+            <div class="card border-0 shadow-sm h-100 rounded-4" style="background: #ffffff; border-left: 5px solid #f59e0b !important;">
+                <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase d-flex align-items-center gap-1" style="font-size:0.70rem; letter-spacing:0.5px;">
+                            Shakeout Low <span class="badge bg-danger text-white py-0 px-1" style="font-size:0.6rem;">HOT</span>
+                        </div>
+                        <div class="h3 fw-bold text-dark mb-0 mt-1"><?= (int) ($stats['shakeout_low_count'] ?? 0) ?> <span class="text-muted fw-normal" style="font-size:0.85rem;">emiten</span></div>
+                        <div class="text-warning-emphasis small mt-1" style="font-size:0.75rem;">
+                            <i class="bi bi-shield-fill-check me-1"></i>False Breakdown &amp; Reclaim
+                        </div>
+                    </div>
+                    <div class="rounded-circle d-flex align-items-center justify-content-center bg-warning bg-opacity-15 text-warning" style="width: 48px; height: 48px; font-size: 1.35rem;">
+                        <i class="bi bi-shield-shaded"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Metric 3: Bullish Divergence -->
+        <div class="col-xxl col-lg-4 col-sm-6">
             <div class="card border-0 shadow-sm h-100 rounded-4" style="background: #ffffff; border-left: 5px solid #06b6d4 !important;">
                 <div class="card-body p-3 d-flex align-items-center justify-content-between">
                     <div>
-                        <div class="text-muted small fw-semibold text-uppercase" style="font-size:0.72rem; letter-spacing:0.5px;">Bullish Divergence</div>
+                        <div class="text-muted small fw-semibold text-uppercase" style="font-size:0.70rem; letter-spacing:0.5px;">Bullish Divergence</div>
                         <div class="h3 fw-bold text-dark mb-0 mt-1"><?= (int) $stats['bullish_divergence'] ?> <span class="text-muted fw-normal" style="font-size:0.85rem;">saham</span></div>
-                        <div class="text-info small mt-1" style="font-size:0.78rem;">
+                        <div class="text-info small mt-1" style="font-size:0.75rem;">
                             <i class="bi bi-bullseye me-1"></i>Pembalikan harga terkuat
                         </div>
                     </div>
-                    <div class="rounded-circle d-flex align-items-center justify-content-center bg-info bg-opacity-10 text-info" style="width: 52px; height: 52px; font-size: 1.5rem;">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center bg-info bg-opacity-10 text-info" style="width: 48px; height: 48px; font-size: 1.35rem;">
                         <i class="bi bi-graph-up-arrow"></i>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Metric 3: Zona Oversold (< 20) -->
-        <div class="col-xl-3 col-sm-6">
+        <!-- Metric 4: Zona Oversold (< 20) -->
+        <div class="col-xxl col-lg-6 col-sm-6">
             <div class="card border-0 shadow-sm h-100 rounded-4" style="background: #ffffff; border-left: 5px solid #6366f1 !important;">
                 <div class="card-body p-3 d-flex align-items-center justify-content-between">
                     <div>
-                        <div class="text-muted small fw-semibold text-uppercase" style="font-size:0.72rem; letter-spacing:0.5px;">Jenuh Jual (Oversold)</div>
+                        <div class="text-muted small fw-semibold text-uppercase" style="font-size:0.70rem; letter-spacing:0.5px;">Jenuh Jual (Oversold)</div>
                         <div class="h3 fw-bold text-dark mb-0 mt-1"><?= (int) $stats['oversold_count'] ?> <span class="text-muted fw-normal" style="font-size:0.85rem;">saham</span></div>
-                        <div class="text-primary small mt-1" style="font-size:0.78rem;">
+                        <div class="text-primary small mt-1" style="font-size:0.75rem;">
                             <i class="bi bi-arrow-down-circle me-1"></i>%K di bawah level 20
                         </div>
                     </div>
-                    <div class="rounded-circle d-flex align-items-center justify-content-center bg-primary bg-opacity-10 text-primary" style="width: 52px; height: 52px; font-size: 1.5rem;">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center bg-primary bg-opacity-10 text-primary" style="width: 48px; height: 48px; font-size: 1.35rem;">
                         <i class="bi bi-water"></i>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Metric 4: Zona Overbought (> 80) -->
-        <div class="col-xl-3 col-sm-6">
+        <!-- Metric 5: Zona Overbought (> 80) -->
+        <div class="col-xxl col-lg-6 col-sm-6">
             <div class="card border-0 shadow-sm h-100 rounded-4" style="background: #ffffff; border-left: 5px solid #f43f5e !important;">
                 <div class="card-body p-3 d-flex align-items-center justify-content-between">
                     <div>
-                        <div class="text-muted small fw-semibold text-uppercase" style="font-size:0.72rem; letter-spacing:0.5px;">Jenuh Beli (Overbought)</div>
+                        <div class="text-muted small fw-semibold text-uppercase" style="font-size:0.70rem; letter-spacing:0.5px;">Jenuh Beli (Overbought)</div>
                         <div class="h3 fw-bold text-dark mb-0 mt-1"><?= (int) $stats['overbought_count'] ?> <span class="text-muted fw-normal" style="font-size:0.85rem;">saham</span></div>
-                        <div class="text-danger small mt-1" style="font-size:0.78rem;">
+                        <div class="text-danger small mt-1" style="font-size:0.75rem;">
                             <i class="bi bi-exclamation-triangle-fill me-1"></i>%K di atas 80 (Area TP)
                         </div>
                     </div>
-                    <div class="rounded-circle d-flex align-items-center justify-content-center bg-danger bg-opacity-10 text-danger" style="width: 52px; height: 52px; font-size: 1.5rem;">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center bg-danger bg-opacity-10 text-danger" style="width: 48px; height: 48px; font-size: 1.35rem;">
                         <i class="bi bi-fire"></i>
                     </div>
                 </div>
@@ -136,6 +156,39 @@ $currentTimeframe = (int) ($params['timeframe'] ?? StochasticService::TIMEFRAME_
     <!-- Filter Control Card -->
     <div class="card border-0 shadow-sm rounded-4 mb-4">
         <div class="card-body p-3 p-lg-4">
+            <!-- Quick Preset Filter Pills -->
+            <div class="d-flex align-items-center gap-2 overflow-auto pb-2 mb-3" style="white-space: nowrap;">
+                <span class="small text-muted fw-bold me-1"><i class="bi bi-lightning-charge"></i> Quick Preset:</span>
+                <a href="<?= Url::to(['/stochastic/index', 'timeframe' => $currentTimeframe, 'strategy' => 'all']) ?>"
+                   class="btn btn-sm rounded-pill px-3 <?= (($params['strategy'] ?? 'all') === 'all') ? 'btn-primary text-white' : 'btn-light text-dark border' ?>">
+                    Semua
+                </a>
+                <a href="<?= Url::to(['/stochastic/index', 'timeframe' => $currentTimeframe, 'strategy' => 'buy_all']) ?>"
+                   class="btn btn-sm rounded-pill px-3 <?= (($params['strategy'] ?? 'all') === 'buy_all') ? 'btn-success text-white' : 'btn-light text-dark border' ?>">
+                    Semua Sinyal Buy
+                </a>
+                <a href="<?= Url::to(['/stochastic/index', 'timeframe' => $currentTimeframe, 'strategy' => 'shakeout_low']) ?>"
+                   class="btn btn-sm rounded-pill px-3 <?= (($params['strategy'] ?? 'all') === 'shakeout_low') ? 'btn-warning text-dark fw-bold' : 'btn-light text-dark border' ?>">
+                    🛡️ Shakeout Low <span class="badge bg-danger text-white rounded-pill ms-1" style="font-size:0.6rem;">HOT</span>
+                </a>
+                <a href="<?= Url::to(['/stochastic/index', 'timeframe' => $currentTimeframe, 'strategy' => 'golden_cross_oversold']) ?>"
+                   class="btn btn-sm rounded-pill px-3 <?= (($params['strategy'] ?? 'all') === 'golden_cross_oversold') ? 'btn-success text-white' : 'btn-light text-dark border' ?>">
+                    🚀 Golden Cross &lt; 20
+                </a>
+                <a href="<?= Url::to(['/stochastic/index', 'timeframe' => $currentTimeframe, 'strategy' => 'bullish_divergence']) ?>"
+                   class="btn btn-sm rounded-pill px-3 <?= (($params['strategy'] ?? 'all') === 'bullish_divergence') ? 'btn-info text-white' : 'btn-light text-dark border' ?>">
+                    🎯 Bullish Divergence
+                </a>
+                <a href="<?= Url::to(['/stochastic/index', 'timeframe' => $currentTimeframe, 'strategy' => 'oversold_zone']) ?>"
+                   class="btn btn-sm rounded-pill px-3 <?= (($params['strategy'] ?? 'all') === 'oversold_zone') ? 'btn-primary text-white' : 'btn-light text-dark border' ?>">
+                    🌊 Oversold (%K &lt; 20)
+                </a>
+                <a href="<?= Url::to(['/stochastic/index', 'timeframe' => $currentTimeframe, 'strategy' => 'overbought_zone']) ?>"
+                   class="btn btn-sm rounded-pill px-3 <?= (($params['strategy'] ?? 'all') === 'overbought_zone') ? 'btn-danger text-white' : 'btn-light text-dark border' ?>">
+                    🔥 Overbought (%K &gt; 80)
+                </a>
+            </div>
+
             <form method="get" action="<?= Url::to(['/stochastic/index']) ?>" class="row g-3 align-items-end" id="stochastic-filter-form">
                 <input type="hidden" name="timeframe" value="<?= $currentTimeframe ?>">
 
@@ -324,11 +377,18 @@ $currentTimeframe = (int) ($params['timeframe'] ?? StochasticService::TIMEFRAME_
 
                                 <!-- Sinyal & Strategi -->
                                 <td>
-                                    <div class="d-flex align-items-center gap-1">
+                                    <div class="d-flex align-items-center gap-1 flex-wrap">
                                         <span class="badge bg-<?= Html::encode($item['strategy_badge']) ?> bg-opacity-15 text-<?= Html::encode($item['strategy_badge']) ?> border border-<?= Html::encode($item['strategy_badge']) ?> fw-semibold" style="font-size:0.75rem;">
                                             <?= Html::encode($item['strategy_name']) ?>
                                         </span>
                                     </div>
+                                    <?php if (!empty($item['shakeout_low']['detected'])): ?>
+                                        <div class="mt-1">
+                                            <span class="badge bg-warning bg-opacity-25 text-dark border border-warning" style="font-size:0.67rem;">
+                                                <i class="bi bi-shield-check me-1"></i>Support $<?= number_format($item['shakeout_low']['support_level'], 2) ?> (Sweep -<?= $item['shakeout_low']['sweep_pct'] ?>%)
+                                            </span>
+                                        </div>
+                                    <?php endif; ?>
                                     <div class="text-muted text-truncate mt-1 small" style="font-size: 0.73rem; max-width: 250px;" title="<?= Html::encode($item['description']) ?>">
                                         <?= Html::encode($item['description']) ?>
                                     </div>

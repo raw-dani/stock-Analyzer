@@ -32,6 +32,7 @@ final class StochasticService
     public const TIMEFRAME_1H = 1;
 
     // Sinyal Utama
+    public const SIGNAL_SHAKEOUT_LOW           = 'SHAKEOUT_LOW';
     public const SIGNAL_GOLDEN_CROSS_OVERSOLD  = 'GOLDEN_CROSS_OVERSOLD';
     public const SIGNAL_BULLISH_DIVERGENCE     = 'BULLISH_DIVERGENCE';
     public const SIGNAL_HIDDEN_BULLISH_DIV     = 'HIDDEN_BULLISH_DIV';
@@ -70,6 +71,7 @@ final class StochasticService
         return [
             'all' => 'Semua Saham & Kondisi',
             'buy_all' => 'Semua Sinyal Beli (Buy Signals)',
+            'shakeout_low' => '🛡️ Shakeout Low (False Breakdown & Reclaim)',
             'golden_cross_oversold' => '🚀 Golden Cross di Oversold (< 20)',
             'bullish_divergence' => '🎯 Regular Bullish Divergence',
             'hidden_bullish' => '📈 Hidden Bullish Divergence (Buy on Dip)',
@@ -264,6 +266,9 @@ final class StochasticService
         // Deteksi Divergence
         $divergence = $this->detectDivergence($closes, $kSeries, 30);
 
+        // Deteksi Pola Shakeout Low (False Breakdown & Reclaim)
+        $shakeoutData = $this->detectShakeoutLow($candles, $kSeries, $dSeries, 30);
+
         // Evaluasi Sinyal & Rencana Trading
         $signalData = $this->evaluateSignal(
             $currK,
@@ -271,6 +276,7 @@ final class StochasticService
             $prevK,
             $prevD,
             $divergence,
+            $shakeoutData,
             $rvol,
             $currClose,
             $currOpen
@@ -282,7 +288,8 @@ final class StochasticService
             $currHigh,
             $atr,
             $signalData['action'],
-            $signalData['signal']
+            $signalData['signal'],
+            $shakeoutData
         );
 
         // Potong array seri untuk chart sesuai lookback agar visual rapi
@@ -311,6 +318,7 @@ final class StochasticService
             'is_overbought' => $currK > 80.0,
             'zone' => $currK < 20.0 ? 'OVERSOLD' : ($currK > 80.0 ? 'OVERBOUGHT' : 'NEUTRAL'),
             'divergence' => $divergence,
+            'shakeout_low' => $shakeoutData,
             'signal' => $signalData['signal'],
             'action' => $signalData['action'],
             'strategy_name' => $signalData['strategy_name'],
@@ -497,6 +505,126 @@ final class StochasticService
     }
 
     /**
+     * Deteksi Pola Shakeout Low (Spring / False Breakdown & Reclaim).
+     *
+     * Karakteristik Wyckoff Spring / Shakeout Low:
+     * 1. Terbentuk swing low support pada 6 - 32 candle sebelumnya ($supportLow).
+     * 2. Pada candle terkini atau candle sebelumnya, harga mengalami downthrust menembus low support
+     *    (terjadi liquidity sweep untuk memicu stop-loss ritel).
+     * 3. Terjadi penolakan keras (reclaim): Harga ditutup kembali di atas support atau membentuk
+     *    candle hammer/pin bar dengan lower wick panjang (>= 40% range candle).
+     * 4. Konfirmasi Stochastic: Osilator berada di area jenuh jual (%K <= 35) dan mulai melengkung
+     *    naik (%K > %D atau %K > prev %K) yang mengindikasikan akumulasi institusional / smart money.
+     *
+     * @param array<int, array<string, mixed>> $candles
+     * @param (float|null)[] $kSeries
+     * @param (float|null)[] $dSeries
+     * @param int $lookback
+     * @return array<string, mixed>
+     */
+    public function detectShakeoutLow(
+        array $candles,
+        array $kSeries,
+        array $dSeries,
+        int $lookback = 30
+    ): array {
+        $n = count($candles);
+        if ($n < 20) {
+            return ['detected' => false];
+        }
+
+        $idx = $n - 1;
+        $currCandle = $candles[$idx];
+        $prevCandle = $candles[$idx - 1];
+
+        $currClose = (float) $currCandle['close'];
+        $currLow   = (float) $currCandle['low'];
+        $currHigh  = (float) $currCandle['high'];
+        $currOpen  = (float) $currCandle['open'];
+        $currRange = max(0.0001, $currHigh - $currLow);
+
+        // Cari swing low support dalam 6 s/d 32 bar sebelum bar pengujian
+        $searchStart = max(0, $n - min($lookback + 5, 35));
+        $searchEnd   = $n - 3;
+        if ($searchEnd <= $searchStart) {
+            return ['detected' => false];
+        }
+
+        $minSupportLow = PHP_FLOAT_MAX;
+        $minSupportIdx = null;
+
+        for ($i = $searchStart; $i <= $searchEnd; $i++) {
+            $lowVal = (float) $candles[$i]['low'];
+            if ($lowVal < $minSupportLow) {
+                $minSupportLow = $lowVal;
+                $minSupportIdx = $i;
+            }
+        }
+
+        if ($minSupportIdx === null || $minSupportLow <= 0) {
+            return ['detected' => false];
+        }
+
+        $currK = $kSeries[$idx] ?? null;
+        $currD = $dSeries[$idx] ?? null;
+        $prevK = $kSeries[$idx - 1] ?? null;
+
+        if ($currK === null || $currD === null) {
+            return ['detected' => false];
+        }
+
+        // Skenario 1: Bar terkini (curr) melakukan sweep low dan reclaim
+        $isSweepCurr = ($currLow < $minSupportLow);
+        $isReclaimCurr = ($currClose >= $minSupportLow * 0.996);
+        $lowerWickCurr = ($currClose >= $currOpen) ? ($currOpen - $currLow) : ($currClose - $currLow);
+        $isHammerCurr = ($lowerWickCurr / $currRange >= 0.40);
+
+        // Skenario 2: Bar kemarin (prev) yang melakukan sweep, dan bar terkini reclaim di atas support
+        $prevLow = (float) $prevCandle['low'];
+        $prevClose = (float) $prevCandle['close'];
+        $isSweepPrev = ($prevLow < $minSupportLow);
+        $isReclaimAfterPrev = ($currClose >= $minSupportLow && $currClose > $prevLow);
+
+        $isShakeout = false;
+        $shakeoutLow = $currLow;
+        $shakeoutBar = 'CURRENT';
+
+        if ($isSweepCurr && ($isReclaimCurr || $isHammerCurr)) {
+            $isShakeout = true;
+            $shakeoutLow = $currLow;
+            $shakeoutBar = 'CURRENT';
+        } elseif ($isSweepPrev && $isReclaimAfterPrev) {
+            $isShakeout = true;
+            $shakeoutLow = $prevLow;
+            $shakeoutBar = 'PREVIOUS';
+        }
+
+        if (!$isShakeout) {
+            return ['detected' => false];
+        }
+
+        // Konfirmasi Stochastic: Harus berada di zona jenuh jual (%K <= 35) atau baru keluar dari oversold
+        $stochOversoldOrHook = ($currK <= 35.0 || ($prevK !== null && $prevK <= 25.0));
+        if (!$stochOversoldOrHook) {
+            return ['detected' => false];
+        }
+
+        $sweepPct = round((($minSupportLow - $shakeoutLow) / $minSupportLow) * 100, 2);
+
+        return [
+            'detected' => true,
+            'support_level' => round($minSupportLow, 2),
+            'shakeout_low' => round($shakeoutLow, 2),
+            'reclaim_price' => round($currClose, 2),
+            'sweep_pct' => $sweepPct,
+            'shakeout_bar' => $shakeoutBar,
+            'curr_k' => round($currK, 1),
+            'curr_d' => round($currD, 1),
+            'is_golden_cross' => ($currK > $currD),
+        ];
+    }
+
+    /**
      * Evaluasi sinyal trading Stochastic.
      */
     private function evaluateSignal(
@@ -505,6 +633,7 @@ final class StochasticService
         float $prevK,
         float $prevD,
         array $divergence,
+        array $shakeoutData,
         float $rvol,
         float $currClose,
         float $currOpen
@@ -513,7 +642,25 @@ final class StochasticService
         $isCrossDown = ($prevK >= $prevD && $currK < $currD);
         $isBullishCandle = ($currClose >= $currOpen);
 
-        // 1. REGULAR BULLISH DIVERGENCE (Highest Quality Reversal)
+        // 1. SHAKEOUT LOW REVERSAL (SPRING / FALSE BREAKDOWN RECLAIM)
+        if (!empty($shakeoutData['detected'])) {
+            $isGc = ($currK > $currD);
+            $isDiv = ($divergence['type'] === 'BULLISH_REGULAR');
+            $conf = $isDiv ? 94 : ($isGc ? 92 : 87);
+            $strategyName = $isDiv ? '🛡️ Shakeout Low + Bullish Divergence' : ($isGc ? '🛡️ Shakeout Low + Golden Cross' : '🛡️ Shakeout Low (Spring Reclaim)');
+            $badge = $isGc ? 'success' : 'warning text-dark border border-warning';
+            $barDesc = ($shakeoutData['shakeout_bar'] === 'CURRENT') ? 'pada candle saat ini' : 'pada candle sebelumnya';
+            return [
+                'signal' => self::SIGNAL_SHAKEOUT_LOW,
+                'action' => self::ACTION_STRONG_BUY,
+                'strategy_name' => $strategyName,
+                'strategy_badge' => $badge,
+                'confidence_score' => $conf,
+                'description' => "Pola Shakeout Low (Wyckoff Spring) {$barDesc}: Harga menembus support $" . number_format($shakeoutData['support_level'], 2) . " ke titik terendah $" . number_format($shakeoutData['shakeout_low'], 2) . " (-{$shakeoutData['sweep_pct']}%) untuk memicu stop-loss ritel, namun langsung di-reclaim kembali ke $" . number_format($shakeoutData['reclaim_price'], 2) . " dengan osilator Stochastic di zona oversold (%K " . round($currK, 1) . "). Jebakan bear trap klasik dengan potensi pantulan sangat kuat.",
+            ];
+        }
+
+        // 2. REGULAR BULLISH DIVERGENCE (Highest Quality Reversal)
         if ($divergence['type'] === 'BULLISH_REGULAR') {
             return [
                 'signal' => self::SIGNAL_BULLISH_DIVERGENCE,
@@ -654,12 +801,28 @@ final class StochasticService
         float $high,
         float $atr,
         string $action,
-        string $signal
+        string $signal,
+        array $shakeoutData = []
     ): array {
         $entryPrice = $close;
         $bufferAtr = max($atr * 0.7, $close * 0.012);
 
-        if ($action === self::ACTION_STRONG_BUY || $action === self::ACTION_BUY) {
+        if ($signal === self::SIGNAL_SHAKEOUT_LOW && !empty($shakeoutData['detected']) && !empty($shakeoutData['shakeout_low'])) {
+            // Stop loss tepat di bawah jarum sweep low shakeout dengan buffer tipis 0.8%
+            $stopLoss = round(max(0.01, $shakeoutData['shakeout_low'] * 0.992), 2);
+            $risk = max(0.01, $entryPrice - $stopLoss);
+            $stopLossPct = round(($risk / $entryPrice) * 100, 2);
+
+            // TP1 target 2.0x risk
+            $tp1 = round($entryPrice + ($risk * 2.0), 2);
+            $tp1Pct = round((($tp1 - $entryPrice) / $entryPrice) * 100, 2);
+
+            // TP2 target ekspansi 3.5x risk
+            $tp2 = round($entryPrice + ($risk * 3.5), 2);
+            $tp2Pct = round((($tp2 - $entryPrice) / $entryPrice) * 100, 2);
+
+            $rr = round(($tp1 - $entryPrice) / $risk, 2);
+        } elseif ($action === self::ACTION_STRONG_BUY || $action === self::ACTION_BUY) {
             // Stop loss di bawah low terkini dengan buffer ATR
             $stopLoss = round(max(0.01, $low - $bufferAtr), 2);
             $risk = max(0.01, $entryPrice - $stopLoss);
@@ -704,6 +867,7 @@ final class StochasticService
     {
         return match ($strategy) {
             'buy_all' => in_array($analysis['action'], [self::ACTION_BUY, self::ACTION_STRONG_BUY], true),
+            'shakeout_low' => ($analysis['signal'] === self::SIGNAL_SHAKEOUT_LOW || (!empty($analysis['shakeout_low']['detected']))),
             'golden_cross_oversold' => $analysis['signal'] === self::SIGNAL_GOLDEN_CROSS_OVERSOLD,
             'bullish_divergence' => $analysis['signal'] === self::SIGNAL_BULLISH_DIVERGENCE,
             'hidden_bullish' => $analysis['signal'] === self::SIGNAL_HIDDEN_BULLISH_DIV,

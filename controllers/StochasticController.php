@@ -65,6 +65,7 @@ final class StochasticController extends Controller
         // Hitung statistik ringkasan
         $stats = [
             'total_scanned' => count($results),
+            'shakeout_low_count' => 0,
             'golden_cross_oversold' => 0,
             'bullish_divergence' => 0,
             'total_buy' => 0,
@@ -79,6 +80,9 @@ final class StochasticController extends Controller
             }
             if (in_array($r['action'], [StochasticService::ACTION_SELL, StochasticService::ACTION_TAKE_PROFIT], true)) {
                 $stats['total_sell']++;
+            }
+            if ($r['signal'] === StochasticService::SIGNAL_SHAKEOUT_LOW || (!empty($r['shakeout_low']['detected']))) {
+                $stats['shakeout_low_count']++;
             }
             if ($r['signal'] === StochasticService::SIGNAL_GOLDEN_CROSS_OVERSOLD) {
                 $stats['golden_cross_oversold']++;
