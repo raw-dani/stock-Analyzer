@@ -125,6 +125,7 @@ $config = [
                 'crypto' => 'crypto/index',
                 'double-bottom/<symbol:[A-Z.]+>' => 'double-bottom/detail',
                 'double-bottom' => 'double-bottom/index',
+                'stochastic/export' => 'stochastic/export',
                 'stochastic/<symbol:[A-Za-z0-9.]+>' => 'stochastic/detail',
                 'stochastic' => 'stochastic/index',
                 'stock/<symbol:[A-Z.]+>' => 'stock/view',

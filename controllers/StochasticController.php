@@ -108,13 +108,107 @@ final class StochasticController extends Controller
             ->column();
         sort($sectors);
 
+        $symbols = [];
+        $tvSymbols = [];
+        foreach ($results as $r) {
+            $sym = $r['symbol'];
+            $symbols[] = $sym;
+            $exch = !empty($r['exchange']) ? $r['exchange'] . ':' : '';
+            $tvSymbols[] = $exch . $sym;
+        }
+
         return $this->render('index', [
             'results' => $results,
             'params' => $params,
             'stats' => $stats,
             'sectors' => $sectors,
+            'symbols' => $symbols,
+            'tvSymbols' => $tvSymbols,
+            'fromCache' => true,
             'timeframes' => StochasticService::getTimeframes(),
             'presets' => StochasticService::getStrategyPresets(),
+        ]);
+    }
+
+    /**
+     * Ekspor hasil scanner Stochastic Oscillator ke format file CSV.
+     */
+    public function actionExport()
+    {
+        $request = Yii::$app->request;
+        $params = [
+            'strategy'     => $request->get('strategy', 'all'),
+            'timeframe'    => (int) $request->get('timeframe', StochasticService::TIMEFRAME_1D),
+            'minRr'        => (float) $request->get('minRr', 0.0),
+            'exchange'     => $request->get('exchange', ''),
+            'sector'       => $request->get('sector', 'all'),
+            'symbol'       => $request->get('symbol', ''),
+            'sort'         => $request->get('sort', 'confidence_desc'),
+            'periodK'      => (int) $request->get('periodK', 14),
+            'smoothK'      => (int) $request->get('smoothK', 3),
+            'periodD'      => (int) $request->get('periodD', 3),
+            'lookback'     => (int) $request->get('lookback', 80),
+        ];
+
+        $results = $this->stochasticService->scanAll($params);
+        $filename = 'stochastic_scanner_' . date('Ymd_His') . '.csv';
+
+        $handle = fopen('php://temp', 'r+');
+        fputcsv($handle, [
+            'Symbol',
+            'Name',
+            'Sector',
+            'Price',
+            'Change %',
+            '%K',
+            '%D',
+            'Zone',
+            'Signal',
+            'Strategy',
+            'Confidence Score',
+            'Entry Price',
+            'Stop Loss',
+            'Stop Loss %',
+            'TP 1',
+            'TP 1 %',
+            'TP 2',
+            'TP 2 %',
+            'R:R Ratio',
+            'Action',
+        ]);
+
+        foreach ($results as $r) {
+            fputcsv($handle, [
+                $r['symbol'],
+                $r['name'],
+                $r['sector'] ?? '',
+                $r['current_price'],
+                $r['change_pct'] . '%',
+                $r['curr_k'],
+                $r['curr_d'],
+                $r['zone'],
+                $r['signal'],
+                $r['strategy_name'],
+                $r['confidence_score'] . '%',
+                $r['entry_price'],
+                $r['stop_loss'],
+                $r['stop_loss_pct'] . '%',
+                $r['target_profit_1'],
+                '+' . $r['target_profit_1_pct'] . '%',
+                $r['target_profit_2'],
+                '+' . $r['target_profit_2_pct'] . '%',
+                '1:' . $r['risk_reward_ratio'],
+                $r['action'],
+            ]);
+        }
+
+        rewind($handle);
+        $content = stream_get_contents($handle);
+        fclose($handle);
+
+        return Yii::$app->response->sendContentAsFile($content, $filename, [
+            'mimeType' => 'text/csv',
+            'inline' => false,
         ]);
     }
 
