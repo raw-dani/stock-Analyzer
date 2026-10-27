@@ -54,6 +54,7 @@ $sideMenuGroups = [
         ['label' => \app\helpers\SvgHelper::icon('bounding-box', ['class' => 'me-2']) . 'Bollinger Bands Strategy', 'url' => ['/bollinger-band/index'], 'active' => $ctrlId === 'bollinger-band'],
         ['label' => \app\helpers\SvgHelper::icon('layers', ['class' => 'me-2']) . 'Fibonacci Levels', 'url' => ['/fibonacci/index'], 'active' => $ctrlId === 'fibonacci'],
         ['label' => \app\helpers\SvgHelper::icon('bar-chart-line', ['class' => 'me-2']) . 'Candlestick Scanner', 'url' => ['/candlestick/index'], 'active' => $ctrlId === 'candlestick'],
+        ['label' => '<i class="bi bi-activity text-info me-2"></i> Stochastic Strategy', 'url' => ['/stochastic/index'], 'active' => $ctrlId === 'stochastic', 'badge' => 'PRO'],
     ],
 ];
 
@@ -214,12 +215,13 @@ if (!empty($systemItems)) {
         $isMarketActive = in_array($ctrlId, [
             'strategy-confluence', 'bullish-pattern', 'double-bottom', 'triple-bottom', 
             'rsi-double-bottom', 'scanner', 'moving-average', 'bollinger-band', 
-            'fibonacci', 'candlestick', 'crypto', 'dividend'
+            'fibonacci', 'candlestick', 'crypto', 'dividend', 'stochastic'
         ], true);
 
         // Grouped Items untuk "Pasar & Scanner"
         $marketItems = [
             '<div class="dropdown-header text-primary fw-bold d-flex align-items-center gap-1"><i class="bi bi-graph-up"></i> PASAR SAHAM US</div>',
+            ['label' => '<i class="bi bi-activity text-info me-2"></i> Stochastic Strategy (PRO) <span class="badge bg-primary-subtle text-primary border border-primary-subtle ms-1 fw-bold" style="font-size:0.65rem;">NEW</span>', 'url' => ['/stochastic/index'], 'encode' => false],
             ['label' => '<i class="bi bi-cash-coin text-success me-2"></i> Dividend Hunter (Yield &amp; Kalender) <span class="badge bg-success-subtle text-success border border-success-subtle ms-1 fw-bold" style="font-size:0.65rem;">NEW</span>', 'url' => ['/dividend/index'], 'encode' => false],
             ['label' => '<i class="bi bi-bullseye text-warning me-2"></i> Confluence Strategy (PRO)', 'url' => ['/strategy-confluence/index'], 'encode' => false],
             ['label' => '<i class="bi bi-rocket-takeoff text-success me-2"></i> Bullish Breakout Patterns', 'url' => ['/bullish-pattern/index'], 'encode' => false],
@@ -424,6 +426,7 @@ if (!empty($systemItems)) {
             <div class="col-lg-2 col-md-3 col-6">
                 <h6 class="fw-bold text-dark text-uppercase small mb-3 tracking-wider" style="font-size: 0.75rem;">Pasar Saham US</h6>
                 <ul class="list-unstyled small mb-0 d-flex flex-column gap-2">
+                    <li><a href="<?= yii\helpers\Url::to(['/stochastic/index']) ?>" class="text-decoration-none text-muted hover-primary">Stochastic Strategy</a></li>
                     <li><a href="<?= yii\helpers\Url::to(['/strategy-confluence/index']) ?>" class="text-decoration-none text-muted hover-primary">Confluence Strategy</a></li>
                     <li><a href="<?= yii\helpers\Url::to(['/bullish-pattern/index']) ?>" class="text-decoration-none text-muted hover-primary">Bullish Breakouts</a></li>
                     <li><a href="<?= yii\helpers\Url::to(['/double-bottom/index']) ?>" class="text-decoration-none text-muted hover-primary">Double Bottom Core</a></li>

@@ -1,0 +1,443 @@
+<?php
+
+declare(strict_types=1);
+
+/** @var yii\web\View $this */
+/** @var app\models\Stock $stock */
+/** @var array $analysis */
+/** @var array $params */
+/** @var array $timeframes */
+
+use app\assets\ChartAsset;
+use app\services\StochasticService;
+use yii\bootstrap5\Html;
+use yii\helpers\Url;
+
+ChartAsset::register($this);
+
+$this->title = 'Stochastic Strategy Plan: ' . $stock->symbol . ' — ' . $analysis['strategy_name'];
+$this->params['breadcrumbs'][] = ['label' => 'Stochastic Strategy Scanner', 'url' => ['index']];
+$this->params['breadcrumbs'][] = $stock->symbol;
+
+$currentTimeframe = (int) ($params['timeframe'] ?? StochasticService::TIMEFRAME_1D);
+$action = $analysis['action'];
+$actionBadgeClass = match ($action) {
+    StochasticService::ACTION_STRONG_BUY => 'bg-success',
+    StochasticService::ACTION_BUY => 'bg-success bg-opacity-75',
+    StochasticService::ACTION_TAKE_PROFIT => 'bg-warning text-dark',
+    StochasticService::ACTION_SELL => 'bg-danger',
+    default => 'bg-secondary',
+};
+
+// Siapkan data untuk ECharts
+$dates = $analysis['dates'];
+$ohlc = [];
+$volData = [];
+
+foreach ($analysis['candles'] as $c) {
+    $ohlc[] = [(float) $c['open'], (float) $c['close'], (float) $c['low'], (float) $c['high']];
+    $volData[] = [
+        'value' => (int) $c['volume'],
+        'itemStyle' => [
+            'color' => ((float) $c['close'] >= (float) $c['open']) ? '#26a69a' : '#ef5350',
+        ],
+    ];
+}
+
+$kSeries = array_map(fn($v) => $v !== null ? round((float) $v, 2) : null, $analysis['k_series']);
+$dSeries = array_map(fn($v) => $v !== null ? round((float) $v, 2) : null, $analysis['d_series']);
+
+// MarkLines level trading
+$markLines = [
+    [
+        'yAxis' => $analysis['entry_price'],
+        'name' => 'Entry',
+        'lineStyle' => ['color' => '#0d6efd', 'type' => 'solid', 'width' => 2],
+        'label' => ['formatter' => 'Entry: $' . number_format($analysis['entry_price'], 2), 'position' => 'insideEndTop'],
+    ],
+    [
+        'yAxis' => $analysis['stop_loss'],
+        'name' => 'Stop Loss',
+        'lineStyle' => ['color' => '#dc3545', 'type' => 'dashed', 'width' => 2],
+        'label' => ['formatter' => 'SL: $' . number_format($analysis['stop_loss'], 2) . ' (-' . $analysis['stop_loss_pct'] . '%)', 'position' => 'insideEndBottom'],
+    ],
+    [
+        'yAxis' => $analysis['target_profit_1'],
+        'name' => 'TP 1',
+        'lineStyle' => ['color' => '#198754', 'type' => 'dashed', 'width' => 2],
+        'label' => ['formatter' => 'TP1: $' . number_format($analysis['target_profit_1'], 2) . ' (+' . $analysis['target_profit_1_pct'] . '%)', 'position' => 'insideEndTop'],
+    ],
+    [
+        'yAxis' => $analysis['target_profit_2'],
+        'name' => 'TP 2',
+        'lineStyle' => ['color' => '#0f766e', 'type' => 'dotted', 'width' => 1.5],
+        'label' => ['formatter' => 'TP2: $' . number_format($analysis['target_profit_2'], 2) . ' (+' . $analysis['target_profit_2_pct'] . '%)', 'position' => 'insideEndTop'],
+    ],
+];
+
+$chartId = 'stochastic-echarts-container';
+?>
+
+<div class="stochastic-detail">
+    <!-- Header Title Bar -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <a href="<?= Url::to(['/stochastic/index', 'timeframe' => $currentTimeframe]) ?>" class="btn btn-outline-secondary btn-sm rounded-circle" title="Kembali ke Scanner">
+                    <i class="bi bi-arrow-left"></i>
+                </a>
+                <h1 class="h3 mb-0 fw-bold text-dark font-monospace"><?= Html::encode($stock->symbol) ?></h1>
+                <span class="text-secondary fs-5">— <?= Html::encode($stock->name) ?></span>
+                <span class="badge bg-secondary"><?= Html::encode($stock->sector ?: 'US Market') ?></span>
+                <span class="badge bg-light text-dark border"><?= Html::encode($stock->exchange ?: 'NASDAQ') ?></span>
+            </div>
+            <div class="d-flex align-items-center gap-2 small text-muted">
+                <span>Harga Saat Ini: <strong class="text-dark font-monospace">$<?= number_format((float) $analysis['current_price'], 2) ?></strong></span>
+                <span>&bull;</span>
+                <span class="<?= ($analysis['change_pct'] >= 0) ? 'text-success' : 'text-danger' ?> fw-semibold font-monospace">
+                    <?= ($analysis['change_pct'] >= 0 ? '+' : '') . number_format((float) $analysis['change_pct'], 2) ?>%
+                </span>
+                <span>&bull;</span>
+                <span class="badge <?= $actionBadgeClass ?> px-2 py-1"><?= Html::encode($action) ?></span>
+                <span class="badge bg-<?= Html::encode($analysis['strategy_badge']) ?> bg-opacity-15 text-<?= Html::encode($analysis['strategy_badge']) ?> border border-<?= Html::encode($analysis['strategy_badge']) ?>">
+                    <?= Html::encode($analysis['strategy_name']) ?>
+                </span>
+            </div>
+        </div>
+
+        <!-- Timeframe Switcher -->
+        <div class="d-flex align-items-center gap-2">
+            <div class="btn-group shadow-sm p-1 bg-white rounded-pill border" role="group">
+                <?php foreach ([24 => '1D', 4 => '4H', 2 => '2H', 1 => '1H'] as $tfVal => $tfLabel): ?>
+                    <a href="<?= Url::to(['/stochastic/detail', 'symbol' => $stock->symbol, 'timeframe' => $tfVal]) ?>"
+                       class="btn btn-sm rounded-pill px-3 fw-bold <?= ($currentTimeframe === $tfVal) ? 'btn-primary text-white' : 'btn-light text-dark' ?>">
+                        <?= Html::encode($tfLabel) ?>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="row g-4 mb-4">
+        <!-- Interactive Chart (Dual-Panel: Candlestick + Stochastic) -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden h-100">
+                <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-graph-up text-primary"></i>
+                        <span class="fw-bold text-dark">Grafik Candlestick &amp; Stochastic Oscillator (14, 3, 3)</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-3 small font-monospace">
+                        <span style="color: #0284c7;"><i class="bi bi-circle-fill me-1" style="font-size:0.6rem;"></i>%K: <strong><?= number_format((float) $analysis['curr_k'], 1) ?></strong></span>
+                        <span style="color: #f59e0b;"><i class="bi bi-circle-fill me-1" style="font-size:0.6rem;"></i>%D: <strong><?= number_format((float) $analysis['curr_d'], 1) ?></strong></span>
+                        <span class="badge <?= $analysis['is_oversold'] ? 'bg-success' : ($analysis['is_overbought'] ? 'bg-danger' : 'bg-secondary') ?> px-2">
+                            <?= Html::encode($analysis['zone']) ?>
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body p-2 position-relative" style="background-color: #ffffff;">
+                    <div id="<?= $chartId ?>" style="width: 100%; height: 560px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Trade Plan & Signal Metrics Panel -->
+        <div class="col-lg-4">
+            <!-- Trade Setup Box -->
+            <div class="card border-0 shadow-sm rounded-4 mb-4" style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border: 1px solid #e2e8f0 !important;">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold text-dark text-uppercase small mb-0 tracking-wider">Trading Plan Setup</h6>
+                        <span class="badge bg-primary px-2 py-1 font-monospace">Win-Rate: <?= (int) $analysis['confidence_score'] ?>%</span>
+                    </div>
+
+                    <!-- Entry Price -->
+                    <div class="p-3 bg-white rounded-3 shadow-sm mb-2 border border-primary border-opacity-25">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="badge bg-primary bg-opacity-10 text-primary fw-bold mb-1" style="font-size:0.68rem;">TITIK ENTRY</span>
+                                <div class="fs-4 fw-bold text-dark font-monospace">$<?= number_format((float) $analysis['entry_price'], 2) ?></div>
+                            </div>
+                            <i class="bi bi-crosshair2 fs-2 text-primary opacity-50"></i>
+                        </div>
+                    </div>
+
+                    <!-- Stop Loss & TP1 Grid -->
+                    <div class="row g-2 mb-2">
+                        <!-- Stop Loss -->
+                        <div class="col-6">
+                            <div class="p-3 bg-white rounded-3 shadow-sm border border-danger border-opacity-25 h-100">
+                                <span class="badge bg-danger bg-opacity-10 text-danger fw-bold mb-1" style="font-size:0.68rem;">STOP LOSS</span>
+                                <div class="fs-5 fw-bold text-danger font-monospace">$<?= number_format((float) $analysis['stop_loss'], 2) ?></div>
+                                <div class="text-danger small font-monospace" style="font-size:0.75rem;">-<?= number_format((float) $analysis['stop_loss_pct'], 1) ?>%</div>
+                            </div>
+                        </div>
+
+                        <!-- TP 1 -->
+                        <div class="col-6">
+                            <div class="p-3 bg-white rounded-3 shadow-sm border border-success border-opacity-25 h-100">
+                                <span class="badge bg-success bg-opacity-10 text-success fw-bold mb-1" style="font-size:0.68rem;">TARGET 1 (TP1)</span>
+                                <div class="fs-5 fw-bold text-success font-monospace">$<?= number_format((float) $analysis['target_profit_1'], 2) ?></div>
+                                <div class="text-success small font-monospace" style="font-size:0.75rem;">+<?= number_format((float) $analysis['target_profit_1_pct'], 1) ?>%</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TP 2 & Risk/Reward Grid -->
+                    <div class="row g-2">
+                        <!-- TP 2 -->
+                        <div class="col-6">
+                            <div class="p-2 px-3 bg-white rounded-3 shadow-sm border">
+                                <div class="text-muted small fw-semibold" style="font-size:0.70rem;">TARGET 2 (TP2):</div>
+                                <div class="fw-bold text-dark font-monospace">$<?= number_format((float) $analysis['target_profit_2'], 2) ?></div>
+                                <div class="text-success small font-monospace" style="font-size:0.70rem;">+<?= number_format((float) $analysis['target_profit_2_pct'], 1) ?>%</div>
+                            </div>
+                        </div>
+
+                        <!-- R : R Ratio -->
+                        <div class="col-6">
+                            <div class="p-2 px-3 bg-white rounded-3 shadow-sm border">
+                                <div class="text-muted small fw-semibold" style="font-size:0.70rem;">RISK/REWARD:</div>
+                                <div class="fw-bold text-primary font-monospace fs-6">1 : <?= number_format((float) $analysis['risk_reward_ratio'], 1) ?></div>
+                                <div class="text-muted small" style="font-size:0.70rem;">Rasio optimal</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Signal Analysis & Explanation Card -->
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-header bg-white py-3 border-bottom">
+                    <h6 class="fw-bold text-dark mb-0">
+                        <i class="bi bi-info-circle-fill text-info me-2"></i>Ulasan Sinyal &amp; Karakteristik
+                    </h6>
+                </div>
+                <div class="card-body p-4">
+                    <div class="mb-3">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="badge bg-<?= Html::encode($analysis['strategy_badge']) ?> p-2 fs-6">
+                                <?= Html::encode($analysis['strategy_name']) ?>
+                            </span>
+                        </div>
+                        <p class="text-secondary small mb-0" style="line-height: 1.6;">
+                            <?= Html::encode($analysis['description']) ?>
+                        </p>
+                    </div>
+
+                    <hr class="my-3">
+
+                    <!-- Indicator Snapshot -->
+                    <div class="d-flex justify-content-between align-items-center mb-2 small">
+                        <span class="text-muted">Garis %K Saat Ini:</span>
+                        <span class="fw-bold font-monospace" style="color: #0284c7;"><?= number_format((float) $analysis['curr_k'], 2) ?></span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2 small">
+                        <span class="text-muted">Garis %D (Signal Line):</span>
+                        <span class="fw-bold font-monospace" style="color: #f59e0b;"><?= number_format((float) $analysis['curr_d'], 2) ?></span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2 small">
+                        <span class="text-muted">Relative Volume (RVOL):</span>
+                        <span class="fw-bold font-monospace <?= ($analysis['rvol'] >= 1.2) ? 'text-success' : 'text-dark' ?>">
+                            <?= number_format((float) $analysis['rvol'], 2) ?>x
+                        </span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center small">
+                        <span class="text-muted">Status Divergence:</span>
+                        <span class="fw-bold <?= !empty($analysis['divergence']['name']) ? 'text-info' : 'text-muted' ?>">
+                            <?= Html::encode($analysis['divergence']['name'] ?? 'Tidak Terdeteksi') ?>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ECharts Javascript Initialization -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const chartDom = document.getElementById('<?= $chartId ?>');
+    if (!chartDom || typeof echarts === 'undefined') return;
+
+    const myChart = echarts.init(chartDom);
+
+    const dates = <?= json_encode($dates) ?>;
+    const ohlc = <?= json_encode($ohlc) ?>;
+    const volData = <?= json_encode($volData) ?>;
+    const kSeries = <?= json_encode($kSeries) ?>;
+    const dSeries = <?= json_encode($dSeries) ?>;
+    const markLines = <?= json_encode($markLines) ?>;
+
+    const option = {
+        animation: true,
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: {
+                type: 'cross'
+            },
+            borderWidth: 1,
+            borderColor: '#ccc',
+            padding: 10,
+            textStyle: {
+                color: '#000'
+            }
+        },
+        axisPointer: {
+            link: [{ xAxisIndex: 'all' }]
+        },
+        grid: [
+            // Panel 1: Candlestick Price (Top 62%)
+            {
+                left: '60',
+                right: '40',
+                top: '30',
+                height: '56%'
+            },
+            // Panel 2: Stochastic Oscillator (Bottom 26%)
+            {
+                left: '60',
+                right: '40',
+                top: '67%',
+                height: '24%'
+            }
+        ],
+        xAxis: [
+            {
+                type: 'category',
+                data: dates,
+                boundaryGap: true,
+                axisLine: { onZero: false, lineStyle: { color: '#cbd5e1' } },
+                axisLabel: { color: '#64748b', fontSize: 11 },
+                splitLine: { show: false },
+                min: 'dataMin',
+                max: 'dataMax'
+            },
+            {
+                type: 'category',
+                gridIndex: 1,
+                data: dates,
+                boundaryGap: true,
+                axisLine: { onZero: false, lineStyle: { color: '#cbd5e1' } },
+                axisTick: { show: false },
+                splitLine: { show: false },
+                axisLabel: { show: false },
+                min: 'dataMin',
+                max: 'dataMax'
+            }
+        ],
+        yAxis: [
+            // Y-Axis Panel 1: Price
+            {
+                scale: true,
+                splitArea: { show: false },
+                splitLine: { show: true, lineStyle: { color: '#f1f5f9' } },
+                axisLabel: {
+                    color: '#64748b',
+                    formatter: function (v) { return '$' + v.toFixed(2); }
+                }
+            },
+            // Y-Axis Panel 2: Stochastic 0 - 100
+            {
+                gridIndex: 1,
+                min: 0,
+                max: 100,
+                interval: 20,
+                splitLine: { show: true, lineStyle: { color: '#f1f5f9' } },
+                axisLabel: { color: '#64748b', fontSize: 10 }
+            }
+        ],
+        dataZoom: [
+            {
+                type: 'inside',
+                xAxisIndex: [0, 1],
+                start: Math.max(0, 100 - Math.round((50 / Math.max(dates.length, 1)) * 100)),
+                end: 100
+            },
+            {
+                show: true,
+                xAxisIndex: [0, 1],
+                type: 'slider',
+                top: '94%',
+                height: 18,
+                start: Math.max(0, 100 - Math.round((50 / Math.max(dates.length, 1)) * 100)),
+                end: 100,
+                borderColor: '#e2e8f0'
+            }
+        ],
+        series: [
+            // Series 1: Candlesticks
+            {
+                name: 'Price (OHLC)',
+                type: 'candlestick',
+                data: ohlc,
+                itemStyle: {
+                    color: '#10b981',
+                    color0: '#ef4444',
+                    borderColor: '#10b981',
+                    borderColor0: '#ef4444'
+                },
+                markLine: {
+                    symbol: ['none', 'none'],
+                    data: markLines
+                }
+            },
+            // Series 2: Stochastic %K
+            {
+                name: '%K (Fast/Main)',
+                type: 'line',
+                xAxisIndex: 1,
+                yAxisIndex: 1,
+                data: kSeries,
+                showSymbol: false,
+                smooth: true,
+                lineStyle: {
+                    color: '#0284c7',
+                    width: 2.2
+                },
+                markLine: {
+                    symbol: ['none', 'none'],
+                    data: [
+                        {
+                            yAxis: 80,
+                            name: 'Overbought (80)',
+                            lineStyle: { color: '#ef4444', type: 'dashed', width: 1.2 },
+                            label: { formatter: 'OB (80)', position: 'end', color: '#ef4444', fontSize: 10 }
+                        },
+                        {
+                            yAxis: 50,
+                            name: 'Midline (50)',
+                            lineStyle: { color: '#94a3b8', type: 'dotted', width: 1 },
+                            label: { formatter: '50', position: 'end', color: '#94a3b8', fontSize: 10 }
+                        },
+                        {
+                            yAxis: 20,
+                            name: 'Oversold (20)',
+                            lineStyle: { color: '#10b981', type: 'dashed', width: 1.2 },
+                            label: { formatter: 'OS (20)', position: 'end', color: '#10b981', fontSize: 10 }
+                        }
+                    ]
+                }
+            },
+            // Series 3: Stochastic %D
+            {
+                name: '%D (Signal)',
+                type: 'line',
+                xAxisIndex: 1,
+                yAxisIndex: 1,
+                data: dSeries,
+                showSymbol: false,
+                smooth: true,
+                lineStyle: {
+                    color: '#f59e0b',
+                    width: 1.8
+                }
+            }
+        ]
+    };
+
+    myChart.setOption(option);
+    window.addEventListener('resize', () => myChart.resize());
+});
+</script>
