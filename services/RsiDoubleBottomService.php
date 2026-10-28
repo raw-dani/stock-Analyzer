@@ -26,7 +26,7 @@ final class RsiDoubleBottomService
     public const TIMEFRAME_1D = 24;
 
     private const MIN_LOOKBACK = 20;
-    private const MAX_LOOKBACK = 300;
+    private const MAX_LOOKBACK = 400;
     private const MIN_RSI_PERIOD = 2;
     private const MAX_RSI_PERIOD = 50;
     private const MIN_TOLERANCE = 0.5;
@@ -78,6 +78,7 @@ final class RsiDoubleBottomService
 
     /**
      * Deteksi kondisi RSI komprehensif (Waktu Beli, Jual, Divergence, Pattern).
+     * Dilengkapi warm-up history penuh untuk kestabilan perhitungan Wilder RSI dan Moving Average.
      */
     public function detectPattern(
         int $stockId,
@@ -97,11 +98,26 @@ final class RsiDoubleBottomService
             return null;
         }
 
-        $closes = array_map(fn ($c) => (float) $c['close'], $candles);
-        $rsi = RsiService::calculate($closes, $period);
-        $ma50 = $this->calculateSma($closes, 50);
+        // Kalkulasi Wilder RSI dan Moving Average pada seluruh data candle yang tersedia
+        // agar initial exponential decay stabil 100% sebelum dipotong ke lookback window.
+        $allCloses = array_map(fn ($c) => (float) $c['close'], $candles);
+        $allRsi = RsiService::calculate($allCloses, $period);
+        $allEma20 = $this->calculateEma($allCloses, 20);
+        $allMa50 = $this->calculateSma($allCloses, 50);
 
-        $found = $this->analyzeRsiStrategy($candles, $rsi, $ma50, $tol, $maxRsi, $minSeparation, $maxSeparation, $necklineMin);
+        if (count($candles) > $lookback) {
+            $sliceOffset = count($candles) - $lookback;
+            $candles = array_slice($candles, $sliceOffset);
+            $rsi = array_slice($allRsi, $sliceOffset);
+            $ema20 = array_slice($allEma20, $sliceOffset);
+            $ma50 = array_slice($allMa50, $sliceOffset);
+        } else {
+            $rsi = $allRsi;
+            $ema20 = $allEma20;
+            $ma50 = $allMa50;
+        }
+
+        $found = $this->analyzeRsiStrategy($candles, $rsi, $ema20, $ma50, $tol, $maxRsi, $minSeparation, $maxSeparation, $necklineMin, $tf);
         if ($found === null) {
             return null;
         }
@@ -114,10 +130,32 @@ final class RsiDoubleBottomService
         if ($includeSeries) {
             $found['candles'] = $candles;
             $found['rsi_series'] = $rsi;
+            $found['ema20_series'] = $ema20;
             $found['ma50_series'] = $ma50;
         }
 
         return $found;
+    }
+
+    /**
+     * Hitung EMA (Exponential Moving Average) untuk dynamic support/resistance (terutama 2H).
+     */
+    private function calculateEma(array $data, int $period): array
+    {
+        $n = count($data);
+        $ema = array_fill(0, $n, null);
+        if ($n < $period) {
+            return $ema;
+        }
+        $multiplier = 2.0 / ($period + 1.0);
+        $sum = array_sum(array_slice($data, 0, $period));
+        $ema[$period - 1] = round($sum / $period, 4);
+
+        for ($i = $period; $i < $n; $i++) {
+            $prev = $ema[$i - 1];
+            $ema[$i] = round(((float)$data[$i] - $prev) * $multiplier + $prev, 4);
+        }
+        return $ema;
     }
 
     /**
@@ -128,6 +166,10 @@ final class RsiDoubleBottomService
         $n = count($data);
         $sma = array_fill(0, $n, null);
         if ($n < $period) {
+            if ($n >= 15) {
+                $avg = array_sum($data) / $n;
+                return array_fill(0, $n, round($avg, 4));
+            }
             return $sma;
         }
 
@@ -175,31 +217,173 @@ final class RsiDoubleBottomService
         }
     }
 
+    /**
+     * Memuat candle teragregasi secara session-aware dan bebas noise tick snapshot.
+     */
     private function loadCandles(int $stockId, int $tf, int $lookback): array
     {
         if ($tf === self::TIMEFRAME_1D) {
-            return [$this->dailyCandles($stockId, $lookback), false];
+            return [$this->dailyCandles($stockId, max($lookback, 300)), false];
         }
+
         try {
             $rows = IntradayPrice::find()
                 ->where(['stock_id' => $stockId, 'timeframe' => '1h'])
                 ->orderBy(['datetime' => SORT_DESC])
-                ->limit(max($lookback * 4, 60))
+                ->limit(max($lookback * 4, 1000))
+                ->asArray()
                 ->all();
         } catch (\Throwable $e) {
             \Yii::warning("Intraday data unavailable for RSI scan {$stockId}: " . $e->getMessage(), 'app\services\rsidoublebottom');
-            return [$this->dailyCandles($stockId, $lookback), true];
+            return [$this->dailyCandles($stockId, max($lookback, 300)), true];
         }
+
+        if (empty($rows)) {
+            return [$this->dailyCandles($stockId, max($lookback, 300)), true];
+        }
+
         $rows = array_reverse($rows);
-        $base = [];
-        foreach ($rows as $p) {
-            $base[] = ['open' => (float) $p->open, 'high' => (float) $p->high, 'low' => (float) $p->low, 'close' => (float) $p->close, 'volume' => (int) $p->volume, 'date' => $p->datetime];
+
+        // Filter noise: buang quote snapshot flat yang ber-volume 0 dengan detik/menit ganjil
+        $cleaned = [];
+        foreach ($rows as $b) {
+            $dt = $b['datetime'];
+            $sec = (int) substr($dt, 17, 2);
+            $min = (int) substr($dt, 14, 2);
+            $vol = (int) $b['volume'];
+            $isFlat = ((float)$b['open'] === (float)$b['close'] && (float)$b['high'] === (float)$b['low']);
+            if ($vol === 0 && $isFlat && ($sec !== 0 || !in_array($min, [0, 30], true))) {
+                continue;
+            }
+            $cleaned[] = $b;
         }
-        if (count($base) >= 20) {
-            $per = $tf === 2 ? 2 : ($tf === 4 ? 4 : 1);
-            return [array_slice($this->aggregate($base, $per), -$lookback), false];
+
+        if (count($cleaned) < 20) {
+            return [$this->dailyCandles($stockId, max($lookback, 300)), true];
         }
-        return [$this->dailyCandles($stockId, $lookback), true];
+
+        // Agregasi session-aware berbasis bursa AS (09:30 - 16:00 EST)
+        if ($tf === self::TIMEFRAME_2H) {
+            $candles = $this->aggregate2H($cleaned);
+        } elseif ($tf === self::TIMEFRAME_4H) {
+            $candles = $this->aggregate4H($cleaned);
+        } elseif ($tf === self::TIMEFRAME_1H) {
+            $candles = $this->aggregateHourly($cleaned);
+        } else {
+            $candles = $this->aggregate2H($cleaned);
+        }
+
+        if (count($candles) >= 15) {
+            return [$candles, false];
+        }
+
+        return [$this->dailyCandles($stockId, max($lookback, 300)), true];
+    }
+
+    /**
+     * Agregasi 1H: hindari duplikasi sub-jam pada jam yang sama.
+     */
+    private function aggregateHourly(array $bars): array
+    {
+        $buckets = [];
+        foreach ($bars as $b) {
+            $key = substr($b['datetime'], 0, 13) . ':00:00';
+            $buckets[$key][] = $b;
+        }
+        $out = [];
+        foreach ($buckets as $dt => $chunk) {
+            $out[] = [
+                'open' => (float) $chunk[0]['open'],
+                'high' => max(array_column($chunk, 'high')),
+                'low' => min(array_column($chunk, 'low')),
+                'close' => (float) end($chunk)['close'],
+                'volume' => array_sum(array_column($chunk, 'volume')),
+                'date' => $dt,
+            ];
+        }
+        return $out;
+    }
+
+    /**
+     * Agregasi 2H Session-Aware:
+     * Menjaga batas hari (day boundaries) dan membagi sesi trading AS (09:30-16:00) ke 4 blok teratur:
+     * - 11:30 (Morning Open: 09:30 - 11:30)
+     * - 13:30 (Midday: 11:30 - 13:30)
+     * - 15:30 (Afternoon: 13:30 - 15:30)
+     * - 16:00 (Closing Bell: 15:30 - 16:00)
+     */
+    private function aggregate2H(array $bars): array
+    {
+        $buckets = [];
+        foreach ($bars as $b) {
+            $date = substr($b['datetime'], 0, 10);
+            $hour = (int) substr($b['datetime'], 11, 2);
+            $min = (int) substr($b['datetime'], 14, 2);
+            $totalMinutes = $hour * 60 + $min;
+
+            if ($totalMinutes < 11 * 60 + 30) {
+                $slot = '11:30:00';
+            } elseif ($totalMinutes < 13 * 60 + 30) {
+                $slot = '13:30:00';
+            } elseif ($totalMinutes < 15 * 60 + 30) {
+                $slot = '15:30:00';
+            } else {
+                $slot = '16:00:00';
+            }
+
+            $key = "{$date} {$slot}";
+            $buckets[$key][] = $b;
+        }
+
+        $out = [];
+        foreach ($buckets as $dt => $chunk) {
+            $out[] = [
+                'open' => (float) $chunk[0]['open'],
+                'high' => max(array_column($chunk, 'high')),
+                'low' => min(array_column($chunk, 'low')),
+                'close' => (float) end($chunk)['close'],
+                'volume' => array_sum(array_column($chunk, 'volume')),
+                'date' => $dt,
+            ];
+        }
+        return $out;
+    }
+
+    /**
+     * Agregasi 4H Session-Aware:
+     * Membagi hari trading AS ke 2 blok: 09:30-13:30 (Morning/Midday) dan 13:30-16:00 (Afternoon/Close).
+     */
+    private function aggregate4H(array $bars): array
+    {
+        $buckets = [];
+        foreach ($bars as $b) {
+            $date = substr($b['datetime'], 0, 10);
+            $hour = (int) substr($b['datetime'], 11, 2);
+            $min = (int) substr($b['datetime'], 14, 2);
+            $totalMinutes = $hour * 60 + $min;
+
+            if ($totalMinutes < 13 * 60 + 30) {
+                $slot = '13:30:00';
+            } else {
+                $slot = '16:00:00';
+            }
+
+            $key = "{$date} {$slot}";
+            $buckets[$key][] = $b;
+        }
+
+        $out = [];
+        foreach ($buckets as $dt => $chunk) {
+            $out[] = [
+                'open' => (float) $chunk[0]['open'],
+                'high' => max(array_column($chunk, 'high')),
+                'low' => min(array_column($chunk, 'low')),
+                'close' => (float) end($chunk)['close'],
+                'volume' => array_sum(array_column($chunk, 'volume')),
+                'date' => $dt,
+            ];
+        }
+        return $out;
     }
 
     private function dailyCandles(int $stockId, int $lookback): array
@@ -217,50 +401,22 @@ final class RsiDoubleBottomService
         return $out;
     }
 
-    private function aggregate(array $base, int $per): array
-    {
-        if ($per <= 1) {
-            return $base;
-        }
-        $out = [];
-        $chunk = [];
-        foreach ($base as $c) {
-            $chunk[] = $c;
-            if (count($chunk) >= $per) {
-                $out[] = $this->makeCandle($chunk);
-                $chunk = [];
-            }
-        }
-        if (count($chunk) > 0) {
-            $out[] = $this->makeCandle($chunk);
-        }
-        return $out;
-    }
-
-    private function makeCandle(array $chunk): array
-    {
-        return [
-            'open' => (float) $chunk[0]['open'],
-            'high' => max(array_column($chunk, 'high')),
-            'low' => min(array_column($chunk, 'low')),
-            'close' => (float) end($chunk)['close'],
-            'volume' => array_sum(array_column($chunk, 'volume')),
-            'date' => end($chunk)['date'],
-        ];
-    }
-
     /**
      * Analisis Strategi RSI Lengkap: Beli, Jual, Divergence, dan Pola Double Bottom/Top.
+     * Dioptimalkan dengan filter kesegaran sinyal (freshness gate), konfirmasi EMA20 & SMA50,
+     * serta kalibrasi presisi untuk timeframe 2H.
      */
     private function analyzeRsiStrategy(
         array $candles,
         array $rsi,
+        array $ema20,
         array $ma50,
         float $tol,
         float $maxRsi,
         int $minSeparation,
         int $maxSeparation,
-        float $necklineMin
+        float $necklineMin,
+        int $tf = 24
     ): ?array {
         $n = count($candles);
         if ($n < 20) {
@@ -276,8 +432,21 @@ final class RsiDoubleBottomService
         }
 
         $curPrice = (float) $candles[$n - 1]['close'];
+        $curEma20 = $ema20[$n - 1] ?? null;
         $curMa50 = $ma50[$n - 1] ?? null;
+
+        $isAboveEma20 = ($curEma20 !== null) ? ($curPrice >= $curEma20) : true;
         $isAboveMa50 = ($curMa50 !== null) ? ($curPrice >= $curMa50) : true;
+
+        if ($isAboveEma20 && $isAboveMa50) {
+            $trendBias = 'STRONG_BULLISH';
+        } elseif ($isAboveMa50 || $isAboveEma20) {
+            $trendBias = 'BULLISH';
+        } elseif (!$isAboveEma20 && !$isAboveMa50) {
+            $trendBias = 'BEARISH';
+        } else {
+            $trendBias = 'NEUTRAL';
+        }
 
         // 4. Tambahan Strategi Konfirmasi 1: Volume & Relative Volume (RVOL)
         $volSMA20 = 1.0;
@@ -333,17 +502,17 @@ final class RsiDoubleBottomService
         $fib382 = round($swingHigh - (0.382 * $swingDiff), 2);
         $isGoldenPocket = ($curPrice >= min($fib50, $fib618) * 0.985 && $curPrice <= max($fib50, $fib618) * 1.015);
 
-        // Deteksi Divergences & RSI Double Bottom Pattern
-        $bearDiv = $this->detectBearishDivergence($candles, $rsi);
-        $bullDiv = $this->detectBullishDivergence($candles, $rsi);
-        $dbPattern = $this->findRecentDoubleBottom($candles, $rsi, $tol, $maxRsi, $minSeparation, $maxSeparation, $necklineMin);
+        // Deteksi Divergences & RSI Double Bottom Pattern dengan timeframe context
+        $bearDiv = $this->detectBearishDivergence($candles, $rsi, $tf);
+        $bullDiv = $this->detectBullishDivergence($candles, $rsi, $tf);
+        $dbPattern = $this->findRecentDoubleBottom($candles, $rsi, $tol, $maxRsi, $minSeparation, $maxSeparation, $necklineMin, $tf);
 
         // Window RSI 5 bar terakhir
         $recentRsi5 = array_filter(array_slice($rsi, -5), fn ($v) => $v !== null);
         $minRsi5 = !empty($recentRsi5) ? min($recentRsi5) : $curRsi;
         $maxRsi5 = !empty($recentRsi5) ? max($recentRsi5) : $curRsi;
 
-        // Evaluasi Sinyal Trading & Rekomendasi Waktu Beli / Waktu Jual
+        // Evaluasi Sinyal Trading & Rekomendasi Waktu Beli / Waktu Jual Berbasis Presisi
         $signalType = 'NEUTRAL';
         $action = 'WAIT';
         $actionLabel = 'NEUTRAL / HOLD';
@@ -351,15 +520,15 @@ final class RsiDoubleBottomService
         $signalReason = 'RSI berada dalam rentang normal (konsolidasi/menunggu setup).';
         $confidence = 50;
 
-        // Prioritas A: Sinyal Jual (Overbought Exit, Bearish Divergence, Reversal Candle)
-        if ($bearDiv !== null && ($curRsi >= 65.0 || ($prevRsi >= 68.0 && $curRsi < $prevRsi))) {
+        // Prioritas A: Sinyal Jual & Ambil Untung (Exit / Take Profit)
+        if ($bearDiv !== null && !empty($bearDiv['is_fresh']) && ($curRsi >= 60.0 || ($prevRsi >= 65.0 && $curRsi < $prevRsi))) {
             $signalType = 'SELL_BEARISH_DIVERGENCE';
             $action = 'SELL_NOW';
             $actionLabel = 'SELL (BEARISH DIVERGENCE)';
             $actionBadge = 'bg-danger';
-            $signalReason = 'Terdeteksi Bearish Divergence (harga buat higher-high tapi RSI melemah), momentum beli telah jenuh.';
-            $confidence = 90;
-        } elseif ($candleSignal === 'BEARISH' && $curRsi >= 65.0) {
+            $signalReason = 'Terdeteksi Bearish Divergence segar (harga buat higher-high tapi RSI melemah), momentum beli telah jenuh.';
+            $confidence = 92;
+        } elseif ($candleSignal === 'BEARISH' && $curRsi >= 62.0) {
             $signalType = 'SELL_CANDLE_CONFIRMATION';
             $action = 'SELL_NOW';
             $actionLabel = 'SELL (' . strtoupper($candlePattern) . ')';
@@ -372,121 +541,140 @@ final class RsiDoubleBottomService
             $actionLabel = 'SELL (CROSS 70 DOWN)';
             $actionBadge = 'bg-danger';
             $signalReason = 'RSI melintas turun dari area Overbought 70. Indikasi kuat aksi ambil untung (Take Profit).';
-            $confidence = 85;
+            $confidence = 88;
         } elseif ($curRsi >= 75.0) {
             $signalType = 'SELL_OVERBOUGHT_EXTREME';
             $action = 'TAKE_PROFIT';
             $actionLabel = 'TAKE PROFIT (EXTREME OVERBOUGHT)';
             $actionBadge = 'bg-warning text-dark';
-            $signalReason = 'RSI sangat tinggi (Overbought > 75). Area bahaya koreksi tajam, amankan keuntungan.';
-            $confidence = 80;
-        } elseif ($maxRsi5 >= 70.0 && $curRsi < $prevRsi && $curRsi < 65.0) {
+            $signalReason = 'RSI sangat tinggi (Overbought > 75). Area bahaya koreksi tajam, segera amankan keuntungan.';
+            $confidence = 85;
+        } elseif ($maxRsi5 >= 68.0 && $curRsi < $prevRsi && $curRsi < 63.0) {
             $signalType = 'SELL_MOMENTUM_LOSS';
             $action = 'SELL_NOW';
             $actionLabel = 'SELL (OVERBOUGHT REVERSAL)';
             $actionBadge = 'bg-danger';
             $signalReason = 'Pembalikan arah pasca Overbought. Momentum penurunan mulai mendominasi.';
-            $confidence = 75;
+            $confidence = 78;
         }
-        // Prioritas B: Sinyal Beli (Bullish Divergence, Oversold Reversal + Volume & Fib Confluence)
-        elseif ($bullDiv !== null && ($curRsi > $prevRsi || $curRsi >= 30.0)) {
+        // Prioritas B: Divergensi yang sudah berjalan jauh (Target Kenaikan Telah Tercapai)
+        elseif ($bullDiv !== null && empty($bullDiv['is_fresh']) && $curRsi >= 64.0) {
+            $signalType = 'TAKE_PROFIT_DIV_TARGET';
+            $action = 'TAKE_PROFIT';
+            $actionLabel = 'TAKE PROFIT (DIV TARGET)';
+            $actionBadge = 'bg-warning text-dark';
+            $signalReason = 'Target rally pasca Bullish Divergence telah tercapai! RSI telah melonjak ke area jenuh beli (' . round($curRsi, 1) . '). Kunci profit Anda.';
+            $confidence = 86;
+        } elseif ($bullDiv !== null && empty($bullDiv['is_fresh']) && $curRsi >= 54.0) {
+            $signalType = 'HOLD_DIV_RALLY';
+            $action = 'WAIT';
+            $actionLabel = 'HOLD (RALLY IN PROGRESS)';
+            $actionBadge = 'bg-info text-dark';
+            $signalReason = 'Rally pasca Bullish Divergence (' . ($bullDiv['bars_ago'] ?? 0) . ' bar lalu) sedang berjalan. Pertahankan posisi dengan trailing stop.';
+            $confidence = 76;
+        }
+        // Prioritas C: Sinyal Beli Segar (Fresh Bullish Divergence & Double Bottom Reversal)
+        elseif ($bullDiv !== null && !empty($bullDiv['is_fresh']) && $curRsi <= 55.0 && ($curRsi > $prevRsi || $curRsi >= 30.0)) {
             $signalType = 'BUY_BULLISH_DIVERGENCE';
             $action = 'BUY_NOW';
             $actionLabel = 'BUY (BULLISH DIVERGENCE)';
             $actionBadge = 'bg-success';
-            $signalReason = 'Peluang akumulasi terbaik! Bullish Divergence (harga buat lower-low tapi RSI mencetak higher-low)' . ($volumeSupportive ? ' dengan dukungan Volume' : '') . '.';
-            $confidence = $isAboveMa50 ? 95 : 85;
+            $signalReason = 'Peluang akumulasi terbaik! Bullish Divergence segar (' . ($bullDiv['bars_ago'] ?? 0) . ' bar lalu) di mana harga mencetak low baru tapi RSI rebound solid' . ($volumeSupportive ? ' didukung volume' : '') . '.';
+            $confidence = $isAboveEma20 ? 95 : 88;
             if ($volumeSpike) $confidence = min(98, $confidence + 3);
-        } elseif ($dbPattern !== null && !empty($dbPattern['is_shakeout_low']) && ($curRsi > $prevRsi || !empty($dbPattern['breakout']))) {
+        } elseif ($dbPattern !== null && !empty($dbPattern['is_shakeout_low']) && !empty($dbPattern['is_fresh_shakeout']) && ($curRsi > $prevRsi || !empty($dbPattern['breakout']))) {
             $signalType = 'BUY_SHAKEOUT_LOW';
             $action = 'BUY_NOW';
             $actionLabel = 'BUY (SHAKEOUT LOW)';
             $actionBadge = 'bg-success';
             $signalReason = 'Liquidity Sweep Terkonfirmasi! Terjadi Shakeout Low (-' . ($dbPattern['shakeout_pct'] ?? 0) . '%) di mana harga sempat undercut support lalu memantul solid.';
-            $confidence = $isAboveMa50 ? 94 : 86;
+            $confidence = $isAboveEma20 ? 94 : 86;
             if ($volumeSpike) $confidence = min(98, $confidence + 3);
-        } elseif ($isGoldenPocket && $curRsi > $prevRsi && $curRsi <= 45.0) {
+        } elseif ($isGoldenPocket && $curRsi > $prevRsi && $curRsi <= 48.0) {
             $signalType = 'BUY_FIB_GOLDEN_POCKET';
             $action = 'BUY_NOW';
             $actionLabel = 'BUY (FIB GOLDEN POCKET)';
             $actionBadge = 'bg-success';
             $signalReason = 'Konfluensi Emas! Rebound dari Fibonacci Retracement 50%-61.8% ($' . number_format($fib618, 2) . ') bersamaan dengan pembalikan RSI.';
-            $confidence = $isAboveMa50 ? 92 : 84;
+            $confidence = $isAboveEma20 ? 92 : 84;
         } elseif ($candleSignal === 'BULLISH' && ($curRsi <= 40.0 || $prevRsi <= 35.0)) {
             $signalType = 'BUY_CANDLE_CONFIRMATION';
             $action = 'BUY_NOW';
             $actionLabel = 'BUY (' . strtoupper($candlePattern) . ')';
             $actionBadge = 'bg-success';
             $signalReason = 'Sinyal pembalikan kuat! Pola ' . $candlePattern . ' muncul di zona oversold didukung lonjakan RVOL ' . $rvol . 'x.';
-            $confidence = $isAboveMa50 ? 92 : 82;
+            $confidence = $isAboveEma20 ? 92 : 82;
         } elseif ($prevRsi <= 30.0 && $curRsi > 30.0) {
             $signalType = 'BUY_OVERSOLD_CROSS';
             $action = 'BUY_NOW';
             $actionLabel = 'BUY (CROSS 30 UP)';
             $actionBadge = 'bg-success';
             $signalReason = 'Konfirmasi Reversal! RSI keluar dari area Oversold 30 ke atas. Tekanan jual mereda.';
-            $confidence = $isAboveMa50 ? 90 : 80;
-        } elseif ($dbPattern !== null && !empty($dbPattern['breakout'])) {
+            $confidence = $isAboveEma20 ? 90 : 82;
+        } elseif ($dbPattern !== null && !empty($dbPattern['breakout']) && !empty($dbPattern['is_fresh_breakout']) && $curRsi <= 60.0) {
             $signalType = 'BUY_RSI_DOUBLE_BOTTOM';
             $action = 'BUY_NOW';
             $actionLabel = 'BUY (RSI DOUBLE BOTTOM)';
             $actionBadge = 'bg-success';
-            $signalReason = 'Pola RSI Double Bottom terkonfirmasi dengan Breakout Neckline RSI.';
-            $confidence = $dbPattern['confidence'] ?? 85;
+            $signalReason = 'Pola RSI Double Bottom terkonfirmasi dengan Breakout Neckline RSI secara segar.';
+            $confidence = $dbPattern['confidence'] ?? 88;
         } elseif ($minRsi5 <= 33.0 && $curRsi > $prevRsi && $curRsi >= 32.0 && $curRsi <= 45.0) {
             $signalType = 'BUY_OVERSOLD_BOUNCE';
             $action = 'BUY_NOW';
             $actionLabel = 'BUY (OVERSOLD BOUNCE)';
             $actionBadge = 'bg-success';
             $signalReason = 'Pantulan awal dari area jenuh jual (RSI memantul naik dari <33).';
-            $confidence = $isAboveMa50 ? 80 : 70;
-        } elseif ($isAboveMa50 && $curRsi >= 40.0 && $curRsi <= 52.0 && $curRsi > $prevRsi && ($prevRsi <= 45.0 || $prev2Rsi <= 45.0)) {
+            $confidence = $isAboveEma20 ? 82 : 72;
+        } elseif (($isAboveMa50 || $isAboveEma20) && $curRsi >= 40.0 && $curRsi <= 52.0 && $curRsi > $prevRsi && ($prevRsi <= 48.0 || $prev2Rsi <= 48.0)) {
             $signalType = 'BUY_PULLBACK_UPTREND';
             $action = 'BUY_PULLBACK';
             $actionLabel = 'BUY ON PULLBACK (UPTREND)';
             $actionBadge = 'bg-primary';
-            $signalReason = 'Saham dalam tren naik (di atas MA50), RSI rebound dari area support 40-50.';
-            $confidence = 80;
+            $signalReason = 'Setup swing favorit! Saham dalam tren naik di atas EMA20/MA50, RSI memantul dari area support 40-50.';
+            $confidence = 82;
         } elseif ($curRsi <= 30.0) {
             $signalType = 'WATCH_OVERSOLD';
             $action = 'ACCUMULATE';
             $actionLabel = 'OVERSOLD (SIAP PANTAU)';
             $actionBadge = 'bg-info text-dark';
             $signalReason = 'Saham sangat jenuh jual (RSI < 30). Siapkan dana untuk beli saat RSI mulai melengkung naik melewati 30.';
-            $confidence = 65;
-        } elseif ($prevRsi < 50.0 && $curRsi >= 50.0 && $isAboveMa50) {
+            $confidence = 68;
+        } elseif ($prevRsi < 50.0 && $curRsi >= 50.0 && ($isAboveEma20 || $isAboveMa50)) {
             $signalType = 'BULLISH_MOMENTUM_50';
             $action = 'MOMENTUM_BUY';
             $actionLabel = 'MOMENTUM CROSS 50';
             $actionBadge = 'bg-primary';
             $signalReason = 'RSI menembus batas tengah 50 ke atas dengan konfirmasi tren bullish.';
-            $confidence = 70;
+            $confidence = 72;
         }
 
-        // Tentukan Target Profit TP1, TP2, TP3 & Stop Loss Berbasis Multi-Strategi
-        // Stop loss: 2% di bawah swing low terdekat atau min 3.5% dari entry
-        $slPrice = round(min($swingLow * 0.98, $curPrice * 0.965), 2);
+        // Tentukan Target Profit TP1, TP2, TP3 & Stop Loss Berbasis Multi-Strategi untuk Timeframe
+        $is2H = ($tf === self::TIMEFRAME_2H);
+        $slBuffer = $is2H ? 0.985 : 0.98; // 1.5% buffer di 2H
+        $slMinPct = $is2H ? 0.975 : 0.965; // min 2.5% di 2H
+
+        $slPrice = round(min($swingLow * $slBuffer, $curPrice * $slMinPct), 2);
         if ($slPrice >= $curPrice) {
-            $slPrice = round($curPrice * 0.965, 2);
+            $slPrice = round($curPrice * $slMinPct, 2);
         }
         $riskAmount = max(0.01, $curPrice - $slPrice);
 
         // Kalkulasi Target Profit yang Akurat:
-        // TP1 (Konservatif / Swing High / Fib 50% atau 1.5R - 1.8R): Amankan modal & kunci profit 40-50%
-        $candidateTp1 = max($curPrice + ($riskAmount * 1.5), min($swingHigh, $curPrice + ($riskAmount * 2.0)));
+        // TP1 (Konservatif / Swing High / Ratio 1.5R - 1.8R): Kunci profit pertama
+        $candidateTp1 = max($curPrice + ($riskAmount * 1.5), min($swingHigh, $curPrice + ($riskAmount * 1.8)));
         if ($candidateTp1 <= $curPrice) {
-            $candidateTp1 = $curPrice + ($riskAmount * 1.8);
+            $candidateTp1 = $curPrice + ($riskAmount * 1.6);
         }
         $tp1Price = round($candidateTp1, 2);
 
         // TP2 (Moderate / Breakout Resistance / Fibonacci Extension 1.272 atau 2.8R): Profit lanjutan
         $fibExt127 = $swingLow + (1.272 * $swingDiff);
-        $candidateTp2 = max($tp1Price * 1.02, max($fibExt127, $curPrice + ($riskAmount * 2.8)));
+        $candidateTp2 = max($tp1Price * 1.015, max($fibExt127, $curPrice + ($riskAmount * 2.8)));
         $tp2Price = round($candidateTp2, 2);
 
         // TP3 (Agresif / Golden Target Fibonacci Extension 1.618 atau 4.0R): Maksimal tren kenaikan
         $fibExt161 = $swingLow + (1.618 * $swingDiff);
-        $candidateTp3 = max($tp2Price * 1.03, max($fibExt161, $curPrice + ($riskAmount * 4.2)));
+        $candidateTp3 = max($tp2Price * 1.02, max($fibExt161, $curPrice + ($riskAmount * 4.0)));
         $tp3Price = round($candidateTp3, 2);
 
         $tp1Pct = $curPrice > 0 ? round((($tp1Price - $curPrice) / $curPrice) * 100, 2) : 0.0;
@@ -512,9 +700,11 @@ final class RsiDoubleBottomService
             'current_rsi' => round($curRsi, 2),
             'prev_rsi' => round($prevRsi, 2),
             'current_price' => $curPrice,
+            'ema20' => $curEma20 !== null ? round($curEma20, 2) : null,
+            'is_above_ema20' => $isAboveEma20,
             'ma50' => $curMa50 !== null ? round($curMa50, 2) : null,
             'is_above_ma50' => $isAboveMa50,
-            'trend_bias' => $isAboveMa50 ? 'BULLISH' : 'BEARISH',
+            'trend_bias' => $trendBias,
 
             // Multi-Strategy Enhancements: Volume RVOL
             'rvol' => $rvol,
@@ -542,13 +732,15 @@ final class RsiDoubleBottomService
             'confidence' => $confidence,
 
             // Divergence
-            'divergence' => ($bullDiv !== null),
-            'bearish_divergence' => ($bearDiv !== null),
+            'divergence' => $bullDiv !== null ? $bullDiv : false,
+            'bearish_divergence' => $bearDiv !== null ? $bearDiv : false,
+            'is_bullish_divergence' => ($bullDiv !== null),
+            'is_bearish_divergence' => ($bearDiv !== null),
             'divergence_details' => $bullDiv ?? $bearDiv,
 
             // Tingkat Harga & Risk/Reward
             'sl_price' => $slPrice,
-            'sl_tight' => round($curPrice * 0.98, 2),
+            'sl_tight' => round($curPrice * 0.985, 2),
             'tp1_price' => $tp1Price,
             'tp2_price' => $tp2Price,
             'tp3_price' => $tp3Price,
@@ -579,9 +771,9 @@ final class RsiDoubleBottomService
     }
 
     /**
-     * Deteksi Bullish Divergence (Price Lower-Low tapi RSI Higher-Low).
+     * Deteksi Bullish Divergence (Price Lower-Low tapi RSI Higher-Low) dengan filter cycle integrity.
      */
-    private function detectBullishDivergence(array $candles, array $rsi, int $window = 30): ?array
+    private function detectBullishDivergence(array $candles, array $rsi, int $tf = 24, int $window = 35): ?array
     {
         $n = count($candles);
         $start = max(2, $n - $window);
@@ -591,7 +783,7 @@ final class RsiDoubleBottomService
             if ($rsi[$i] === null || $rsi[$i - 1] === null || $rsi[$i + 1] === null) {
                 continue;
             }
-            if ($rsi[$i] <= $rsi[$i - 1] && $rsi[$i] <= $rsi[$i + 1] && $rsi[$i] < 45.0) {
+            if ($rsi[$i] <= $rsi[$i - 1] && $rsi[$i] <= $rsi[$i + 1] && $rsi[$i] < 48.0) {
                 $lows[] = [
                     'index' => $i,
                     'price' => (float) $candles[$i]['low'],
@@ -601,28 +793,67 @@ final class RsiDoubleBottomService
             }
         }
 
+        // Sertakan bar sebelum terakhir jika RSI sedang memantul naik
+        $curRsi = $rsi[$n - 1];
+        $prevRsi = $rsi[$n - 2] ?? null;
+        if ($prevRsi !== null && $curRsi !== null && $prevRsi < 45.0 && $curRsi > $prevRsi) {
+            $prevPrevRsi = $rsi[$n - 3] ?? $prevRsi;
+            if ($prevRsi <= $prevPrevRsi) {
+                $lows[] = [
+                    'index' => $n - 2,
+                    'price' => (float) $candles[$n - 2]['low'],
+                    'rsi' => (float) $prevRsi,
+                    'date' => $candles[$n - 2]['date'],
+                ];
+            }
+        }
+
+        // De-duplicate berdasarkan index
+        $uniqueLows = [];
+        foreach ($lows as $l) {
+            $uniqueLows[$l['index']] = $l;
+        }
+        $lows = array_values($uniqueLows);
+        usort($lows, fn ($a, $b) => $a['index'] <=> $b['index']);
+
         $cnt = count($lows);
         if ($cnt < 2) {
             return null;
         }
 
+        $minSep = ($tf === self::TIMEFRAME_2H) ? 3 : (($tf === self::TIMEFRAME_4H) ? 3 : 4);
+        $maxSep = ($tf === self::TIMEFRAME_2H) ? 24 : (($tf === self::TIMEFRAME_4H) ? 20 : 30);
+
         for ($a = $cnt - 2; $a >= max(0, $cnt - 4); $a--) {
             $l1 = $lows[$a];
             $l2 = $lows[$cnt - 1];
             $sep = $l2['index'] - $l1['index'];
-            if ($sep >= 3 && $sep <= 25) {
+            if ($sep >= $minSep && $sep <= $maxSep) {
                 // Syarat: Harga Lembah 2 lebih rendah/setara Lembah 1, tapi RSI Lembah 2 lebih tinggi
-                if ($l2['price'] <= $l1['price'] * 1.005 && $l2['rsi'] > $l1['rsi'] + 0.8) {
-                    return [
-                        'type' => 'bullish',
-                        'rsi1' => round($l1['rsi'], 2),
-                        'rsi2' => round($l2['rsi'], 2),
-                        'price1' => $l1['price'],
-                        'price2' => $l2['price'],
-                        'date1' => $l1['date'],
-                        'date2' => $l2['date'],
-                        'separation' => $sep,
-                    ];
+                if ($l2['price'] <= $l1['price'] * 1.006 && $l2['rsi'] >= $l1['rsi'] + 0.8) {
+                    $peakRsi = 0.0;
+                    for ($k = $l1['index'] + 1; $k < $l2['index']; $k++) {
+                        if ($rsi[$k] !== null && $rsi[$k] > $peakRsi) {
+                            $peakRsi = $rsi[$k];
+                        }
+                    }
+
+                    // Syarat integritas siklus koreksi: ada relief rebound (>=40.0) dan belum overbought (<=62.0)
+                    if ($peakRsi >= 40.0 && $peakRsi <= 62.0) {
+                        $barsAgo = ($n - 1) - $l2['index'];
+                        return [
+                            'type' => 'bullish',
+                            'rsi1' => round($l1['rsi'], 2),
+                            'rsi2' => round($l2['rsi'], 2),
+                            'price1' => $l1['price'],
+                            'price2' => $l2['price'],
+                            'date1' => $l1['date'],
+                            'date2' => $l2['date'],
+                            'separation' => $sep,
+                            'bars_ago' => $barsAgo,
+                            'is_fresh' => ($barsAgo <= ($tf === self::TIMEFRAME_2H ? 5 : 4)),
+                        ];
+                    }
                 }
             }
         }
@@ -633,7 +864,7 @@ final class RsiDoubleBottomService
     /**
      * Deteksi Bearish Divergence (Price Higher-High tapi RSI Lower-High).
      */
-    private function detectBearishDivergence(array $candles, array $rsi, int $window = 30): ?array
+    private function detectBearishDivergence(array $candles, array $rsi, int $tf = 24, int $window = 35): ?array
     {
         $n = count($candles);
         $start = max(2, $n - $window);
@@ -643,7 +874,7 @@ final class RsiDoubleBottomService
             if ($rsi[$i] === null || $rsi[$i - 1] === null || $rsi[$i + 1] === null) {
                 continue;
             }
-            if ($rsi[$i] >= $rsi[$i - 1] && $rsi[$i] >= $rsi[$i + 1] && $rsi[$i] > 55.0) {
+            if ($rsi[$i] >= $rsi[$i - 1] && $rsi[$i] >= $rsi[$i + 1] && $rsi[$i] > 54.0) {
                 $highs[] = [
                     'index' => $i,
                     'price' => (float) $candles[$i]['high'],
@@ -658,23 +889,37 @@ final class RsiDoubleBottomService
             return null;
         }
 
+        $minSep = ($tf === self::TIMEFRAME_2H) ? 3 : 4;
+        $maxSep = ($tf === self::TIMEFRAME_2H) ? 24 : 30;
+
         for ($a = $cnt - 2; $a >= max(0, $cnt - 4); $a--) {
             $h1 = $highs[$a];
             $h2 = $highs[$cnt - 1];
             $sep = $h2['index'] - $h1['index'];
-            if ($sep >= 3 && $sep <= 25) {
+            if ($sep >= $minSep && $sep <= $maxSep) {
                 // Syarat: Harga Puncak 2 lebih tinggi/setara Puncak 1, tapi RSI Puncak 2 lebih rendah
-                if ($h2['price'] >= $h1['price'] * 0.995 && $h2['rsi'] < $h1['rsi'] - 0.8) {
-                    return [
-                        'type' => 'bearish',
-                        'rsi1' => round($h1['rsi'], 2),
-                        'rsi2' => round($h2['rsi'], 2),
-                        'price1' => $h1['price'],
-                        'price2' => $h2['price'],
-                        'date1' => $h1['date'],
-                        'date2' => $h2['date'],
-                        'separation' => $sep,
-                    ];
+                if ($h2['price'] >= $h1['price'] * 0.994 && $h2['rsi'] <= $h1['rsi'] - 0.8) {
+                    $troughRsi = 100.0;
+                    for ($k = $h1['index'] + 1; $k < $h2['index']; $k++) {
+                        if ($rsi[$k] !== null && $rsi[$k] < $troughRsi) {
+                            $troughRsi = $rsi[$k];
+                        }
+                    }
+                    if ($troughRsi <= 60.0 && $troughRsi >= 38.0) {
+                        $barsAgo = ($n - 1) - $h2['index'];
+                        return [
+                            'type' => 'bearish',
+                            'rsi1' => round($h1['rsi'], 2),
+                            'rsi2' => round($h2['rsi'], 2),
+                            'price1' => $h1['price'],
+                            'price2' => $h2['price'],
+                            'date1' => $h1['date'],
+                            'date2' => $h2['date'],
+                            'separation' => $sep,
+                            'bars_ago' => $barsAgo,
+                            'is_fresh' => ($barsAgo <= ($tf === self::TIMEFRAME_2H ? 5 : 4)),
+                        ];
+                    }
                 }
             }
         }
@@ -683,7 +928,7 @@ final class RsiDoubleBottomService
     }
 
     /**
-     * Cari RSI Double Bottom yang relevan/terbaru (dalam 45 candle terakhir).
+     * Cari RSI Double Bottom yang relevan/terbaru dengan evaluasi breakout freshness.
      */
     private function findRecentDoubleBottom(
         array $candles,
@@ -692,7 +937,8 @@ final class RsiDoubleBottomService
         float $maxRsi,
         int $minSeparation,
         int $maxSeparation,
-        float $necklineMin
+        float $necklineMin,
+        int $tf = 24
     ): ?array {
         $n = count($candles);
         $start = max(1, $n - 50);
@@ -747,6 +993,17 @@ final class RsiDoubleBottomService
                     $neckPrice = max($neckPrice, (float) $candles[$k]['high']);
                 }
 
+                // Cek kesegaran breakout (breakout freshness)
+                $breakoutBar = null;
+                for ($k = $i2 + 1; $k < $n; $k++) {
+                    if ($rsi[$k] !== null && $rsi[$k] > $neck) {
+                        $breakoutBar = $k;
+                        break;
+                    }
+                }
+                $breakoutBarsAgo = $breakoutBar !== null ? ($n - 1 - $breakoutBar) : 999;
+                $isFreshBreakout = ($breakout && $breakoutBarsAgo <= ($tf === self::TIMEFRAME_2H ? 4 : 5) && $cur <= 60.0);
+
                 $conf = 60;
                 if (abs($r1 - $r2) <= 1.5) {
                     $conf += 15;
@@ -758,15 +1015,17 @@ final class RsiDoubleBottomService
                     $conf += 10;
                 }
 
-                // Deteksi Shakeout Low: Harga Low 2 menusuk di bawah Low 1 (undercut/liquidity sweep terukur 0.2% - 5%)
+                // Deteksi Shakeout Low: Harga Low 2 menusuk di bawah Low 1 (undercut terukur 0.2% - 5%)
                 $isShakeoutLow = false;
                 $shakeoutPct = 0.0;
+                $isFreshShakeout = false;
                 if ($p1 > 0 && $p2 < $p1 * 0.998) {
                     $undercut = ($p1 - $p2) / $p1;
-                    if ($undercut <= 0.05) { // Undercut terukur hingga 5%
+                    if ($undercut <= 0.05) {
                         $isShakeoutLow = true;
                         $shakeoutPct = round($undercut * 100, 1);
-                        $conf += 8; // Bonus setup liquidity grab
+                        $isFreshShakeout = (($n - 1 - $i2) <= ($tf === self::TIMEFRAME_2H ? 5 : 6));
+                        $conf += 8;
                     }
                 }
 
@@ -784,6 +1043,9 @@ final class RsiDoubleBottomService
                     'confidence' => min(100, $conf),
                     'is_shakeout_low' => $isShakeoutLow,
                     'shakeout_pct' => $shakeoutPct,
+                    'is_fresh_breakout' => $isFreshBreakout,
+                    'is_fresh_shakeout' => $isFreshShakeout,
+                    'bars_ago' => ($n - 1 - $i2),
                 ];
 
                 if ($best === null || $cand['confidence'] > $best['confidence']) {

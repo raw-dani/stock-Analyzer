@@ -10,6 +10,9 @@ declare(strict_types=1);
 /** @var float $tolerance */
 /** @var int $rsiPeriod */
 /** @var float $maxRsi */
+/** @var int|null $minSeparation */
+/** @var int|null $maxSeparation */
+/** @var float|null $necklineMin */
 /** @var string $statusFilter */
 /** @var int $minConf */
 /** @var string $sortBy */
@@ -230,20 +233,32 @@ $staleDays = $dailyMax ? (int) floor((time() - strtotime($dailyMax . ' 23:59:00'
             <!-- Collapsible Advanced Parameters -->
             <div class="collapse mt-3 pt-3 border-top" id="advancedParams">
                 <div class="row g-3 align-items-end">
-                    <div class="col-md-3 col-6">
+                    <div class="col-md-2 col-6">
                         <label class="form-label small fw-bold text-dark mb-1">RSI Period</label>
                         <?= Html::input('number', 'rsiPeriod', $rsiPeriod, ['class' => 'form-control form-control-sm', 'min' => 2, 'max' => 50]) ?>
                     </div>
-                    <div class="col-md-3 col-6">
-                        <label class="form-label small fw-bold text-dark mb-1">Lookback Candles</label>
-                        <?= Html::input('number', 'lookback', $lookback, ['class' => 'form-control form-control-sm', 'min' => 20, 'max' => 300]) ?>
+                    <div class="col-md-2 col-6">
+                        <label class="form-label small fw-bold text-dark mb-1">Lookback Bars</label>
+                        <?= Html::input('number', 'lookback', $lookback, ['class' => 'form-control form-control-sm', 'min' => 20, 'max' => 400]) ?>
                     </div>
-                    <div class="col-md-3 col-6">
-                        <label class="form-label small fw-bold text-dark mb-1">Ambang Lembah Max</label>
+                    <div class="col-md-2 col-6">
+                        <label class="form-label small fw-bold text-dark mb-1">Ambang Max RSI</label>
                         <?= Html::input('number', 'maxRsi', $maxRsi, ['class' => 'form-control form-control-sm', 'min' => 20, 'max' => 70, 'step' => 5]) ?>
                     </div>
-                    <div class="col-md-3 col-6">
-                        <?= Html::submitButton(\app\helpers\SvgHelper::icon('arrow-repeat') . ' Terapkan Pengaturan', ['class' => 'btn btn-primary btn-sm w-100 shadow-sm']) ?>
+                    <div class="col-md-2 col-6">
+                        <label class="form-label small fw-bold text-dark mb-1">Tolerance (pts)</label>
+                        <?= Html::input('number', 'tolerance', $tolerance, ['class' => 'form-control form-control-sm', 'min' => 0.5, 'max' => 10, 'step' => 0.5]) ?>
+                    </div>
+                    <div class="col-md-2 col-6">
+                        <label class="form-label small fw-bold text-dark mb-1">Jarak Lembah (Min/Max)</label>
+                        <div class="input-group input-group-sm">
+                            <?= Html::input('number', 'minSeparation', $minSeparation, ['class' => 'form-control', 'placeholder' => 'Min', 'min' => 2, 'max' => 30]) ?>
+                            <span class="input-group-text">-</span>
+                            <?= Html::input('number', 'maxSeparation', $maxSeparation, ['class' => 'form-control', 'placeholder' => 'Max', 'min' => 5, 'max' => 100]) ?>
+                        </div>
+                    </div>
+                    <div class="col-md-2 col-6">
+                        <?= Html::submitButton(\app\helpers\SvgHelper::icon('arrow-repeat') . ' Terapkan', ['class' => 'btn btn-primary btn-sm w-100 shadow-sm']) ?>
                     </div>
                 </div>
             </div>
@@ -271,7 +286,7 @@ $staleDays = $dailyMax ? (int) floor((time() - strtotime($dailyMax . ' 23:59:00'
                     <th style="width: 220px;">Rekomendasi Aksi</th>
                     <th class="text-end">Harga Saat Ini</th>
                     <th class="text-center" style="width: 120px;">RSI (<?= $rsiPeriod ?>)</th>
-                    <th class="text-center">Trend (MA50)</th>
+                    <th class="text-center" style="min-width: 110px;">Trend (EMA20/MA50)</th>
                     <th class="text-center">Konfirmasi Multi-Strategi</th>
                     <th class="text-end" style="min-width: 130px;">Target TP1 / TP2 / TP3</th>
                     <th class="text-end">Stop Loss</th>
@@ -343,25 +358,54 @@ $staleDays = $dailyMax ? (int) floor((time() - strtotime($dailyMax . ' 23:59:00'
                                 <?php endif; ?>
                             </td>
                             <td class="text-center">
-                                <?php if (!empty($r['is_above_ma50'])): ?>
-                                    <span class="badge bg-success-subtle text-success border border-success" title="Harga di atas MA50 ($<?= number_format((float)($r['ma50'] ?? 0), 2) ?>)">
-                                        <?= \app\helpers\SvgHelper::icon('arrow-up-circle') ?> Uptrend
-                                    </span>
-                                <?php else: ?>
-                                    <span class="badge bg-secondary-subtle text-secondary border" title="Harga di bawah MA50 ($<?= number_format((float)($r['ma50'] ?? 0), 2) ?>)">
-                                        <?= \app\helpers\SvgHelper::icon('arrow-down-circle') ?> Downtrend
-                                    </span>
-                                <?php endif; ?>
+                                <div class="d-inline-flex flex-column gap-1 align-items-center">
+                                    <?php if (!empty($r['is_above_ema20'])): ?>
+                                        <span class="badge bg-success-subtle text-success border border-success py-0" style="font-size: 0.68rem;" title="Harga ($<?= number_format((float)($r['current_price'] ?? 0), 2) ?>) di atas EMA20 ($<?= number_format((float)($r['ema20'] ?? 0), 2) ?>)">
+                                            EMA20 ▲
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="badge bg-secondary-subtle text-secondary border py-0" style="font-size: 0.68rem;" title="Harga ($<?= number_format((float)($r['current_price'] ?? 0), 2) ?>) di bawah EMA20 ($<?= number_format((float)($r['ema20'] ?? 0), 2) ?>)">
+                                            EMA20 ▼
+                                        </span>
+                                    <?php endif; ?>
+
+                                    <?php if (!empty($r['is_above_ma50'])): ?>
+                                        <span class="badge bg-success-subtle text-success border border-success py-0" style="font-size: 0.68rem;" title="Harga di atas MA50 ($<?= number_format((float)($r['ma50'] ?? 0), 2) ?>)">
+                                            MA50 ▲
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="badge bg-secondary-subtle text-secondary border py-0" style="font-size: 0.68rem;" title="Harga di bawah MA50 ($<?= number_format((float)($r['ma50'] ?? 0), 2) ?>)">
+                                            MA50 ▼
+                                        </span>
+                                    <?php endif; ?>
+                                </div>
                             </td>
                             <td class="text-center">
                                 <div class="d-flex flex-column gap-1 align-items-center">
                                     <?php if (!empty($r['divergence'])): ?>
-                                        <span class="badge bg-primary text-white" title="Bullish Divergence: Peluang pembalikan naik">
-                                            <?= \app\helpers\SvgHelper::icon('gem') ?> BULLISH DIV
+                                        <?php 
+                                        $divObj = is_array($r['divergence']) ? $r['divergence'] : (is_array($r['divergence_details'] ?? null) ? $r['divergence_details'] : []);
+                                        $divBarsAgo = (int)($divObj['bars_ago'] ?? 0);
+                                        $isFreshDiv = !empty($divObj['is_fresh']) || $divBarsAgo <= 5;
+                                        ?>
+                                        <span class="badge <?= $isFreshDiv ? 'bg-primary text-white' : 'bg-primary-subtle text-primary border border-primary' ?>" title="Bullish Divergence: <?= $divBarsAgo ?> bar lalu (<?= $isFreshDiv ? 'Sinyal Baru / Fresh' : 'In Progress' ?>)">
+                                            <?= \app\helpers\SvgHelper::icon('gem') ?> BULLISH DIV <?= $isFreshDiv ? '<span class="badge bg-success text-white py-0 px-1 ms-1" style="font-size:0.55rem;">FRESH</span>' : '<span class="text-muted ms-1" style="font-size:0.60rem;">(' . $divBarsAgo . 'b)</span>' ?>
                                         </span>
                                     <?php elseif (!empty($r['bearish_divergence'])): ?>
-                                        <span class="badge bg-danger text-white" title="Bearish Divergence: Waspada pembalikan turun">
-                                            <?= \app\helpers\SvgHelper::icon('lightning-charge') ?> BEARISH DIV
+                                        <?php 
+                                        $bearObj = is_array($r['bearish_divergence']) ? $r['bearish_divergence'] : (is_array($r['divergence_details'] ?? null) ? $r['divergence_details'] : []);
+                                        $bearBarsAgo = (int)($bearObj['bars_ago'] ?? 0);
+                                        $isFreshBear = !empty($bearObj['is_fresh']) || $bearBarsAgo <= 5;
+                                        ?>
+                                        <span class="badge <?= $isFreshBear ? 'bg-danger text-white' : 'bg-danger-subtle text-danger border border-danger' ?>" title="Bearish Divergence: <?= $bearBarsAgo ?> bar lalu">
+                                            <?= \app\helpers\SvgHelper::icon('lightning-charge') ?> BEARISH DIV <?= $isFreshBear ? '<span class="badge bg-danger-emphasis text-white py-0 px-1 ms-1" style="font-size:0.55rem;">ACTIVE</span>' : '<span class="text-muted ms-1" style="font-size:0.60rem;">(' . $bearBarsAgo . 'b)</span>' ?>
+                                        </span>
+                                    <?php endif; ?>
+
+                                    <?php if (!empty($r['recent_double_bottom'])): ?>
+                                        <?php $dbFresh = !empty($r['recent_double_bottom']['is_fresh']); ?>
+                                        <span class="badge bg-info-subtle text-info-emphasis border border-info" title="RSI Double Bottom: T1 (<?= $r['recent_double_bottom']['trough1']['rsi'] ?>) & T2 (<?= $r['recent_double_bottom']['trough2']['rsi'] ?>)">
+                                            W-BOTTOM <?= $dbFresh ? '★ FRESH' : '' ?>
                                         </span>
                                     <?php endif; ?>
 
@@ -389,7 +433,7 @@ $staleDays = $dailyMax ? (int) floor((time() - strtotime($dailyMax . ' 23:59:00'
                                         </span>
                                     <?php endif; ?>
 
-                                    <?php if (empty($r['divergence']) && empty($r['bearish_divergence']) && empty($r['volume_spike']) && empty($r['candle_pattern']) && empty($r['is_golden_pocket']) && empty($r['is_shakeout_low']) && ($r['signal_type'] ?? '') !== 'BUY_SHAKEOUT_LOW'): ?>
+                                    <?php if (empty($r['divergence']) && empty($r['bearish_divergence']) && empty($r['recent_double_bottom']) && empty($r['volume_spike']) && empty($r['candle_pattern']) && empty($r['is_golden_pocket']) && empty($r['is_shakeout_low']) && ($r['signal_type'] ?? '') !== 'BUY_SHAKEOUT_LOW'): ?>
                                         <span class="text-muted small">—</span>
                                     <?php endif; ?>
                                 </div>

@@ -19,6 +19,8 @@ $curRsi = (float) ($pattern['current_rsi'] ?? 50);
 $prevRsi = (float) ($pattern['prev_rsi'] ?? 50);
 $ma50 = $pattern['ma50'] ?? null;
 $isAboveMa50 = !empty($pattern['is_above_ma50']);
+$ema20 = $pattern['ema20'] ?? null;
+$isAboveEma20 = !empty($pattern['is_above_ema20']);
 $isBuy = in_array($pattern['action'] ?? '', ['BUY_NOW', 'BUY_PULLBACK', 'MOMENTUM_BUY'], true);
 $isSell = in_array($pattern['action'] ?? '', ['SELL_NOW', 'TAKE_PROFIT'], true);
 $tp1Pct = (float) ($pattern['tp1_pct'] ?? ($curPrice > 0 ? round((($tp1 - $curPrice) / $curPrice) * 100, 2) : 0));
@@ -67,17 +69,33 @@ $slTightPct = $curPrice > 0 ? round((($curPrice - $slTight) / $curPrice) * 100, 
                             </td>
                         </tr>
                         <tr class="border-bottom">
-                            <td class="text-muted py-2"><?= \app\helpers\SvgHelper::icon('compass', ['class' => 'text-info me-1']) ?> Filter Tren (MA50)</td>
+                            <td class="text-muted py-2"><?= \app\helpers\SvgHelper::icon('compass', ['class' => 'text-info me-1']) ?> Filter Tren (EMA20 / MA50)</td>
                             <td class="text-end py-2">
-                                <?php if ($isAboveMa50): ?>
-                                    <span class="badge bg-success-subtle text-success border border-success">
-                                        <?= \app\helpers\SvgHelper::icon('arrow-up-circle') ?> Bullish (Di atas MA50: $<?= number_format((float)$ma50, 2) ?>)
-                                    </span>
-                                <?php else: ?>
-                                    <span class="badge bg-secondary-subtle text-secondary border">
-                                        <?= \app\helpers\SvgHelper::icon('arrow-down-circle') ?> Bearish (Di bawah MA50: $<?= number_format((float)$ma50, 2) ?>)
-                                    </span>
-                                <?php endif; ?>
+                                <div class="d-inline-flex flex-wrap gap-1 justify-content-end">
+                                    <?php if ($ema20 !== null): ?>
+                                        <?php if ($isAboveEma20): ?>
+                                            <span class="badge bg-success-subtle text-success border border-success" title="Harga di atas EMA20">
+                                                EMA20: $<?= number_format((float)$ema20, 2) ?> ▲
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="badge bg-secondary-subtle text-secondary border" title="Harga di bawah EMA20">
+                                                EMA20: $<?= number_format((float)$ema20, 2) ?> ▼
+                                            </span>
+                                        <?php endif; ?>
+                                    <?php endif; ?>
+
+                                    <?php if ($ma50 !== null): ?>
+                                        <?php if ($isAboveMa50): ?>
+                                            <span class="badge bg-success-subtle text-success border border-success" title="Harga di atas MA50">
+                                                MA50: $<?= number_format((float)$ma50, 2) ?> ▲
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="badge bg-secondary-subtle text-secondary border" title="Harga di bawah MA50">
+                                                MA50: $<?= number_format((float)$ma50, 2) ?> ▼
+                                            </span>
+                                        <?php endif; ?>
+                                    <?php endif; ?>
+                                </div>
                             </td>
                         </tr>
                         <tr class="border-bottom">
@@ -125,9 +143,33 @@ $slTightPct = $curPrice > 0 ? round((($curPrice - $slTight) / $curPrice) * 100, 
                             <td class="text-muted py-2"><?= \app\helpers\SvgHelper::icon('gem', ['class' => 'text-primary me-1']) ?> Status Divergence</td>
                             <td class="text-end py-2">
                                 <?php if (!empty($pattern['divergence'])): ?>
-                                    <span class="badge bg-success text-white"><?= \app\helpers\SvgHelper::icon('check-lg') ?> BULLISH DIVERGENCE (Waktu Beli)</span>
+                                    <?php 
+                                    $divObj = is_array($pattern['divergence']) ? $pattern['divergence'] : (is_array($pattern['divergence_details'] ?? null) ? $pattern['divergence_details'] : []);
+                                    $divBars = (int)($divObj['bars_ago'] ?? 0);
+                                    $divFresh = !empty($divObj['is_fresh']) || $divBars <= 5;
+                                    $low1Rsi = $divObj['low1']['rsi'] ?? ($pattern['rsi1_value'] ?? null);
+                                    $low2Rsi = $divObj['low2']['rsi'] ?? ($pattern['rsi2_value'] ?? null);
+                                    ?>
+                                    <span class="badge <?= $divFresh ? 'bg-success text-white' : 'bg-primary text-white' ?>">
+                                        <?= \app\helpers\SvgHelper::icon('check-lg') ?> BULLISH DIVERGENCE (<?= $divFresh ? 'FRESH SETUP' : 'IN PROGRESS' ?>)
+                                    </span>
+                                    <small class="text-muted d-block mt-1" style="font-size:0.72rem;">
+                                        Pivot Low 2 terbentuk <?= $divBars ?> bar lalu <?= ($low1Rsi !== null && $low2Rsi !== null) ? "(RSI: {$low1Rsi} → {$low2Rsi})" : '' ?>
+                                    </small>
                                 <?php elseif (!empty($pattern['bearish_divergence'])): ?>
-                                    <span class="badge bg-danger text-white"><?= \app\helpers\SvgHelper::icon('exclamation-triangle') ?> BEARISH DIVERGENCE (Waktu Jual)</span>
+                                    <?php 
+                                    $bearObj = is_array($pattern['bearish_divergence']) ? $pattern['bearish_divergence'] : (is_array($pattern['divergence_details'] ?? null) ? $pattern['divergence_details'] : []);
+                                    $bearBars = (int)($bearObj['bars_ago'] ?? 0);
+                                    $bearFresh = !empty($bearObj['is_fresh']) || $bearBars <= 5;
+                                    $high1Rsi = $bearObj['high1']['rsi'] ?? null;
+                                    $high2Rsi = $bearObj['high2']['rsi'] ?? null;
+                                    ?>
+                                    <span class="badge <?= $bearFresh ? 'bg-danger text-white' : 'bg-warning text-dark' ?>">
+                                        <?= \app\helpers\SvgHelper::icon('exclamation-triangle') ?> BEARISH DIVERGENCE (<?= $bearFresh ? 'ACTIVE REVERSAL' : 'IN PROGRESS' ?>)
+                                    </span>
+                                    <small class="text-muted d-block mt-1" style="font-size:0.72rem;">
+                                        Pivot High 2 terbentuk <?= $bearBars ?> bar lalu <?= ($high1Rsi !== null && $high2Rsi !== null) ? "(RSI: {$high1Rsi} → {$high2Rsi})" : '' ?>
+                                    </small>
                                 <?php else: ?>
                                     <span class="badge bg-light text-muted border">Tidak Ada Divergensi</span>
                                 <?php endif; ?>
@@ -202,7 +244,7 @@ $slTightPct = $curPrice > 0 ? round((($curPrice - $slTight) / $curPrice) * 100, 
                 <?php
                 $cond1 = ($curRsi <= 40 || !empty($pattern['divergence']));
                 $cond2 = ($curRsi > $prevRsi); // RSI mulai memantul ke atas
-                $cond3 = $isAboveMa50; // Tren sehat
+                $cond3 = ($isAboveMa50 || $isAboveEma20); // Tren sehat atau bertahan di atas EMA20
                 $cond4 = (!empty($pattern['divergence']) || !empty($pattern['breakout']) || !empty($pattern['is_golden_pocket']) || ($pattern['candle_signal'] ?? '') === 'BULLISH');
                 $cond5 = (!empty($pattern['volume_spike']) || !empty($pattern['volume_supportive']));
                 $cond6 = ($riskReward !== null && $riskReward >= 1.5);
@@ -228,7 +270,7 @@ $slTightPct = $curPrice > 0 ? round((($curPrice - $slTight) / $curPrice) * 100, 
                     <li class="list-group-item d-flex justify-content-between align-items-center px-0">
                         <div>
                             <strong>2. Konfirmasi Momentum Rebound RSI:</strong>
-                            <div class="text-muted">RSI hari ini melengkung naik (<?= number_format($curRsi, 1) ?> &gt; <?= number_format($prevRsi, 1) ?>)</div>
+                            <div class="text-muted">RSI saat ini melengkung naik (<?= number_format($curRsi, 1) ?> &gt; <?= number_format($prevRsi, 1) ?>)</div>
                         </div>
                         <?= $cond2 
                             ? \app\helpers\SvgHelper::icon('check-circle-fill', ['class' => 'text-success fs-5']) 
@@ -236,8 +278,8 @@ $slTightPct = $curPrice > 0 ? round((($curPrice - $slTight) / $curPrice) * 100, 
                     </li>
                     <li class="list-group-item d-flex justify-content-between align-items-center px-0">
                         <div>
-                            <strong>3. Trend Bias Filter (MA50):</strong>
-                            <div class="text-muted">Harga berada di atas MA50 (Bukan pisau jatuh liar)</div>
+                            <strong>3. Trend Bias Filter (EMA20 / MA50):</strong>
+                            <div class="text-muted">Harga di atas MA50 ($<?= number_format((float)($ma50 ?? 0), 2) ?>) atau bertahan di atas EMA20 ($<?= number_format((float)($ema20 ?? 0), 2) ?>)</div>
                         </div>
                         <?= $cond3 
                             ? \app\helpers\SvgHelper::icon('check-circle-fill', ['class' => 'text-success fs-5']) 

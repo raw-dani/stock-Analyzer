@@ -26,22 +26,33 @@ final class RsiDoubleBottomController extends Controller
         ?float $maxRsi = null,
         ?string $statusFilter = 'all',
         ?int $minConf = 0,
-        ?string $sortBy = 'confidence'
+        ?string $sortBy = 'confidence',
+        ?int $minSeparation = null,
+        ?int $maxSeparation = null,
+        ?float $necklineMin = null
     ): string {
         $defaults = Yii::$app->params['rsiDefaults'] ?? [];
-        $timeframe       = $timeframe       ?? self::TIMEFRAME_1D;
-        $lookback        = $lookback        ?? ($defaults['lookback']        ?? 150);
-        $tolerance       = $tolerance       ?? ($defaults['tolerance']       ?? 3.0);
-        $rsiPeriod       = $rsiPeriod       ?? ($defaults['rsiPeriod']       ?? 14);
-        $maxRsi          = $maxRsi          ?? ($defaults['maxRsiForBottom'] ?? 40.0);
-        $minSeparation   = $defaults['minSeparation'] ?? 5;
-        $maxSeparation   = $defaults['maxSeparation'] ?? 30;
-        $necklineMin     = $defaults['necklineMin'] ?? 2.0;
+        $timeframe = $timeframe ?? self::TIMEFRAME_1D;
 
         $timeframes = self::getTimeframes();
         if (!isset($timeframes[$timeframe])) {
             $timeframe = self::TIMEFRAME_1D;
         }
+
+        // Optimasi parameter default berbasis Timeframe (khususnya 2H swing precision)
+        $defaultLookback = $timeframe === self::TIMEFRAME_2H ? 168 : ($defaults['lookback'] ?? 150);
+        $defaultMinSep   = $timeframe === self::TIMEFRAME_2H ? 4 : ($timeframe === self::TIMEFRAME_4H ? 3 : ($timeframe === self::TIMEFRAME_1H ? 6 : ($defaults['minSeparation'] ?? 5)));
+        $defaultMaxSep   = $timeframe === self::TIMEFRAME_2H ? 24 : ($timeframe === self::TIMEFRAME_4H ? 18 : ($timeframe === self::TIMEFRAME_1H ? 36 : ($defaults['maxSeparation'] ?? 30)));
+        $defaultTol      = $timeframe === self::TIMEFRAME_2H ? 2.5 : ($defaults['tolerance'] ?? 3.0);
+        $defaultNeckline = $timeframe === self::TIMEFRAME_2H ? 2.5 : ($defaults['necklineMin'] ?? 2.0);
+
+        $lookback        = $lookback        ?? $defaultLookback;
+        $tolerance       = $tolerance       ?? $defaultTol;
+        $rsiPeriod       = $rsiPeriod       ?? ($defaults['rsiPeriod']       ?? 14);
+        $maxRsi          = $maxRsi          ?? ($defaults['maxRsiForBottom'] ?? 40.0);
+        $minSeparation   = $minSeparation   ?? (int) Yii::$app->request->get('minSeparation', $defaultMinSep);
+        $maxSeparation   = $maxSeparation   ?? (int) Yii::$app->request->get('maxSeparation', $defaultMaxSep);
+        $necklineMin     = $necklineMin     ?? (float) Yii::$app->request->get('necklineMin', $defaultNeckline);
 
         $logCat = $defaults['logCategory'] ?? 'app\services\rsidoublebottom';
         Yii::info("RSI Strategy Scan: timeframe={$timeframe} lookback={$lookback} tolerance={$tolerance} period={$rsiPeriod} maxRsi={$maxRsi}", $logCat);
@@ -58,13 +69,13 @@ final class RsiDoubleBottomController extends Controller
                 $results = $service->scanAll($timeframe, $lookback, $tolerance, $rsiPeriod, $maxRsi, $minSeparation, $maxSeparation, $necklineMin);
             } catch (\InvalidArgumentException $e) {
                 Yii::warning("RSI Strategy Scan: {$e->getMessage()}", $logCat);
-                $lookback = $defaults['lookback'] ?? 150;
-                $tolerance = $defaults['tolerance'] ?? 3.0;
+                $lookback = $defaultLookback;
+                $tolerance = $defaultTol;
                 $rsiPeriod = $defaults['rsiPeriod'] ?? 14;
                 $maxRsi = $defaults['maxRsiForBottom'] ?? 40.0;
-                $minSeparation = $defaults['minSeparation'] ?? 5;
-                $maxSeparation = $defaults['maxSeparation'] ?? 30;
-                $necklineMin = $defaults['necklineMin'] ?? 2.0;
+                $minSeparation = $defaultMinSep;
+                $maxSeparation = $defaultMaxSep;
+                $necklineMin = $defaultNeckline;
                 $results = $service->scanAll($timeframe, $lookback, $tolerance, $rsiPeriod, $maxRsi, $minSeparation, $maxSeparation, $necklineMin);
             }
             if ($cache) {
@@ -146,20 +157,28 @@ final class RsiDoubleBottomController extends Controller
     {
         $defaults = Yii::$app->params['rsiDefaults'] ?? [];
         $timeframe = (int) Yii::$app->request->get('timeframe', self::TIMEFRAME_1D);
-        $lookback  = (int) Yii::$app->request->get('lookback',  $defaults['lookback']   ?? 150);
-        $tolerance = (float) Yii::$app->request->get('tolerance', $defaults['tolerance'] ?? 3.0);
-        $rsiPeriod = (int) Yii::$app->request->get('rsiPeriod', $defaults['rsiPeriod']  ?? 14);
-        $maxRsi    = (float) Yii::$app->request->get('maxRsi',    $defaults['maxRsiForBottom'] ?? 40.0);
-        $statusFilter = (string) Yii::$app->request->get('statusFilter', 'all');
-        $sortBy       = (string) Yii::$app->request->get('sortBy', 'confidence');
-        $minSeparation = $defaults['minSeparation'] ?? 5;
-        $maxSeparation = $defaults['maxSeparation'] ?? 30;
-        $necklineMin = $defaults['necklineMin'] ?? 2.0;
 
         $timeframes = self::getTimeframes();
         if (!isset($timeframes[$timeframe])) {
             $timeframe = self::TIMEFRAME_1D;
         }
+
+        // Optimasi parameter default berbasis Timeframe
+        $defaultLookback = $timeframe === self::TIMEFRAME_2H ? 168 : ($defaults['lookback'] ?? 150);
+        $defaultMinSep   = $timeframe === self::TIMEFRAME_2H ? 4 : ($timeframe === self::TIMEFRAME_4H ? 3 : ($timeframe === self::TIMEFRAME_1H ? 6 : ($defaults['minSeparation'] ?? 5)));
+        $defaultMaxSep   = $timeframe === self::TIMEFRAME_2H ? 24 : ($timeframe === self::TIMEFRAME_4H ? 18 : ($timeframe === self::TIMEFRAME_1H ? 36 : ($defaults['maxSeparation'] ?? 30)));
+        $defaultTol      = $timeframe === self::TIMEFRAME_2H ? 2.5 : ($defaults['tolerance'] ?? 3.0);
+        $defaultNeckline = $timeframe === self::TIMEFRAME_2H ? 2.5 : ($defaults['necklineMin'] ?? 2.0);
+
+        $lookback  = (int) Yii::$app->request->get('lookback',  $defaultLookback);
+        $tolerance = (float) Yii::$app->request->get('tolerance', $defaultTol);
+        $rsiPeriod = (int) Yii::$app->request->get('rsiPeriod', $defaults['rsiPeriod']  ?? 14);
+        $maxRsi    = (float) Yii::$app->request->get('maxRsi',    $defaults['maxRsiForBottom'] ?? 40.0);
+        $statusFilter = (string) Yii::$app->request->get('statusFilter', 'all');
+        $sortBy       = (string) Yii::$app->request->get('sortBy', 'confidence');
+        $minSeparation = (int) Yii::$app->request->get('minSeparation', $defaultMinSep);
+        $maxSeparation = (int) Yii::$app->request->get('maxSeparation', $defaultMaxSep);
+        $necklineMin = (float) Yii::$app->request->get('necklineMin', $defaultNeckline);
 
         $stock = \app\models\Stock::find()->where(['symbol' => $symbol])->one();
         if ($stock === null) {
@@ -172,13 +191,13 @@ final class RsiDoubleBottomController extends Controller
         } catch (\InvalidArgumentException $e) {
             Yii::warning("RSI detail {$symbol}: {$e->getMessage()}", $defaults['logCategory'] ?? 'app\services\rsidoublebottom');
             $timeframe = self::TIMEFRAME_1D;
-            $lookback = $defaults['lookback'] ?? 150;
-            $tolerance = $defaults['tolerance'] ?? 3.0;
+            $lookback = $defaultLookback;
+            $tolerance = $defaultTol;
             $rsiPeriod = $defaults['rsiPeriod'] ?? 14;
             $maxRsi = $defaults['maxRsiForBottom'] ?? 40.0;
-            $minSeparation = $defaults['minSeparation'] ?? 5;
-            $maxSeparation = $defaults['maxSeparation'] ?? 30;
-            $necklineMin = $defaults['necklineMin'] ?? 2.0;
+            $minSeparation = $defaultMinSep;
+            $maxSeparation = $defaultMaxSep;
+            $necklineMin = $defaultNeckline;
             $pattern = $service->detectPattern($stock->id, $timeframe, $lookback, $tolerance, $rsiPeriod, $maxRsi, $minSeparation, $maxSeparation, $necklineMin, true);
         }
 

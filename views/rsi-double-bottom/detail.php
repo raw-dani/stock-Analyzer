@@ -41,6 +41,7 @@ $this->params['breadcrumbs'][] = $stock->symbol;
 $chartId = 'rsi-signal-chart';
 $candles = $pattern['candles'] ?? [];
 $rsiSeries = $pattern['rsi_series'] ?? [];
+$ema20Series = $pattern['ema20_series'] ?? [];
 $ma50Series = $pattern['ma50_series'] ?? [];
 ?>
 
@@ -169,7 +170,8 @@ $ma50Series = $pattern['ma50_series'] ?? [];
             <?php else: ?>
                 <div id="<?= $chartId ?>" style="height: 560px; width: 100%;"></div>
                 <div class="d-flex flex-wrap gap-3 mt-2 small text-muted border-top pt-2">
-                    <span><span class="badge bg-info text-dark">MA 50</span> Trend Filter</span>
+                    <span><span class="badge bg-warning text-dark">EMA 20</span> Momentum Filter</span>
+                    <span><span class="badge bg-info text-dark">MA 50</span> Trend Baseline</span>
                     <span><span class="badge bg-success">TP1 / TP2</span> Target Keuntungan</span>
                     <span><span class="badge bg-danger">SL</span> Level Stop Loss</span>
                     <span><span class="badge bg-danger-subtle text-danger border border-danger">70</span> Overbought Line</span>
@@ -183,12 +185,16 @@ $ma50Series = $pattern['ma50_series'] ?? [];
                     $candles
                 );
 
-                // Format RSI series data aligned with dates
+                // Format RSI and MA/EMA series data aligned with dates
                 $rsiData = [];
+                $ema20Data = [];
                 $ma50Data = [];
                 foreach ($dates as $idx => $d) {
                     $rsiVal = $rsiSeries[$idx] ?? null;
                     $rsiData[] = $rsiVal !== null ? round((float) $rsiVal, 2) : null;
+
+                    $emaVal = $ema20Series[$idx] ?? null;
+                    $ema20Data[] = $emaVal !== null ? round((float) $emaVal, 2) : null;
 
                     $maVal = $ma50Series[$idx] ?? null;
                     $ma50Data[] = $maVal !== null ? round((float) $maVal, 2) : null;
@@ -329,6 +335,14 @@ $ma50Series = $pattern['ma50_series'] ?? [];
                             ],
                             'markPoint' => ['data' => $priceMarkPoints],
                             'markLine' => ['data' => $priceMarkLines, 'symbol' => ['none', 'none']],
+                        ],
+                        [
+                            'name' => 'EMA 20',
+                            'type' => 'line',
+                            'data' => $ema20Data,
+                            'smooth' => true,
+                            'showSymbol' => false,
+                            'lineStyle' => ['color' => '#f59e0b', 'width' => 1.5],
                         ],
                         [
                             'name' => 'MA 50',
