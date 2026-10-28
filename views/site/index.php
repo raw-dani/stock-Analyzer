@@ -392,7 +392,7 @@ $this->registerMetaTag(['property' => 'og:url', 'content' => Url::home(true)]);
             <div class="col-md-6 col-lg-4">
                 <div class="card h-100 border-0 shadow-sm rounded-4 p-4 bg-white feature-card transition-all">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <span class="badge bg-success bg-opacity-15 text-success border border-success border-opacity-25 px-2.5 py-1">Non-Stop Market</span>
+                        <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle px-2.5 py-1">Non-Stop Market</span>
                         <span class="badge bg-light text-slate-500 border">Crypto Hub</span>
                     </div>
                     <h4 class="h5 fw-bold text-slate-900 mb-2">🪙 Crypto Market Scanner 24/7</h4>

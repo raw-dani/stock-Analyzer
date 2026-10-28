@@ -280,9 +280,9 @@ $this->params['breadcrumbs'][] = $this->title;
                                     };
 
                                     $safetyBadge = match ($item->safety_score) {
-                                        StockDividendSummary::SAFETY_ARISTOCRAT => '<span class="badge bg-warning bg-opacity-15 text-dark border border-warning fw-semibold"><i class="bi bi-trophy-fill text-warning me-1"></i>Aristocrat</span>',
-                                        StockDividendSummary::SAFETY_SAFE => '<span class="badge bg-success bg-opacity-15 text-success border border-success fw-semibold"><i class="bi bi-shield-check me-1"></i>Safe &amp; Steady</span>',
-                                        StockDividendSummary::SAFETY_WARNING => '<span class="badge bg-danger bg-opacity-15 text-danger border border-danger fw-semibold" title="Yield sangat tinggi, waspadai risiko pemangkasan dividen!"><i class="bi bi-exclamation-triangle-fill me-1"></i>Yield Warning</span>',
+                                        StockDividendSummary::SAFETY_ARISTOCRAT => '<span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle fw-semibold"><i class="bi bi-trophy-fill text-warning me-1"></i>Aristocrat</span>',
+                                        StockDividendSummary::SAFETY_SAFE => '<span class="badge bg-success-subtle text-success-emphasis border border-success-subtle fw-semibold"><i class="bi bi-shield-check me-1"></i>Safe &amp; Steady</span>',
+                                        StockDividendSummary::SAFETY_WARNING => '<span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle fw-semibold" title="Yield sangat tinggi, waspadai risiko pemangkasan dividen!"><i class="bi bi-exclamation-triangle-fill me-1"></i>Yield Warning</span>',
                                         default => '<span class="badge bg-info-subtle text-info-emphasis border border-info-subtle fw-semibold">Moderate</span>',
                                     };
 

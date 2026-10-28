@@ -353,7 +353,7 @@ $badgeAction = [
                             <!-- Setup & Sinyal -->
                             <td>
                                 <div class="d-flex align-items-center gap-1 flex-wrap">
-                                    <span class="badge bg-<?= Html::encode($r['strategy_badge']) ?> bg-opacity-15 text-<?= Html::encode($r['strategy_badge']) ?> border border-<?= Html::encode($r['strategy_badge']) ?> fw-semibold" style="font-size:0.75rem;">
+                                    <span class="badge bg-<?= Html::encode($r['strategy_badge']) ?>-subtle text-<?= Html::encode($r['strategy_badge']) ?>-emphasis border border-<?= Html::encode($r['strategy_badge']) ?>-subtle fw-semibold" style="font-size:0.75rem;">
                                         <?= Html::encode($r['strategy_name']) ?>
                                     </span>
                                 </div>

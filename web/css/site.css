@@ -861,9 +861,12 @@ span.text-cyan {
 .badge.bg-success-subtle,
 .badge-success-subtle,
 .badge.bg-success.bg-opacity-10,
+.badge.bg-success.bg-opacity-15,
 .badge.bg-success.bg-opacity-20,
 .badge.bg-success.bg-opacity-25,
-span.badge.text-success.bg-success-subtle {
+span.badge.text-success.bg-success-subtle,
+span.badge.text-success.bg-opacity-15,
+span.badge.text-success.bg-opacity-10 {
     background-color: #dcfce7 !important; /* Emerald 100 */
     color: #14532d !important;            /* Emerald 900 - ultra contrast (10.5:1) */
     border: 1px solid #86efac !important;
@@ -873,9 +876,12 @@ span.badge.text-success.bg-success-subtle {
 .badge.bg-primary-subtle,
 .badge-primary-subtle,
 .badge.bg-primary.bg-opacity-10,
+.badge.bg-primary.bg-opacity-15,
 .badge.bg-primary.bg-opacity-20,
 .badge.bg-primary.bg-opacity-25,
-span.badge.text-primary.bg-primary-subtle {
+span.badge.text-primary.bg-primary-subtle,
+span.badge.text-primary.bg-opacity-15,
+span.badge.text-primary.bg-opacity-10 {
     background-color: #e0e7ff !important; /* Indigo 100 */
     color: #1e1b4b !important;            /* Indigo 950 - ultra contrast (12:1) */
     border: 1px solid #a5b4fc !important;
@@ -885,9 +891,12 @@ span.badge.text-primary.bg-primary-subtle {
 .badge.bg-danger-subtle,
 .badge-danger-subtle,
 .badge.bg-danger.bg-opacity-10,
+.badge.bg-danger.bg-opacity-15,
 .badge.bg-danger.bg-opacity-20,
 .badge.bg-danger.bg-opacity-25,
-span.badge.text-danger.bg-danger-subtle {
+span.badge.text-danger.bg-danger-subtle,
+span.badge.text-danger.bg-opacity-15,
+span.badge.text-danger.bg-opacity-10 {
     background-color: #ffe4e6 !important; /* Rose 100 */
     color: #881337 !important;            /* Rose 900 - ultra contrast (10.8:1) */
     border: 1px solid #fca5a5 !important;
@@ -897,10 +906,12 @@ span.badge.text-danger.bg-danger-subtle {
 .badge.bg-warning-subtle,
 .badge-warning-subtle,
 .badge.bg-warning.bg-opacity-10,
+.badge.bg-warning.bg-opacity-15,
 .badge.bg-warning.bg-opacity-20,
 .badge.bg-warning.bg-opacity-25,
 span.badge.text-warning-emphasis.bg-warning-subtle,
 span.badge.text-warning.bg-warning-subtle,
+span.badge.text-warning.bg-opacity-15,
 span.badge.text-warning {
     background-color: #fef3c7 !important; /* Amber 100 */
     color: #78350f !important;            /* Amber 900 - ultra contrast (8.2:1) */
@@ -911,10 +922,12 @@ span.badge.text-warning {
 .badge.bg-info-subtle,
 .badge-info-subtle,
 .badge.bg-info.bg-opacity-10,
+.badge.bg-info.bg-opacity-15,
 .badge.bg-info.bg-opacity-20,
 .badge.bg-info.bg-opacity-25,
 span.badge.text-info.bg-info-subtle,
 span.badge.text-info-emphasis.bg-info-subtle,
+span.badge.text-info.bg-opacity-15,
 span.badge.text-info {
     background-color: #cffafe !important; /* Cyan 100 */
     color: #164e63 !important;            /* Cyan 900 - ultra contrast (9.5:1) */
@@ -925,7 +938,11 @@ span.badge.text-info {
 .badge.bg-secondary-subtle,
 .badge-secondary-subtle,
 .badge.bg-secondary.bg-opacity-10,
+.badge.bg-secondary.bg-opacity-15,
+.badge.bg-secondary.bg-opacity-20,
+.badge.bg-secondary.bg-opacity-25,
 span.badge.text-secondary.bg-secondary-subtle,
+span.badge.text-secondary.bg-opacity-15,
 span.badge.text-secondary {
     background-color: #e2e8f0 !important; /* Slate 200 */
     color: #0f172a !important;            /* Slate 900 - ultra contrast (11:1) */
