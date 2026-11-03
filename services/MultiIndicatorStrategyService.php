@@ -298,9 +298,6 @@ final class MultiIndicatorStrategyService
         $nearEma50 = ($currEma50 !== null && abs($currClose - $currEma50) / $currClose <= 0.035);
         $nearHorizSupport = (abs($currClose - $staticSupport) / $currClose <= 0.035);
 
-        // A+ Setup Confluence: Berada di Golden Pocket + Dekat EMA50 / Support + Adanya Pin Bar Rejection
-        $isAPlusGoldenPocketSetup = ($isInGoldenPocket && ($nearEma50 || $currClose >= ($currEma50 ?? 0) * 0.97) && ($hasPinBarSignal || $isShakeoutLow ?? false));
-
         // ==========================================
         // 5. MULTI-TIMEFRAME CONFLUENCE (TREN BESAR vs ENTRY)
         // ==========================================
@@ -320,7 +317,22 @@ final class MultiIndicatorStrategyService
         }
 
         // ==========================================
-        // 6. SKOR KONFLUENSI (CONFLUENCE SCORING 0 - 100)
+        // 6. DETEKSI SHAKEOUT LOW & CEK 3-WAY CONFLUENCE SETUP
+        // ==========================================
+        $isShakeoutLow = false;
+        $shakeoutUndercutPct = 0.0;
+        if ($currLow < $nearestSupport && $currClose >= $nearestSupport) {
+            $shakeoutUndercutPct = round((($nearestSupport - $currLow) / max(0.01, $nearestSupport)) * 100, 2);
+            if ($shakeoutUndercutPct >= 0.2 && $shakeoutUndercutPct <= 5.0) {
+                $isShakeoutLow = true;
+            }
+        }
+
+        // A+ Setup Confluence: Berada di Golden Pocket + Dekat EMA50 / Support + Adanya Pin Bar Rejection / Shakeout
+        $isAPlusGoldenPocketSetup = ($isInGoldenPocket && ($nearEma50 || $currClose >= ($currEma50 ?? 0) * 0.97) && ($hasPinBarSignal || $isShakeoutLow));
+
+        // ==========================================
+        // 7. SKOR KONFLUENSI (CONFLUENCE SCORING 0 - 100)
         // ==========================================
         $score = 0;
         $signalsList = [];
@@ -332,14 +344,6 @@ final class MultiIndicatorStrategyService
         }
 
         // Kriteria 2: Support / Moving Average (Bobot 20)
-        $isShakeoutLow = false;
-        $shakeoutUndercutPct = 0.0;
-        if ($currLow < $nearestSupport && $currClose >= $nearestSupport) {
-            $shakeoutUndercutPct = round((($nearestSupport - $currLow) / max(0.01, $nearestSupport)) * 100, 2);
-            if ($shakeoutUndercutPct >= 0.2 && $shakeoutUndercutPct <= 5.0) {
-                $isShakeoutLow = true;
-            }
-        }
 
         if ($isShakeoutLow) {
             $score += 25; // Shakeout Low adalah sinyal konfluensi pembalikan sangat kuat
