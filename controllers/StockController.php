@@ -91,9 +91,10 @@ final class StockController extends Controller
 
         // Evaluasi sintesis seluruh strategi (Multi-Strategy Consensus Analysis)
         $requestedStrategy = (string) Yii::$app->request->get('strategy', 'all');
+        $timeframe = (int) Yii::$app->request->get('timeframe', 24);
         $synthesisService = new StockStrategySynthesisService();
         $strategyEvaluation = $synthesisService->evaluateStock($stock, $requestedStrategy, [
-            'timeframe' => (int) Yii::$app->request->get('timeframe', 24),
+            'timeframe' => $timeframe,
         ]);
 
         return $this->render('view', [
@@ -104,6 +105,7 @@ final class StockController extends Controller
             'priceStats' => $priceStats,
             'strategyEvaluation' => $strategyEvaluation,
             'requestedStrategy' => $requestedStrategy,
+            'currentTimeframe' => $timeframe,
         ]);
     }
 

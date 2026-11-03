@@ -8,6 +8,7 @@
 /** @var array|null $priceStats */
 /** @var array|null $strategyEvaluation */
 /** @var string|null $requestedStrategy */
+/** @var int|null $currentTimeframe */
 
 use app\widgets\SignalBadge;
 use yii\bootstrap5\Html;
@@ -29,6 +30,14 @@ $consensus = $strategyEvaluation['consensus'] ?? null;
 $stats = $strategyEvaluation['stats'] ?? null;
 $strategies = $strategyEvaluation['strategies'] ?? [];
 $activeStrategy = $requestedStrategy ?? 'all';
+$activeTf = (int) ($currentTimeframe ?? 24);
+
+$tfList = [
+    24 => 'Daily (1D)',
+    4  => '4 Jam (4H)',
+    2  => '2 Jam (2H)',
+    1  => '1 Jam (1H)',
+];
 ?>
 
 <!-- Header Saham & Aksi Cepat -->
@@ -171,7 +180,7 @@ $activeStrategy = $requestedStrategy ?? 'all';
 <!-- 🌟 MULTI-STRATEGY SYNTHESIS & BUY/NO BUY DECISION DASHBOARD               -->
 <!-- ========================================================================= -->
 <div id="strategy-synthesis-section" class="card border-0 shadow-sm mb-4 rounded-3 border-top border-4 border-<?= $consensus['badge'] ?? 'primary' ?>">
-    <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-3">
         <div>
             <div class="d-flex align-items-center gap-2">
                 <span class="badge bg-primary text-white px-2 py-1">Sintesis Multi-Strategi</span>
@@ -181,39 +190,56 @@ $activeStrategy = $requestedStrategy ?? 'all';
                 </h5>
             </div>
             <div class="small text-muted mt-1">
-                Kompilasi serentak dari 10 indikator &amp; pola teknikal utama untuk memvalidasi apakah saat ini waktunya beli atau tidak.
+                Pilih strategi &amp; timeframe yang ingin dianalisis, lalu klik <strong>Jalankan Analisis</strong> untuk mendapatkan keputusan presisi.
             </div>
         </div>
-        <div class="d-flex flex-wrap align-items-center gap-2">
-            <!-- Filter Strategi / Scan Strategi Terpilih -->
-            <div class="dropdown">
-                <button class="btn btn-sm btn-outline-secondary dropdown-toggle rounded-pill shadow-xs" type="button" data-bs-toggle="dropdown">
-                    <?= \app\helpers\SvgHelper::icon('sliders2') ?> Strategi: <strong><?= $activeStrategy === 'all' ? 'Semua (10 Strategi)' : Html::encode($strategies[$activeStrategy]['name'] ?? $activeStrategy) ?></strong>
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end shadow">
-                    <li><a class="dropdown-item <?= $activeStrategy === 'all' ? 'active' : '' ?>" href="<?= Url::to(['view', 'symbol' => $stock->symbol, 'strategy' => 'all']) ?>">⚡ Jalankan Semua Strategi (Konsensus Penuh)</a></li>
-                    <li><hr class="dropdown-divider"></li>
+
+        <!-- 🚀 Form Interaktif: Pilih Strategi + Pilih Timeframe + Tombol RUN -->
+        <form method="get" action="<?= Url::to(['view', 'symbol' => $stock->symbol]) ?>#strategy-synthesis-section" class="d-flex flex-wrap align-items-center gap-2">
+            <!-- Pilihan Strategi -->
+            <div class="input-group input-group-sm" style="width: auto;">
+                <span class="input-group-text bg-light text-secondary border">
+                    <?= \app\helpers\SvgHelper::icon('sliders2') ?> Strategi
+                </span>
+                <select name="strategy" class="form-select form-select-sm fw-semibold" style="min-width: 220px;">
+                    <option value="all" <?= $activeStrategy === 'all' ? 'selected' : '' ?>>⚡ Semua (10 Strategi Konsensus)</option>
                     <?php foreach ($strategies as $stratKey => $stratData): ?>
-                        <li>
-                            <a class="dropdown-item <?= $activeStrategy === $stratKey ? 'active' : '' ?>" href="<?= Url::to(['view', 'symbol' => $stock->symbol, 'strategy' => $stratKey]) ?>">
-                                <?= \app\helpers\SvgHelper::icon($stratData['icon'] ?? 'check') ?> <?= Html::encode($stratData['name']) ?>
-                            </a>
-                        </li>
+                        <option value="<?= Html::encode($stratKey) ?>" <?= $activeStrategy === $stratKey ? 'selected' : '' ?>>
+                            <?= Html::encode($stratData['name']) ?>
+                        </option>
                     <?php endforeach; ?>
-                </ul>
+                </select>
             </div>
 
-            <!-- Tombol Scan Saham Ini di Strategi Terpilih / Semua -->
-            <?php if ($activeStrategy !== 'all' && isset($strategies[$activeStrategy]['scan_url'])): ?>
-                <a href="<?= Url::to($strategies[$activeStrategy]['scan_url']) ?>" class="btn btn-sm btn-success rounded-pill fw-bold shadow-xs">
-                    <?= \app\helpers\SvgHelper::icon('search') ?> Buka Scanner <?= Html::encode($strategies[$activeStrategy]['name']) ?>
-                </a>
-            <?php else: ?>
-                <a href="<?= Url::to(['/strategy-confluence/index', 'symbol' => $stock->symbol]) ?>" class="btn btn-sm btn-success rounded-pill fw-bold shadow-xs">
-                    <?= \app\helpers\SvgHelper::icon('search') ?> Scan di Confluence Scanner
-                </a>
-            <?php endif; ?>
-        </div>
+            <!-- Pilihan Timeframe -->
+            <div class="input-group input-group-sm" style="width: auto;">
+                <span class="input-group-text bg-light text-secondary border">
+                    <?= \app\helpers\SvgHelper::icon('clock-history') ?> TF
+                </span>
+                <select name="timeframe" class="form-select form-select-sm fw-semibold" style="min-width: 130px;">
+                    <?php foreach ($tfList as $tfVal => $tfLabel): ?>
+                        <option value="<?= $tfVal ?>" <?= $activeTf === $tfVal ? 'selected' : '' ?>>
+                            <?= Html::encode($tfLabel) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
+            <!-- Tombol RUN ANALISIS (Execute Scan) -->
+            <button type="submit" class="btn btn-sm btn-primary rounded-pill px-3 fw-bold shadow-sm d-flex align-items-center gap-1">
+                <?= \app\helpers\SvgHelper::icon('play-fill') ?> Jalankan Analisis (RUN)
+            </button>
+
+            <!-- Tombol Buka di Halaman Scanner Penuh -->
+            <?php
+            $targetScannerUrl = ($activeStrategy !== 'all' && isset($strategies[$activeStrategy]['scan_url']))
+                ? Url::to(array_merge($strategies[$activeStrategy]['scan_url'], ['timeframe' => $activeTf]))
+                : Url::to(['/strategy-confluence/index', 'symbol' => $stock->symbol, 'timeframe' => $activeTf]);
+            ?>
+            <a href="<?= $targetScannerUrl ?>" class="btn btn-sm btn-outline-success rounded-pill fw-semibold shadow-xs" title="Buka scanner penuh dengan filter saham ini">
+                <?= \app\helpers\SvgHelper::icon('search') ?> Buka di Scanner
+            </a>
+        </form>
     </div>
     <div class="card-body p-3 p-md-4">
         <!-- Banner Konsensus: Waktunya Beli atau Tidak -->
