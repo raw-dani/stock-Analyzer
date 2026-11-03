@@ -10,10 +10,13 @@
 /** @var string|null $requestedStrategy */
 /** @var int|null $currentTimeframe */
 
+use app\assets\ChartAsset;
 use app\widgets\SignalBadge;
 use yii\bootstrap5\Html;
 use yii\grid\GridView;
 use yii\helpers\Url;
+
+ChartAsset::register($this);
 
 $this->title = $stock->symbol . ' - ' . $stock->name;
 $this->params['breadcrumbs'][] = ['label' => 'Stocks', 'url' => ['/scanner/index']];
@@ -448,14 +451,14 @@ $tfList = [
 </div>
 
 <script>
-(function () {
+document.addEventListener('DOMContentLoaded', function () {
     var chartDom = document.getElementById('chart-stock');
     if (!chartDom || typeof echarts === 'undefined') { return; }
 
     var myChart = echarts.init(chartDom);
     myChart.showLoading();
 
-    fetch('<?= Url::to(['chart-data', 'symbol' => $stock->symbol]) ?>')
+    fetch('<?= Url::to(['/stock/chart-data', 'symbol' => $stock->symbol]) ?>')
         .then(function (r) { return r.json(); })
         .then(function (d) {
             myChart.hideLoading();
@@ -588,7 +591,7 @@ $tfList = [
             myChart.hideLoading();
             console.error('Chart data fetch error:', err);
         });
-})();
+});
 </script>
 
 <!-- Trend Mingguan RVOL & Buying Pressure -->
@@ -604,14 +607,14 @@ $tfList = [
 </div>
 
 <script>
-(function () {
+document.addEventListener('DOMContentLoaded', function () {
     var trendDom = document.getElementById('chart-weekly-trend');
     if (!trendDom || typeof echarts === 'undefined') { return; }
 
     var trendChart = echarts.init(trendDom);
     trendChart.showLoading();
 
-    fetch('<?= Url::to(['chart-data', 'symbol' => $stock->symbol]) ?>')
+    fetch('<?= Url::to(['/stock/chart-data', 'symbol' => $stock->symbol]) ?>')
         .then(function (r) { return r.json(); })
         .then(function (d) {
             trendChart.hideLoading();
@@ -655,7 +658,7 @@ $tfList = [
             trendChart.hideLoading();
             console.error('Trend chart fetch error:', err);
         });
-})();
+});
 </script>
 
 <!-- Riwayat Analisis Mingguan -->
