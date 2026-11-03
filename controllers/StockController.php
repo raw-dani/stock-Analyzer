@@ -9,11 +9,13 @@ use app\models\DailyPrice;
 use app\models\Signal;
 use app\models\Stock;
 use app\models\WeeklyAnalysis;
+use app\services\StockStrategySynthesisService;
 use Yii;
 use yii\data\ActiveDataProvider;
 use yii\db\Expression;
 use yii\web\Controller;
 use yii\web\NotFoundHttpException;
+use yii\web\Response;
 
 /**
  * Detail saham: profil, weekly analysis, dan endpoint JSON chart (task 7.2–7.6).
@@ -87,13 +89,48 @@ final class StockController extends Controller
 
         ChartAsset::register(Yii::$app->view);
 
+        // Evaluasi sintesis seluruh strategi (Multi-Strategy Consensus Analysis)
+        $requestedStrategy = (string) Yii::$app->request->get('strategy', 'all');
+        $synthesisService = new StockStrategySynthesisService();
+        $strategyEvaluation = $synthesisService->evaluateStock($stock, $requestedStrategy, [
+            'timeframe' => (int) Yii::$app->request->get('timeframe', 24),
+        ]);
+
         return $this->render('view', [
             'stock' => $stock,
             'currentWeekly' => $currentWeekly,
             'currentSignal' => $currentSignal,
             'weeklyProvider' => $weeklyProvider,
             'priceStats' => $priceStats,
+            'strategyEvaluation' => $strategyEvaluation,
+            'requestedStrategy' => $requestedStrategy,
         ]);
+    }
+
+    /**
+     * Endpoint redirect pencarian kode saham dari form dashboard atau navbar.
+     */
+    public function actionSearch(?string $symbol = null): Response
+    {
+        $symbol = strtoupper(trim((string) ($symbol ?? Yii::$app->request->get('symbol', ''))));
+        if ($symbol === '') {
+            Yii::$app->session->setFlash('warning', 'Silakan masukkan kode saham yang ingin dicari.');
+            return $this->redirect(['/dashboard/index']);
+        }
+
+        $stock = Stock::find()->where(['symbol' => $symbol, 'active' => true])->one();
+        if ($stock !== null) {
+            return $this->redirect(['view', 'symbol' => $stock->symbol]);
+        }
+
+        // Coba cari like jika tidak exact match
+        $partial = Stock::find()->where(['like', 'symbol', $symbol])->andWhere(['active' => true])->one();
+        if ($partial !== null) {
+            return $this->redirect(['view', 'symbol' => $partial->symbol]);
+        }
+
+        Yii::$app->session->setFlash('danger', "Kode saham '{$symbol}' tidak ditemukan dalam database aplikasi.");
+        return $this->redirect(['/dashboard/index']);
     }
 
     /**

@@ -110,6 +110,13 @@ final class DashboardController extends Controller
         }
         $data['confluencePicks'] = $confluencePicks;
 
+        // 5. Daftar seluruh saham aktif untuk fitur pencarian & autocomplete instan
+        $data['availableStocks'] = Stock::find()
+            ->select(['id', 'symbol', 'name', 'exchange', 'sector'])
+            ->where(['active' => true])
+            ->orderBy(['symbol' => SORT_ASC])
+            ->all();
+
         return $this->render('index', $data);
     }
 

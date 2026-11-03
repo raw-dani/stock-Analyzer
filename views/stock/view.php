@@ -6,6 +6,8 @@
 /** @var app\models\Signal|null $currentSignal */
 /** @var yii\data\ActiveDataProvider $weeklyProvider */
 /** @var array|null $priceStats */
+/** @var array|null $strategyEvaluation */
+/** @var string|null $requestedStrategy */
 
 use app\widgets\SignalBadge;
 use yii\bootstrap5\Html;
@@ -22,6 +24,11 @@ $changePct = $priceStats['change_pct'] ?? 0.0;
 $isUp = $change >= 0;
 $changeClass = $isUp ? 'text-success' : 'text-danger';
 $changeIcon = $isUp ? 'arrow-up' : 'arrow-down';
+
+$consensus = $strategyEvaluation['consensus'] ?? null;
+$stats = $strategyEvaluation['stats'] ?? null;
+$strategies = $strategyEvaluation['strategies'] ?? [];
+$activeStrategy = $requestedStrategy ?? 'all';
 ?>
 
 <!-- Header Saham & Aksi Cepat -->
@@ -48,6 +55,12 @@ $changeIcon = $isUp ? 'arrow-up' : 'arrow-down';
 
     <!-- Hubungan Antar Modul (Cross-Module Fast Actions) -->
     <div class="d-flex flex-wrap align-items-center gap-2">
+        <a href="#strategy-synthesis-section" class="btn btn-primary btn-sm shadow-sm fw-bold">
+            <?= \app\helpers\SvgHelper::icon('lightning-charge-fill') ?> Keputusan Beli (Multi-Strategi)
+        </a>
+        <a href="<?= Url::to(['/strategy-confluence/detail', 'symbol' => $stock->symbol]) ?>" class="btn btn-outline-danger btn-sm shadow-sm" title="Lihat Confluence Setup A+">
+            <?= \app\helpers\SvgHelper::icon('bullseye') ?> Confluence PRO
+        </a>
         <a href="<?= Url::to(['/moving-average/detail', 'symbol' => $stock->symbol]) ?>" class="btn btn-outline-primary btn-sm shadow-sm" title="Lihat Setup Moving Average & Level Stop Loss/TP">
             <?= \app\helpers\SvgHelper::icon('graph-up') ?> Trading Plan MA
         </a>
@@ -150,6 +163,195 @@ $changeIcon = $isUp ? 'arrow-up' : 'arrow-down';
                          role="progressbar" style="width: <?= min(100, max(0, $currentWeekly?->score ?? 0)) ?>%"></div>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- 🌟 MULTI-STRATEGY SYNTHESIS & BUY/NO BUY DECISION DASHBOARD               -->
+<!-- ========================================================================= -->
+<div id="strategy-synthesis-section" class="card border-0 shadow-sm mb-4 rounded-3 border-top border-4 border-<?= $consensus['badge'] ?? 'primary' ?>">
+    <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-primary text-white px-2 py-1">Sintesis Multi-Strategi</span>
+                <h5 class="mb-0 fw-bold text-dark">
+                    <?= \app\helpers\SvgHelper::icon('lightning-charge-fill', ['class' => 'text-warning me-1']) ?>
+                    Rangkuman Analisis &amp; Keputusan Beli: <?= Html::encode($stock->symbol) ?>
+                </h5>
+            </div>
+            <div class="small text-muted mt-1">
+                Kompilasi serentak dari 10 indikator &amp; pola teknikal utama untuk memvalidasi apakah saat ini waktunya beli atau tidak.
+            </div>
+        </div>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <!-- Filter Strategi / Scan Strategi Terpilih -->
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle rounded-pill shadow-xs" type="button" data-bs-toggle="dropdown">
+                    <?= \app\helpers\SvgHelper::icon('sliders2') ?> Strategi: <strong><?= $activeStrategy === 'all' ? 'Semua (10 Strategi)' : Html::encode($strategies[$activeStrategy]['name'] ?? $activeStrategy) ?></strong>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow">
+                    <li><a class="dropdown-item <?= $activeStrategy === 'all' ? 'active' : '' ?>" href="<?= Url::to(['view', 'symbol' => $stock->symbol, 'strategy' => 'all']) ?>">⚡ Jalankan Semua Strategi (Konsensus Penuh)</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <?php foreach ($strategies as $stratKey => $stratData): ?>
+                        <li>
+                            <a class="dropdown-item <?= $activeStrategy === $stratKey ? 'active' : '' ?>" href="<?= Url::to(['view', 'symbol' => $stock->symbol, 'strategy' => $stratKey]) ?>">
+                                <?= \app\helpers\SvgHelper::icon($stratData['icon'] ?? 'check') ?> <?= Html::encode($stratData['name']) ?>
+                            </a>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+
+            <!-- Tombol Scan Saham Ini di Strategi Terpilih / Semua -->
+            <?php if ($activeStrategy !== 'all' && isset($strategies[$activeStrategy]['scan_url'])): ?>
+                <a href="<?= Url::to($strategies[$activeStrategy]['scan_url']) ?>" class="btn btn-sm btn-success rounded-pill fw-bold shadow-xs">
+                    <?= \app\helpers\SvgHelper::icon('search') ?> Buka Scanner <?= Html::encode($strategies[$activeStrategy]['name']) ?>
+                </a>
+            <?php else: ?>
+                <a href="<?= Url::to(['/strategy-confluence/index', 'symbol' => $stock->symbol]) ?>" class="btn btn-sm btn-success rounded-pill fw-bold shadow-xs">
+                    <?= \app\helpers\SvgHelper::icon('search') ?> Scan di Confluence Scanner
+                </a>
+            <?php endif; ?>
+        </div>
+    </div>
+    <div class="card-body p-3 p-md-4">
+        <!-- Banner Konsensus: Waktunya Beli atau Tidak -->
+        <div class="alert alert-<?= $consensus['badge'] ?? 'primary' ?> bg-opacity-10 border-<?= $consensus['badge'] ?? 'primary' ?> mb-4 rounded-3 p-3">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                <div class="d-flex align-items-start gap-3">
+                    <div class="p-2 rounded-circle bg-<?= $consensus['badge'] ?? 'primary' ?> text-white d-flex align-items-center justify-content-center" style="width: 46px; height: 46px;">
+                        <?= \app\helpers\SvgHelper::icon(($consensus['is_buy_time'] ?? false) ? 'check-circle-fill' : 'exclamation-circle-fill', ['class' => 'fs-4']) ?>
+                    </div>
+                    <div>
+                        <div class="text-uppercase small fw-bold text-muted mb-1">Status Keputusan Konsensus:</div>
+                        <h4 class="fw-bold mb-1 <?= ($consensus['is_buy_time'] ?? false) ? 'text-success' : 'text-danger' ?>">
+                            <?= Html::encode($consensus['verdict'] ?? 'WAIT') ?>
+                        </h4>
+                        <div class="fw-semibold text-dark mb-1">
+                            <?= Html::encode($consensus['headline'] ?? '') ?>
+                        </div>
+                        <p class="small text-muted mb-0">
+                            <?= Html::encode($consensus['summary'] ?? '') ?>
+                        </p>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <div class="text-center bg-white px-3 py-2 rounded-3 shadow-xs border">
+                        <div class="small text-muted" style="font-size:0.75rem;">Sinyal Beli</div>
+                        <div class="h4 fw-bold text-success mb-0"><?= $stats['buy_votes'] ?? 0 ?></div>
+                    </div>
+                    <div class="text-center bg-white px-3 py-2 rounded-3 shadow-xs border">
+                        <div class="small text-muted" style="font-size:0.75rem;">Wait / Netral</div>
+                        <div class="h4 fw-bold text-warning mb-0"><?= $stats['neutral_votes'] ?? 0 ?></div>
+                    </div>
+                    <div class="text-center bg-white px-3 py-2 rounded-3 shadow-xs border">
+                        <div class="small text-muted" style="font-size:0.75rem;">Peringatan Jual</div>
+                        <div class="h4 fw-bold text-danger mb-0"><?= $stats['sell_votes'] ?? 0 ?></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabel Ringkasan Tiap Strategi -->
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light text-secondary small text-uppercase">
+                    <tr>
+                        <th style="width: 25%;">Strategi &amp; Indikator</th>
+                        <th style="width: 15%;">Keputusan / Rekomendasi</th>
+                        <th style="width: 20%;">Sinyal Terdeteksi</th>
+                        <th style="width: 15%;">Area Beli (Entry)</th>
+                        <th style="width: 15%;">Risk / Target TP</th>
+                        <th style="width: 10%;" class="text-end">Aksi Scan</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($strategies as $sKey => $s): ?>
+                        <tr>
+                            <!-- Strategi -->
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="text-primary bg-light p-2 rounded-2 border">
+                                        <?= \app\helpers\SvgHelper::icon($s['icon'] ?? 'graph-up') ?>
+                                    </div>
+                                    <div>
+                                        <div class="fw-bold text-dark">
+                                            <?= Html::encode($s['name']) ?>
+                                            <span class="badge bg-light text-secondary border small ms-1"><?= Html::encode($s['badge']) ?></span>
+                                        </div>
+                                        <div class="text-muted small" style="font-size: 0.73rem;">
+                                            <?= Html::encode($s['description']) ?>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <!-- Keputusan Beli / Wait / Sell -->
+                            <td>
+                                <?php if ($s['action_type'] === 'BUY'): ?>
+                                    <span class="badge bg-success shadow-xs px-2 py-1">
+                                        <?= \app\helpers\SvgHelper::icon('check2-circle') ?> WAKTUNYA BELI
+                                    </span>
+                                <?php elseif ($s['action_type'] === 'SELL'): ?>
+                                    <span class="badge bg-danger shadow-xs px-2 py-1">
+                                        <?= \app\helpers\SvgHelper::icon('exclamation-triangle') ?> EXIT / JUAL
+                                    </span>
+                                <?php else: ?>
+                                    <span class="badge bg-secondary-subtle text-secondary border px-2 py-1">
+                                        <?= \app\helpers\SvgHelper::icon('hourglass-split') ?> WAIT &amp; SEE
+                                    </span>
+                                <?php endif; ?>
+                                <div class="small text-muted mt-1" style="font-size: 0.72rem;">
+                                    Aksi: <strong><?= Html::encode($s['action']) ?></strong>
+                                </div>
+                            </td>
+
+                            <!-- Sinyal Terdeteksi -->
+                            <td>
+                                <div class="fw-semibold text-dark small">
+                                    <?= Html::encode($s['signal_title']) ?>
+                                </div>
+                                <div class="small text-muted" style="font-size: 0.72rem;">
+                                    Confidence: <strong><?= $s['score'] ?>/100</strong>
+                                </div>
+                            </td>
+
+                            <!-- Area Beli -->
+                            <td>
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace small">
+                                    <?= Html::encode($s['entry']) ?>
+                                </span>
+                            </td>
+
+                            <!-- Risk & Target -->
+                            <td>
+                                <div class="small">
+                                    <span class="text-danger fw-semibold">SL: <?= Html::encode($s['stop_loss']) ?></span>
+                                </div>
+                                <div class="small">
+                                    <span class="text-success fw-semibold">TP: <?= Html::encode($s['target']) ?></span>
+                                    <?php if ($s['rr_ratio'] !== '-' && $s['rr_ratio'] !== '0x'): ?>
+                                        <span class="badge bg-light text-dark border ms-1" style="font-size: 0.65rem;">R:R <?= Html::encode($s['rr_ratio']) ?></span>
+                                    <?php endif; ?>
+                                </div>
+                            </td>
+
+                            <!-- Aksi Scan / Detail -->
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm">
+                                    <a href="<?= Url::to($s['url']) ?>" class="btn btn-outline-primary" title="Buka Detail Chart & Analisis Khusus">
+                                        <?= \app\helpers\SvgHelper::icon('graph-up') ?>
+                                    </a>
+                                    <a href="<?= Url::to($s['scan_url']) ?>" class="btn btn-outline-secondary" title="Jalankan Scanner Strategi Ini">
+                                        <?= \app\helpers\SvgHelper::icon('search') ?>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
         </div>
     </div>
 </div>

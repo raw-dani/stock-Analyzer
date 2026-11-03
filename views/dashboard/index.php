@@ -13,6 +13,7 @@
 /** @var array $portfolioData */
 /** @var array $confluencePicks */
 /** @var int $totalTrackedStocks */
+/** @var app\models\Stock[]|null $availableStocks */
 
 use app\widgets\SignalBadge;
 use yii\bootstrap5\Html;
@@ -56,6 +57,59 @@ $dailyAdvRatio = $totalDaily > 0 ? round(($gainersCount / $totalDaily) * 100, 1)
                     <a href="<?= Url::to(['/scanner/index']) ?>" class="btn btn-primary btn-sm px-3 shadow-sm fw-semibold rounded-pill">
                         <?= \app\helpers\SvgHelper::icon('search', ['class' => 'me-1']) ?> Volume Scanner
                     </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🔍 Universal Stock Search & Multi-Strategy Analysis Launcher -->
+    <div class="card border-0 shadow-sm mb-4 bg-white rounded-3 border-start border-4 border-primary">
+        <div class="card-body p-3 p-md-4">
+            <div class="row align-items-center g-3">
+                <div class="col-lg-5">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <span class="badge bg-primary-subtle text-primary fw-bold px-2 py-1">
+                            <?= \app\helpers\SvgHelper::icon('search', ['class' => 'me-1']) ?> Analisis Cepat Saham
+                        </span>
+                        <span class="small text-muted fw-semibold">Rangkuman 10 Strategi &amp; Keputusan Beli</span>
+                    </div>
+                    <h5 class="fw-bold mb-1 text-dark">Cari Kode Saham &amp; Cek "Waktunya Beli atau Tidak"</h5>
+                    <p class="small text-muted mb-0">
+                        Masukkan simbol saham untuk melihat sintesis gabungan: Confluence, Moving Average, RSI, Bollinger Bands, Stochastic, Fibonacci, Pola Reversal, serta jalankan scanner instan.
+                    </p>
+                </div>
+                <div class="col-lg-7">
+                    <form action="<?= Url::to(['/stock/search']) ?>" method="get" class="row g-2 align-items-center">
+                        <div class="col-sm-8 col-12 position-relative">
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0 text-muted">
+                                    <?= \app\helpers\SvgHelper::icon('search') ?>
+                                </span>
+                                <input list="dashboardStockList" name="symbol" class="form-control form-control-lg border-start-0 text-uppercase fw-bold fs-6" placeholder="Ketik kode saham (cth: AAPL, NVDA, TSLA, MSFT)..." required autocomplete="off" style="letter-spacing: 1px;">
+                            </div>
+                            <?php if (!empty($availableStocks)): ?>
+                                <datalist id="dashboardStockList">
+                                    <?php foreach ($availableStocks as $stk): ?>
+                                        <option value="<?= Html::encode($stk->symbol) ?>"><?= Html::encode($stk->name) ?> (<?= Html::encode($stk->exchange) ?>) - <?= Html::encode($stk->sector ?? '') ?></option>
+                                    <?php endforeach; ?>
+                                </datalist>
+                            <?php endif; ?>
+                        </div>
+                        <div class="col-sm-4 col-12 d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg fw-bold shadow-sm d-flex align-items-center justify-content-center gap-2">
+                                <?= \app\helpers\SvgHelper::icon('arrow-right-circle') ?> Analisis Saham
+                            </button>
+                        </div>
+                    </form>
+                    <!-- Quick Popular Chips -->
+                    <div class="d-flex flex-wrap align-items-center gap-1 mt-2">
+                        <span class="small text-muted me-1" style="font-size: 0.75rem;">Sering Dicari:</span>
+                        <?php foreach (['NVDA', 'AAPL', 'TSLA', 'MSFT', 'AMZN', 'META', 'GOOGL', 'AMD'] as $popSymbol): ?>
+                            <a href="<?= Url::to(['/stock/view', 'symbol' => $popSymbol]) ?>" class="badge bg-light text-dark text-decoration-none border px-2 py-1 small hover-shadow">
+                                <?= $popSymbol ?>
+                            </a>
+                        <?php endforeach; ?>
+                    </div>
                 </div>
             </div>
         </div>
