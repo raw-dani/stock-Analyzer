@@ -52,9 +52,10 @@ final class MultiIndicatorStrategyService
     {
         return [
             'all' => 'Semua Sinyal Gabungan',
+            'golden_pocket_a_plus' => '🏆 A+ Golden Pocket Confluence (Fib 0.618-0.786 + EMA50 + Pin Bar)',
             'confluence_buy' => '💎 High Confluence Buy (Skor ≥ 75)',
             'shakeout_low' => '⚡ Shakeout Low (Support Sweep Reversal)',
-            'golden_fib_rsi' => '🎯 Golden Pocket (61.8%) + RSI Oversold',
+            'golden_fib_rsi' => '🎯 Golden Pocket (61.8% - 78.6%) + RSI Support',
             'macd_bullish_cross' => '🚀 MACD Bullish Cross + MA Support',
             'oversold_bounce' => '⚡ RSI Oversold (< 35) Reversal',
             'breakout_confluence' => '📈 MA & Fibonacci Breakout + Momentum',
@@ -254,10 +255,51 @@ final class MultiIndicatorStrategyService
         $retracePct = $fibData['retrace_pct'];
         $fibLevels = $fibData['levels'];
 
-        $isInGoldenPocket = ($retracePct >= 50.0 && $retracePct <= 65.0);
-        $isNearGoldenPocket = ($retracePct >= 45.0 && $retracePct <= 70.0);
-        $isPullback382 = ($retracePct >= 35.0 && $retracePct < 48.0);
-        $isDeepDiscount = ($retracePct > 65.0 && $retracePct <= 78.6);
+        // Golden Pocket menurut panduan A+ setup adalah rasio 0.618 - 0.786 (61.8% - 78.6%)
+        $isInGoldenPocket = ($retracePct >= 60.0 && $retracePct <= 79.5);
+        $isNearGoldenPocket = ($retracePct >= 50.0 && $retracePct < 60.0);
+        $isPullback382 = ($retracePct >= 35.0 && $retracePct < 50.0);
+        $isDeepDiscount = ($retracePct > 79.5 && $retracePct <= 88.6);
+
+        // ==========================================
+        // 4b. DETEKSI CANDLESTICK TRIGGER: BULLISH PIN BAR / HAMMER
+        // (Sinyal pembalikan presisi di Confluence Zone sesuai gambar)
+        // ==========================================
+        $currOpen = (float) $entryCandles[$currIdx]['open'];
+        $candleRange = max(0.001, $currHigh - $currLow);
+        $candleBody = abs($currClose - $currOpen);
+        $lowerWick = min($currClose, $currOpen) - $currLow;
+        $upperWick = $currHigh - max($currClose, $currOpen);
+
+        $lowerWickPct = ($lowerWick / $candleRange) * 100;
+        $bodyPct = ($candleBody / $candleRange) * 100;
+
+        // Kriteria Bullish Pin Bar: Lower wick minimal 50% dari total candle, body kecil di bagian atas (<= 35%), close dekat high
+        $isBullishPinBar = ($lowerWickPct >= 48.0 && $bodyPct <= 38.0 && ($currClose >= $currLow + ($candleRange * 0.55)));
+
+        // Periksa candle sebelumnya (prev candle) juga untuk pin bar / rejection
+        $prevOpen = (float) $entryCandles[$prevIdx]['open'];
+        $prevHigh = (float) $entryCandles[$prevIdx]['high'];
+        $prevLow = (float) $entryCandles[$prevIdx]['low'];
+        $prevCandleRange = max(0.001, $prevHigh - $prevLow);
+        $prevLowerWick = min($prevClose, $prevOpen) - $prevLow;
+        $isPrevBullishPinBar = (($prevLowerWick / $prevCandleRange) >= 0.48 && (abs($prevClose - $prevOpen) / $prevCandleRange) <= 0.38);
+
+        $hasPinBarSignal = $isBullishPinBar || $isPrevBullishPinBar;
+
+        // ==========================================
+        // 4c. CEK 3-WAY CONFLUENCE ZONE (EMA 50 + Horizontal Support + Fib Golden Pocket)
+        // ==========================================
+        $fib618Price = $fibLevels['618'] ?? 0;
+        $fib786Price = $fibLevels['786'] ?? 0;
+        $inFibPocketZone = ($currLow <= max($fib618Price, $fib786Price) * 1.02 && $currHigh >= min($fib618Price, $fib786Price) * 0.98);
+
+        // Kedekatan harga / support dengan EMA50 (toleransi 3%)
+        $nearEma50 = ($currEma50 !== null && abs($currClose - $currEma50) / $currClose <= 0.035);
+        $nearHorizSupport = (abs($currClose - $staticSupport) / $currClose <= 0.035);
+
+        // A+ Setup Confluence: Berada di Golden Pocket + Dekat EMA50 / Support + Adanya Pin Bar Rejection
+        $isAPlusGoldenPocketSetup = ($isInGoldenPocket && ($nearEma50 || $currClose >= ($currEma50 ?? 0) * 0.97) && ($hasPinBarSignal || $isShakeoutLow ?? false));
 
         // ==========================================
         // 5. MULTI-TIMEFRAME CONFLUENCE (TREN BESAR vs ENTRY)
@@ -335,12 +377,21 @@ final class MultiIndicatorStrategyService
         }
 
         // Kriteria 5: Fibonacci Golden Pocket (Bobot 20)
-        if ($isInGoldenPocket) {
+        if ($isAPlusGoldenPocketSetup) {
+            $score += 30; // Skor premium untuk Setup A+ Golden Pocket Confluence
+            $signalsList[] = "🏆 A+ Setup: Golden Pocket (61.8%-78.6%) + Support/EMA50 + Pin Bar Rejection";
+        } elseif ($isInGoldenPocket) {
             $score += 20;
-            $signalsList[] = "Area Beli Emas Fibonacci 61.8% Golden Pocket ({$retracePct}%)";
+            $signalsList[] = "Area Beli Emas Fibonacci 61.8% - 78.6% Golden Pocket ({$retracePct}%)";
         } elseif ($isNearGoldenPocket || $isPullback382) {
             $score += 14;
             $signalsList[] = "Koreksi Sehat Fibonacci Retracement ({$retracePct}%)";
+        }
+
+        // Kriteria 6: Konfirmasi Candlestick Rejection (Bullish Pin Bar / Hammer)
+        if ($hasPinBarSignal) {
+            $score = min(100, $score + 10);
+            $signalsList[] = "🕯️ Bullish Pin Bar / Hammer Rejection Terkonfirmasi";
         }
 
         // Bonus Volume (RVOL >= 1.2x)
@@ -356,7 +407,11 @@ final class MultiIndicatorStrategyService
         $signalTitle = 'Wait & Observe';
         $badgeColor = 'secondary';
 
-        if ($score >= 75) {
+        if ($isAPlusGoldenPocketSetup && $score >= 70) {
+            $action = self::ACTION_STRONG_BUY;
+            $signalTitle = 'A+ Golden Pocket Confluence';
+            $badgeColor = 'success';
+        } elseif ($score >= 75) {
             $action = self::ACTION_STRONG_BUY;
             $signalTitle = 'Strong Confluence Buy';
             $badgeColor = 'success';
@@ -378,13 +433,15 @@ final class MultiIndicatorStrategyService
         // 8. KALKULASI TRADING PLAN PRESISI (ENTRY, SL, TP1, TP2, R:R)
         // ==========================================
         $entryPrice = $currClose;
-        $entryLow = round(min($currClose, $nearestSupport * 0.995), 2);
-        $entryHigh = round(max($currClose, $nearestSupport * 1.015), 2);
+        // Entry zone presisi: Antara close Pin Bar dan low rejection candle
+        $entryLow = round(min($currClose, $nearestSupport * 0.995, $currLow), 2);
+        $entryHigh = round(max($currClose, $nearestSupport * 1.01), 2);
         $entryRange = '$' . number_format($entryLow, 2) . ' - $' . number_format($entryHigh, 2);
 
-        // Stop Loss: 1.5% - 2% di bawah support terdekat atau swing low
-        $slReference = min($nearestSupport, $currLow, $fibLevels['786'] ?? $currLow);
-        $stopLoss = round($slReference * 0.98, 2);
+        // Stop Loss Presisi: Sesuai panduan A+ setup, ditempatkan di bawah wick rejection (low pin bar) atau di bawah Golden Pocket (Fib 0.786 / Swing Low)
+        $slLow = min($currLow, (float)$entryCandles[$prevIdx]['low']);
+        $slReference = min($nearestSupport, $slLow, $fibLevels['786'] ?? $currLow);
+        $stopLoss = round($slReference * 0.985, 2); // 1.5% di bawah batas bawah konfluensi
         if ($stopLoss >= $entryPrice) {
             $stopLoss = round($entryPrice * 0.965, 2); // Default max 3.5% risk
         }
@@ -392,13 +449,14 @@ final class MultiIndicatorStrategyService
         $risk = max(0.01, $entryPrice - $stopLoss);
         $stopLossPct = round(($risk / $entryPrice) * 100, 2);
 
-        // Target Profit 1: Minimal Swing High terdekat atau rasio R:R 1.8x
+        // Target Profit 1: Minimal Swing High sebelumnya (seperti profit target 1.3000 pada panduan gambar)
         $target1 = round(max($entryPrice + ($risk * 1.8), $swingHigh), 2);
         $target1Pct = round((($target1 - $entryPrice) / $entryPrice) * 100, 2);
 
-        // Target Profit 2: Ekstensi Fibonacci 1.272 atau R:R 3.0x
+        // Target Profit 2: Ekstensi Fibonacci 1.272 atau R:R 3.0x - 3.5x (profit target 1.4200 pada panduan gambar)
         $fibExt1272 = round($swingLow + (($swingHigh - $swingLow) * 1.272), 2);
-        $target2 = round(max($entryPrice + ($risk * 3.0), $fibExt1272), 2);
+        $fibExt1618 = round($swingLow + (($swingHigh - $swingLow) * 1.618), 2);
+        $target2 = round(max($entryPrice + ($risk * 3.0), $fibExt1272, $fibExt1618), 2);
         $target2Pct = round((($target2 - $entryPrice) / $entryPrice) * 100, 2);
 
         $rrRatio = round(($target1 - $entryPrice) / $risk, 1);
@@ -443,7 +501,12 @@ final class MultiIndicatorStrategyService
             'swing_low' => round($swingLow, 2),
             'retrace_pct' => $retracePct,
             'fib_levels' => $fibLevels,
+            // Sinyal A+ Setup & Candlestick
+            'is_a_plus_setup' => $isAPlusGoldenPocketSetup,
+            'has_pinbar_signal' => $hasPinBarSignal,
+            'is_bullish_pinbar' => $isBullishPinBar,
             'in_golden_pocket' => $isInGoldenPocket,
+            'is_near_golden_pocket' => $isNearGoldenPocket,
             // Volume
             'rvol' => $rvol,
             // Trading Plan Presisi
@@ -475,9 +538,10 @@ final class MultiIndicatorStrategyService
     private function matchesPreset(array $analysis, string $preset): bool
     {
         return match ($preset) {
+            'golden_pocket_a_plus' => !empty($analysis['is_a_plus_setup']),
             'confluence_buy' => ($analysis['confluence_score'] >= 75),
             'shakeout_low' => !empty($analysis['is_shakeout_low']),
-            'golden_fib_rsi' => ($analysis['in_golden_pocket'] && $analysis['rsi'] <= 45),
+            'golden_fib_rsi' => ($analysis['in_golden_pocket'] && $analysis['rsi'] <= 55),
             'macd_bullish_cross' => ($analysis['macd_cross'] === 'BULLISH_CROSS'),
             'oversold_bounce' => ($analysis['rsi'] <= 35),
             'breakout_confluence' => ($analysis['confluence_score'] >= 60 && $analysis['rvol'] >= 1.2),

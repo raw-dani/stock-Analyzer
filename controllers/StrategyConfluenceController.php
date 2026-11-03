@@ -55,6 +55,7 @@ final class StrategyConfluenceController extends Controller
             $tvSymbols = [];
             $stats = [
                 'total' => count($results),
+                'aPlusCount' => 0,
                 'strongBuyCount' => 0,
                 'buyCount' => 0,
                 'goldenPocketCount' => 0,
@@ -69,6 +70,9 @@ final class StrategyConfluenceController extends Controller
                 $exch = !empty($r['exchange']) ? $r['exchange'] . ':' : '';
                 $tvSymbols[] = $exch . $sym;
 
+                if (!empty($r['is_a_plus_setup'])) {
+                    $stats['aPlusCount']++;
+                }
                 if ($r['action'] === MultiIndicatorStrategyService::ACTION_STRONG_BUY) {
                     $stats['strongBuyCount']++;
                 }

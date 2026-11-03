@@ -107,19 +107,17 @@ $badgeAction = [
     </div>
 
     <div class="col-6 col-md-3">
-        <a href="<?= $filterWith(['strategy' => 'golden_pocket']) ?>" class="kpi-card-unified card border-0 shadow-sm text-decoration-none h-100 kpi-accent-amber <?= in_array($params['strategy'], ['golden_pocket', 'shakeout_low'], true) ? 'kpi-selected border border-warning' : '' ?>">
+        <a href="<?= $filterWith(['strategy' => 'golden_pocket_a_plus']) ?>" class="kpi-card-unified card border-0 shadow-sm text-decoration-none h-100 kpi-accent-amber <?= in_array($params['strategy'], ['golden_pocket_a_plus', 'golden_fib_rsi', 'shakeout_low'], true) ? 'kpi-selected border border-warning' : '' ?>">
             <div class="card-body p-3 d-flex flex-column justify-content-between">
                 <div class="kpi-header d-flex justify-content-between align-items-center mb-1">
-                    <span class="kpi-label small fw-bold text-uppercase text-warning-emphasis">Fibonacci / Shakeout</span>
-                    <?= \app\helpers\SvgHelper::icon('bullseye', ['class' => 'text-warning']) ?>
+                    <span class="kpi-label small fw-bold text-uppercase text-warning-emphasis">A+ Golden Pocket Setup</span>
+                    <?= \app\helpers\SvgHelper::icon('star-fill', ['class' => 'text-warning']) ?>
                 </div>
                 <div class="kpi-value h3 fw-bold mb-1 text-dark">
-                    <?= number_format($stats['goldenPocketCount']) ?>
-                    <?php if (($stats['shakeoutCount'] ?? 0) > 0): ?>
-                        <span class="badge bg-warning-subtle text-warning-emphasis fs-7 ms-1">⚡ <?= $stats['shakeoutCount'] ?> Shakeout</span>
-                    <?php endif; ?>
+                    <?= number_format($stats['aPlusCount'] ?? 0) ?>
+                    <span class="badge bg-warning-subtle text-warning-emphasis fs-7 ms-1">🎯 <?= $stats['goldenPocketCount'] ?> in Zone</span>
                 </div>
-                <div class="kpi-subtext small text-muted">Golden Pocket &amp; Liquidity Sweep</div>
+                <div class="kpi-subtext small text-muted">Fib 0.618-0.786 + EMA50 + Pin Bar</div>
             </div>
         </a>
     </div>
@@ -304,6 +302,11 @@ $badgeAction = [
                                 <span class="badge bg-<?= $badgeAction[$r['action']] ?? 'secondary' ?> mb-1">
                                     <?= Html::encode($r['action']) ?>
                                 </span>
+                                <?php if (!empty($r['is_a_plus_setup'])): ?>
+                                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle mb-1" style="font-size: 0.65rem;">
+                                        🏆 A+ Setup
+                                    </span>
+                                <?php endif; ?>
                                 <div class="small text-dark fw-semibold"><?= Html::encode($r['signal_title']) ?></div>
                             </td>
 
@@ -353,9 +356,13 @@ $badgeAction = [
                             <!-- Fibonacci Retracement -->
                             <td>
                                 <div class="small fw-semibold text-dark"><?= $r['retrace_pct'] ?>%</div>
-                                <?php if ($r['in_golden_pocket']): ?>
-                                    <span class="badge bg-warning text-dark shadow-sm" style="font-size: 0.65rem;">
-                                        <?= \app\helpers\SvgHelper::icon('star-fill') ?> Golden Pocket
+                                <?php if (!empty($r['is_a_plus_setup'])): ?>
+                                    <span class="badge bg-warning text-dark shadow-sm" style="font-size: 0.65rem;" title="Golden Pocket Confluence + Pin Bar">
+                                        <?= \app\helpers\SvgHelper::icon('star-fill') ?> GP + Pin Bar
+                                    </span>
+                                <?php elseif ($r['in_golden_pocket']): ?>
+                                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle shadow-sm" style="font-size: 0.65rem;">
+                                        <?= \app\helpers\SvgHelper::icon('star-fill') ?> 0.618 - 0.786
                                     </span>
                                 <?php else: ?>
                                     <span class="small text-muted" style="font-size: 0.7rem;">Swing: $<?= number_format($r['swing_low'], 2) ?></span>
