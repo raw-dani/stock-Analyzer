@@ -65,6 +65,39 @@ $dailyAdvRatio = $totalDaily > 0 ? round(($gainersCount / $totalDaily) * 100, 1)
     <!-- 🔍 Universal Stock Search & Multi-Strategy Analysis Launcher -->
     <div class="card border-0 shadow-sm mb-4 bg-white rounded-3 border-start border-4 border-primary">
         <div class="card-body p-3 p-md-4">
+            <?php 
+            $missingStockData = Yii::$app->session->getFlash('stock_not_found');
+            $missingSymbol = is_array($missingStockData) ? ($missingStockData['symbol'] ?? '') : (string) Yii::$app->request->get('missing', '');
+            ?>
+            <?php if (!empty($missingSymbol)): ?>
+                <!-- Banner Penawaran Tambah Saham dari Yahoo Finance -->
+                <div class="alert alert-warning border border-warning shadow-sm rounded-3 mb-3 p-3">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="p-2 rounded-circle bg-warning text-dark d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+                                <?= \app\helpers\SvgHelper::icon('plus-circle-fill', ['class' => 'fs-4']) ?>
+                            </div>
+                            <div>
+                                <h6 class="fw-bold mb-1 text-dark">
+                                    Simbol "<?= Html::encode($missingSymbol) ?>" Belum Terdaftar di Database
+                                </h6>
+                                <p class="small text-muted mb-0">
+                                    Apakah Anda ingin memverifikasi kode saham ini langsung ke <strong>Yahoo Finance</strong> dan menambahkannya ke daftar analisa aplikasi?
+                                </p>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <a href="<?= Url::to(['/stock/check-and-add', 'symbol' => $missingSymbol]) ?>" class="btn btn-success btn-sm px-3 fw-bold rounded-pill shadow-xs d-flex align-items-center gap-1">
+                                <?= \app\helpers\SvgHelper::icon('check2-circle') ?> Cek Yahoo Finance &amp; Daftarkan Saham
+                            </a>
+                            <a href="<?= Url::to(['/dashboard/index']) ?>" class="btn btn-outline-secondary btn-sm px-3 rounded-pill">
+                                Batal
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
+
             <div class="row align-items-center g-3">
                 <div class="col-lg-5">
                     <div class="d-flex align-items-center gap-2 mb-1">

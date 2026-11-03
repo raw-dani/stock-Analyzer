@@ -9,7 +9,11 @@ use app\models\DailyPrice;
 use app\models\Signal;
 use app\models\Stock;
 use app\models\WeeklyAnalysis;
+use app\services\MarketDataService;
+use app\services\SignalEngineService;
 use app\services\StockStrategySynthesisService;
+use app\services\VolumeAnalyzerService;
+use app\services\market\YahooFinanceProvider;
 use Yii;
 use yii\data\ActiveDataProvider;
 use yii\db\Expression;
@@ -131,8 +135,103 @@ final class StockController extends Controller
             return $this->redirect(['view', 'symbol' => $partial->symbol]);
         }
 
-        Yii::$app->session->setFlash('danger', "Kode saham '{$symbol}' tidak ditemukan dalam database aplikasi.");
-        return $this->redirect(['/dashboard/index']);
+        // Jika tidak ditemukan di database, redirect ke dashboard dengan parameter missing_symbol untuk menawarkan penambahan
+        Yii::$app->session->setFlash('stock_not_found', [
+            'symbol' => $symbol,
+            'message' => "Kode saham <strong>{$symbol}</strong> belum ada di database aplikasi.",
+        ]);
+
+        return $this->redirect(['/dashboard/index', 'missing' => $symbol]);
+    }
+
+    /**
+     * Endpoint AJAX/GET untuk memeriksa simbol ke Yahoo Finance dan menambahkannya ke database.
+     */
+    public function actionCheckAndAdd(string $symbol): Response
+    {
+        $symbol = MarketDataService::normalizeSymbol($symbol);
+        if ($symbol === '') {
+            Yii::$app->session->setFlash('danger', 'Simbol saham tidak valid.');
+            return $this->redirect(['/dashboard/index']);
+        }
+
+        // Cek apakah sudah ada di database
+        $existing = Stock::find()->where(['symbol' => $symbol])->one();
+        if ($existing !== null) {
+            if (!$existing->active) {
+                $existing->active = true;
+                $existing->save(false);
+            }
+            Yii::$app->session->setFlash('success', "Saham <strong>{$symbol}</strong> sudah terdaftar.");
+            return $this->redirect(['view', 'symbol' => $symbol]);
+        }
+
+        // 1. Cek validitas simbol ke Yahoo Finance API
+        $url = "https://query1.finance.yahoo.com/v8/finance/chart/" . urlencode($symbol) . "?interval=1d&range=5d";
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+        curl_setopt($ch, CURLOPT_TIMEOUT, 12);
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        $json = json_decode((string)$response, true);
+        $result = $json['chart']['result'][0] ?? null;
+
+        if ($httpCode !== 200 || $result === null) {
+            Yii::$app->session->setFlash('danger', "Kode saham <strong>{$symbol}</strong> tidak valid atau tidak ditemukan di Yahoo Finance. Pastikan simbol sudah benar.");
+            return $this->redirect(['/dashboard/index']);
+        }
+
+        // Ekstraksi metadata saham dari Yahoo Finance
+        $meta = $result['meta'] ?? [];
+        $companyName = (string) ($meta['shortName'] ?? $meta['longName'] ?? $meta['symbol'] ?? $symbol);
+        $rawExchange = strtoupper((string) ($meta['exchangeName'] ?? ''));
+
+        $exchange = Stock::EXCHANGE_NASDAQ;
+        if (str_contains($rawExchange, 'NYQ') || str_contains($rawExchange, 'NYSE')) {
+            $exchange = Stock::EXCHANGE_NYSE;
+        } elseif (str_contains($rawExchange, 'ASE') || str_contains($rawExchange, 'AMEX')) {
+            $exchange = Stock::EXCHANGE_AMEX;
+        }
+
+        // 2. Simpan entitas Stock ke database
+        $stock = new Stock();
+        $stock->symbol = $symbol;
+        $stock->name = $companyName;
+        $stock->exchange = $exchange;
+        $stock->active = true;
+
+        if (!$stock->save(false)) {
+            Yii::$app->session->setFlash('danger', "Gagal mendaftarkan saham {$symbol} ke database.");
+            return $this->redirect(['/dashboard/index']);
+        }
+
+        // 3. Sinkronisasi Data Historis (Daily & Intraday)
+        try {
+            $provider = new YahooFinanceProvider();
+            $marketService = new MarketDataService($provider);
+            $syncedBars = $marketService->syncSymbol($symbol);
+
+            // Jalankan analisis volume & kalkulasi sinyal mingguan awal
+            $analyzer = new VolumeAnalyzerService();
+            $analyzer->analyzeStock($stock->id);
+
+            $engine = new SignalEngineService();
+            $engine->scoreStock($stock);
+
+            // Invalidate cache scanner agar saham baru langsung terindeks
+            \app\services\ScannerCacheService::invalidateVersions();
+            Yii::$app->cache?->flush();
+
+            Yii::$app->session->setFlash('success', "Berhasil memverifikasi dari Yahoo Finance! Saham <strong>{$symbol} ({$companyName})</strong> telah ditambahkan ke database dengan {$syncedBars} candle historis.");
+            return $this->redirect(['view', 'symbol' => $symbol]);
+        } catch (\Throwable $e) {
+            Yii::warning("Sync failed after registering {$symbol}: " . $e->getMessage(), 'app\controllers\stock');
+            Yii::$app->session->setFlash('warning', "Saham <strong>{$symbol} ({$companyName})</strong> berhasil didaftarkan, namun proses sync candle awal mengalami penundaan: " . $e->getMessage());
+            return $this->redirect(['view', 'symbol' => $symbol]);
+        }
     }
 
     /**
