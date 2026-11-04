@@ -24,6 +24,7 @@ class Stock extends ActiveRecord
     public const EXCHANGE_NASDAQ = 'NASDAQ';
     public const EXCHANGE_NYSE = 'NYSE';
     public const EXCHANGE_AMEX = 'AMEX';
+    public const EXCHANGE_IDX = 'IDX';
 
     public static function tableName(): string
     {
@@ -45,7 +46,7 @@ class Stock extends ActiveRecord
                 'message' => 'Symbol hanya boleh huruf dan titik.'],
             [['name'], 'string', 'max' => 255],
             [['exchange'], 'string', 'max' => 16],
-            [['exchange'], 'in', 'range' => [self::EXCHANGE_NASDAQ, self::EXCHANGE_NYSE, self::EXCHANGE_AMEX]],
+            [['exchange'], 'in', 'range' => [self::EXCHANGE_NASDAQ, self::EXCHANGE_NYSE, self::EXCHANGE_AMEX, self::EXCHANGE_IDX]],
             [['sector'], 'string', 'max' => 64],
             [['industry'], 'string', 'max' => 128],
             [['market_cap'], 'integer', 'min' => 0],

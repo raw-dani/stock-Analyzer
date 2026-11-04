@@ -43,6 +43,18 @@ $isPresetMomentum = ($model->maxPrice == 20 && $model->minVolumeGrowth == 0.3);
         
         <?php if ($isDaily): ?>
             <?= Html::a(
+                \app\helpers\SvgHelper::icon('shield-check', ['class' => 'text-success me-1']) . ' Absorption Reversal',
+                ['/scanner/index', 'mode' => 'daily', 'pattern' => \app\services\AccumulationPatternService::PATTERN_SELLING_ABSORPTION],
+                ['class' => 'preset-pill btn btn-sm rounded-pill px-3 py-1 ' . ($model->pattern === \app\services\AccumulationPatternService::PATTERN_SELLING_ABSORPTION ? 'active' : ''), 'title' => 'Selling Absorption: Tekanan jual tertahan di support & potensi recovery']
+            ) ?>
+
+            <?= Html::a(
+                \app\helpers\SvgHelper::icon('eye-fill', ['class' => 'text-primary me-1']) . ' Hidden Acc',
+                ['/scanner/index', 'mode' => 'daily', 'pattern' => \app\services\AccumulationPatternService::PATTERN_HIDDEN_ACC],
+                ['class' => 'preset-pill btn btn-sm rounded-pill px-3 py-1 ' . ($model->pattern === \app\services\AccumulationPatternService::PATTERN_HIDDEN_ACC ? 'active' : ''), 'title' => 'Hidden Accumulation: CVD naik, harga belum naik signifikan']
+            ) ?>
+
+            <?= Html::a(
                 \app\helpers\SvgHelper::icon('rocket-takeoff-fill') . ' Day Breakout (+2% & Acc ≥65%)',
                 ['/scanner/index', 'mode' => 'daily', 'minChangePct' => '2.0', 'minBuyRatio' => '0.65'],
                 ['class' => 'preset-pill btn btn-sm rounded-pill px-3 py-1 ' . ($isPresetDayBreakout ? 'active' : ''), 'title' => 'Momentum kenaikan hari ini dengan dominasi akumulasi buy']
@@ -60,6 +72,24 @@ $isPresetMomentum = ($model->maxPrice == 20 && $model->minVolumeGrowth == 0.3);
                 ['class' => 'preset-pill btn btn-sm rounded-pill px-3 py-1 ' . ($isPresetDayAbsorption ? 'active' : ''), 'title' => 'Saham terjangkau dengan akumulasi buy dominan']
             ) ?>
         <?php else: ?>
+            <?= Html::a(
+                \app\helpers\SvgHelper::icon('arrow-repeat', ['class' => 'text-info me-1']) . ' Sideways Acc',
+                ['/scanner/index', 'mode' => 'weekly', 'pattern' => \app\services\AccumulationPatternService::PATTERN_SIDEWAYS_ACC],
+                ['class' => 'preset-pill btn btn-sm rounded-pill px-3 py-1 ' . ($model->pattern === \app\services\AccumulationPatternService::PATTERN_SIDEWAYS_ACC ? 'active' : ''), 'title' => 'Sideways Accumulation: Rentang harga sempit, CMF/OBV naik']
+            ) ?>
+
+            <?= Html::a(
+                \app\helpers\SvgHelper::icon('box-arrow-up-right', ['class' => 'text-success me-1']) . ' Acc Breakout',
+                ['/scanner/index', 'mode' => 'weekly', 'pattern' => \app\services\AccumulationPatternService::PATTERN_ACC_BREAKOUT],
+                ['class' => 'preset-pill btn btn-sm rounded-pill px-3 py-1 ' . ($model->pattern === \app\services\AccumulationPatternService::PATTERN_ACC_BREAKOUT ? 'active' : ''), 'title' => 'Accumulation Breakout: Penembusan resistance didukung akumulasi & RVOL']
+            ) ?>
+
+            <?= Html::a(
+                \app\helpers\SvgHelper::icon('exclamation-triangle-fill', ['class' => 'text-danger me-1']) . ' Dist Warning',
+                ['/scanner/index', 'mode' => 'weekly', 'pattern' => \app\services\AccumulationPatternService::PATTERN_DISTRIBUTION_WARNING],
+                ['class' => 'preset-pill btn btn-sm rounded-pill px-3 py-1 ' . ($model->pattern === \app\services\AccumulationPatternService::PATTERN_DISTRIBUTION_WARNING ? 'active' : ''), 'title' => 'Distribution Warning: Volume tinggi tapi harga gagal naik, risiko distribusi']
+            ) ?>
+
             <?= Html::a(
                 \app\helpers\SvgHelper::icon('lightning-charge-fill', ['class' => 'text-warning']) . ' Shakeout Low',
                 ['/candlestick/index', 'preset' => 'shakeout_low'],
@@ -128,7 +158,7 @@ $isPresetMomentum = ($model->maxPrice == 20 && $model->minVolumeGrowth == 0.3);
                 </div>
                 <div class="col-md-2 col-6">
                     <?= $form->field($model, 'exchange')->dropDownList(
-                        ['NASDAQ' => 'NASDAQ', 'NYSE' => 'NYSE', 'NYSEARCA' => 'NYSEARCA', 'AMEX' => 'AMEX'],
+                        ['NASDAQ' => 'NASDAQ', 'NYSE' => 'NYSE', 'NYSEARCA' => 'NYSEARCA', 'AMEX' => 'AMEX', 'IDX' => 'IDX (BEI)'],
                         ['prompt' => 'Semua Bursa', 'class' => 'form-select form-select-sm', 'id' => 'exchange']
                     ) ?>
                 </div>
@@ -188,6 +218,39 @@ $isPresetMomentum = ($model->maxPrice == 20 && $model->minVolumeGrowth == 0.3);
                         [25 => '25 Baris', 50 => '50 Baris', 100 => '100 Baris', 200 => '200 Baris'],
                         ['class' => 'form-select form-select-sm']
                     )->label('Baris per Halaman') ?>
+                </div>
+            </div>
+
+            <!-- Row 4: Deteksi Pola Akumulasi & Papan Transaksi (Khusus BEI) -->
+            <div class="row g-2 mt-1 pt-2 border-top">
+                <div class="col-md-6 col-12">
+                    <?= $form->field($model, 'pattern')->dropDownList(
+                        [
+                            '' => 'Semua Pola / Tanpa Filter Pola',
+                            \app\services\AccumulationPatternService::PATTERN_SIDEWAYS_ACC => 'A. Sideways Accumulation (Bullish Candidate)',
+                            \app\services\AccumulationPatternService::PATTERN_HIDDEN_ACC => 'B. Hidden Accumulation (Early Candidate)',
+                            \app\services\AccumulationPatternService::PATTERN_SELLING_ABSORPTION => 'C. Selling Absorption (Potential Reversal)',
+                            \app\services\AccumulationPatternService::PATTERN_ACC_BREAKOUT => 'D. Accumulation Breakout (Breakout Candidate)',
+                            \app\services\AccumulationPatternService::PATTERN_DISTRIBUTION_WARNING => 'E. Distribution Warning (Distribution Risk)',
+                        ],
+                        ['class' => 'form-select form-select-sm border-primary fw-semibold']
+                    )->label('Deteksi Pola Akumulasi / Distribusi') ?>
+                </div>
+                <div class="col-md-3 col-6">
+                    <?= $form->field($model, 'marketBoard')->dropDownList(
+                        [
+                            'REGULAR' => 'Reguler (RG) - Standar',
+                            'NEGO' => 'Negosiasi (NG) - Terpisah',
+                            'ALL' => 'Semua Papan (RG + NG + TN)',
+                        ],
+                        ['class' => 'form-select form-select-sm']
+                    )->label('Papan Pasar (Khusus BEI)') ?>
+                </div>
+                <div class="col-md-3 col-6 d-flex align-items-end">
+                    <div class="small text-muted pb-2">
+                        <span class="badge bg-light text-secondary border">Guardrails Aktif</span>
+                        <span class="d-none d-md-inline" title="Mengecualikan lonjakan palsu, suspensi, dan low-volume pumps">Penalti &amp; False-Filter</span>
+                    </div>
                 </div>
             </div>
 

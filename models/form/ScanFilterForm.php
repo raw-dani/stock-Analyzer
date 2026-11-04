@@ -19,7 +19,7 @@ final class ScanFilterForm extends Model
     private const FLOAT_ATTRS = ['minBuyRatio', 'minVolumeGrowth', 'minVolume', 'minPrice', 'maxPrice', 'minRvol', 'minChangePct', 'minDailyRvol'];
 
     /** Atribut bertipe teks. */
-    private const STRING_ATTRS = ['symbol', 'exchange', 'sector', 'signal', 'mode'];
+    private const STRING_ATTRS = ['symbol', 'exchange', 'sector', 'signal', 'mode', 'pattern', 'marketBoard'];
 
     /** Atribut rasio (0..1) — tanda "%" diartikan sebagai rasio: "50%" → 0.5. */
     private const RATIO_ATTRS = ['minBuyRatio', 'minVolumeGrowth'];
@@ -44,6 +44,8 @@ final class ScanFilterForm extends Model
     public ?float $maxPrice = null;
     public ?int $limit = 50;
     public ?string $mode = 'weekly'; // 'weekly' | 'daily'
+    public ?string $pattern = null; // Filter pola akumulasi
+    public ?string $marketBoard = 'REGULAR'; // REGULAR, NEGO, ALL
 
     /**
      * Input mentah yang tidak bisa diinterpretasikan, mis. "abc" untuk minScore.
@@ -135,6 +137,8 @@ final class ScanFilterForm extends Model
             'minPrice' => 'Harga minimum',
             'maxPrice' => 'Harga maksimum',
             'limit' => 'Baris per halaman',
+            'pattern' => 'Pola Akumulasi',
+            'marketBoard' => 'Papan Transaksi',
         ];
     }
 

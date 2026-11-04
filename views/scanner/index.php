@@ -150,6 +150,30 @@ $weeklyColumns = [
         'format' => 'raw',
     ],
     [
+        'label' => 'Pola Akumulasi',
+        'headerOptions' => ['class' => 'text-center', 'style' => 'width: 140px'],
+        'contentOptions' => ['class' => 'text-center'],
+        'value' => function ($m) {
+            static $patternService = null;
+            if ($patternService === null) {
+                $patternService = new \app\services\AccumulationPatternService();
+            }
+            $res = $patternService->analyze($m->stock, 20);
+            $badge = $res['badge'];
+            if (!$badge) {
+                return '<span class="text-muted small">-</span>';
+            }
+            $title = Html::encode($badge['desc'] . ' | CMF: ' . $res['cmf'] . ' | CVD: ' . $res['cvdTrend']);
+            $html = '<span class="badge ' . $badge['class'] . ' px-2 py-1 shadow-sm" title="' . $title . '">' . Html::encode($badge['label']) . '</span>';
+            if (!empty($res['warnings'])) {
+                $warnTip = Html::encode(implode('; ', $res['warnings']));
+                $html .= ' <span class="badge bg-warning text-dark border p-1" title="' . $warnTip . '"><i class="bi bi-exclamation-triangle"></i> !</span>';
+            }
+            return $html;
+        },
+        'format' => 'raw',
+    ],
+    [
         'attribute' => 'signal',
         'label' => 'Sinyal',
         'headerOptions' => ['class' => 'text-center', 'style' => 'width: 110px'],
@@ -262,6 +286,30 @@ $dailyColumns = [
                 . '<div class="progress-bar bg-danger" style="width: ' . $sellPct . '%"></div>'
                 . '</div>'
                 . '<div class="small fw-bold ' . $color . ' mt-1" style="font-size: 0.78rem;">' . $pct . '% Buy</div>';
+        },
+        'format' => 'raw',
+    ],
+    [
+        'label' => 'Pola Akumulasi',
+        'headerOptions' => ['class' => 'text-center', 'style' => 'width: 140px'],
+        'contentOptions' => ['class' => 'text-center'],
+        'value' => function ($m) {
+            static $patternService = null;
+            if ($patternService === null) {
+                $patternService = new \app\services\AccumulationPatternService();
+            }
+            $res = $patternService->analyze($m->stock, 20);
+            $badge = $res['badge'];
+            if (!$badge) {
+                return '<span class="text-muted small">-</span>';
+            }
+            $title = Html::encode($badge['desc'] . ' | CMF: ' . $res['cmf'] . ' | CVD: ' . $res['cvdTrend']);
+            $html = '<span class="badge ' . $badge['class'] . ' px-2 py-1 shadow-sm" title="' . $title . '">' . Html::encode($badge['label']) . '</span>';
+            if (!empty($res['warnings'])) {
+                $warnTip = Html::encode(implode('; ', $res['warnings']));
+                $html .= ' <span class="badge bg-warning text-dark border p-1" title="' . $warnTip . '"><i class="bi bi-exclamation-triangle"></i> !</span>';
+            }
+            return $html;
         },
         'format' => 'raw',
     ],

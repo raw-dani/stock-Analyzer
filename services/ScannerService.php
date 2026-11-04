@@ -10,6 +10,7 @@ use app\models\WeeklyAnalysis;
 use yii\data\ActiveDataProvider;
 use yii\db\ActiveQuery;
 use yii\db\Expression;
+use app\services\AccumulationPatternService;
 
 /**
  * Stock scanner (task 6.2, 6.4) — query dinamis weekly_analysis + stock.
@@ -57,6 +58,24 @@ final class ScannerService
         $query->andFilterWhere(['>=', '{{%weekly_analysis}}.volume_growth', $form->minVolumeGrowth]);
         $query->andFilterWhere(['>=', '{{%weekly_analysis}}.rvol', $form->minRvol]);
         $query->andFilterWhere(['>=', '{{%weekly_analysis}}.score', $form->minScore]);
+
+        // Filter Pola Akumulasi & Distribusi (Weekly)
+        if (!empty($form->pattern)) {
+            $patternService = new AccumulationPatternService();
+            $candidateStockIds = (clone $query)->select(['{{%weekly_analysis}}.stock_id'])->column();
+            $matchedStockIds = [];
+            foreach ($candidateStockIds as $sId) {
+                $analysis = $patternService->analyze((int) $sId, 20, $form->marketBoard ?? 'REGULAR');
+                if ($analysis['pattern'] === $form->pattern) {
+                    $matchedStockIds[] = $sId;
+                }
+            }
+            if (!empty($matchedStockIds)) {
+                $query->andWhere(['in', '{{%weekly_analysis}}.stock_id', $matchedStockIds]);
+            } else {
+                $query->andWhere('0=1');
+            }
+        }
         $query->andFilterWhere(['>=', '{{%stock}}.market_cap', $form->minMarketCap]);
         $query->andFilterWhere(['<=', '{{%stock}}.market_cap', $form->maxMarketCap]);
         $query->andFilterWhere(['>=', '{{%weekly_analysis}}.close_price', $form->minPrice]);
@@ -147,6 +166,24 @@ final class ScannerService
         $query->andFilterWhere(['>=', '{{%daily_price}}.volume', $form->minVolume]);
         $query->andFilterWhere(['>=', '{{%stock}}.market_cap', $form->minMarketCap]);
         $query->andFilterWhere(['<=', '{{%stock}}.market_cap', $form->maxMarketCap]);
+
+        // Filter Pola Akumulasi & Distribusi (Daily)
+        if (!empty($form->pattern)) {
+            $patternService = new AccumulationPatternService();
+            $candidateStockIds = (clone $query)->select(['{{%daily_price}}.stock_id'])->column();
+            $matchedStockIds = [];
+            foreach ($candidateStockIds as $sId) {
+                $analysis = $patternService->analyze((int) $sId, 20, $form->marketBoard ?? 'REGULAR');
+                if ($analysis['pattern'] === $form->pattern) {
+                    $matchedStockIds[] = $sId;
+                }
+            }
+            if (!empty($matchedStockIds)) {
+                $query->andWhere(['in', '{{%daily_price}}.stock_id', $matchedStockIds]);
+            } else {
+                $query->andWhere('0=1');
+            }
+        }
 
         if ($form->minBuyRatio !== null) {
             $query->andWhere(new Expression(

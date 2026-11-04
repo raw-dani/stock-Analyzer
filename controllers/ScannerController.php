@@ -279,6 +279,8 @@ final class ScannerController extends Controller
             'minVolume' => $form->minVolume,
             'signal' => $form->signal,
             'mode' => $form->mode,
+            'pattern' => $form->pattern,
+            'marketBoard' => $form->marketBoard,
         ], fn ($v) => $v !== null && $v !== '');
 
         return $this->redirect(array_merge(['index'], $redirectParams));
