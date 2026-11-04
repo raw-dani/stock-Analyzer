@@ -238,12 +238,12 @@ final class ScannerController extends Controller
                     SET buy_volume = CASE 
                         WHEN close > open THEN volume 
                         WHEN close < open THEN 0 
-                        ELSE CAST(volume / 2 AS INTEGER) 
+                        ELSE FLOOR(volume / 2) 
                     END,
                     sell_volume = CASE 
                         WHEN close > open THEN 0 
                         WHEN close < open THEN volume 
-                        ELSE CAST(volume - CAST(volume / 2 AS INTEGER) AS INTEGER) 
+                        ELSE (volume - FLOOR(volume / 2)) 
                     END
                     WHERE buy_volume IS NULL
                 ")->execute();

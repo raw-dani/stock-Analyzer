@@ -187,7 +187,7 @@ final class ScannerService
 
         if ($form->minBuyRatio !== null) {
             $query->andWhere(new Expression(
-                'CAST({{%daily_price}}.buy_volume AS REAL) / NULLIF({{%daily_price}}.buy_volume + {{%daily_price}}.sell_volume, 0) >= CAST(:minBuyRatio AS REAL)',
+                '({{%daily_price}}.buy_volume * 1.0) / NULLIF({{%daily_price}}.buy_volume + {{%daily_price}}.sell_volume, 0) >= :minBuyRatio',
                 [':minBuyRatio' => (float) $form->minBuyRatio]
             ));
         }
@@ -195,7 +195,7 @@ final class ScannerService
         // Filter gain harian (% change close vs open)
         if ($form->minChangePct !== null) {
             $query->andWhere(new Expression(
-                '((CAST({{%daily_price}}.close AS REAL) - {{%daily_price}}.open) / NULLIF({{%daily_price}}.open, 0)) * 100 >= CAST(:minChangePct AS REAL)',
+                '((({{%daily_price}}.close * 1.0) - {{%daily_price}}.open) / NULLIF({{%daily_price}}.open, 0)) * 100 >= :minChangePct',
                 [':minChangePct' => (float) $form->minChangePct]
             ));
         }
