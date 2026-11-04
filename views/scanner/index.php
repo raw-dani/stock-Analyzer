@@ -576,6 +576,34 @@ $dailyColumns = [
 .ring-active {
     box-shadow: 0 0 0 2px #0d6efd !important;
 }
+#scanner-grid-table th.sortable-col {
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    padding-right: 1.5rem !important;
+    transition: background-color 0.15s ease;
+}
+#scanner-grid-table th.sortable-col:hover {
+    background-color: rgba(13, 110, 253, 0.08) !important;
+    color: #0d6efd !important;
+}
+#scanner-grid-table th.sortable-col::after {
+    content: '⇅';
+    position: absolute;
+    right: 0.5rem;
+    opacity: 0.35;
+    font-size: 0.85rem;
+}
+#scanner-grid-table th.sortable-col.asc::after {
+    content: '▲';
+    opacity: 1;
+    color: #0d6efd;
+}
+#scanner-grid-table th.sortable-col.desc::after {
+    content: '▼';
+    opacity: 1;
+    color: #0d6efd;
+}
 </style>
 
 <script>
@@ -589,6 +617,92 @@ document.getElementById('scanner-table-search')?.addEventListener('input', funct
         row.style.display = text.includes(filter) ? '' : 'none';
     });
 });
+
+// Interactive Client-Side Sorting for #scanner-grid-table
+(function () {
+    const table = document.getElementById('scanner-grid-table');
+    if (!table) return;
+
+    const thead = table.querySelector('thead');
+    const tbody = table.querySelector('tbody');
+    if (!thead || !tbody) return;
+
+    const headers = thead.querySelectorAll('tr th');
+
+    // Parse value helper for dates, numbers, currency, percentages, and text
+    function parseCellValue(text) {
+        if (!text) return '';
+        const cleaned = text.trim();
+        
+        // Remove currency symbols, commas, percent, x (RVOL), +, etc.
+        const numCleaned = cleaned.replace(/[Rp$,+%\s]/g, '').replace(/x$/i, '');
+        
+        // Check if numeric
+        if (numCleaned !== '' && !isNaN(numCleaned)) {
+            return parseFloat(numCleaned);
+        }
+
+        // Check if date format (e.g., "24 Feb 2026" or "2026-02-24")
+        const parsedDate = Date.parse(cleaned);
+        if (!isNaN(parsedDate) && isNaN(cleaned)) {
+            return parsedDate;
+        }
+
+        return cleaned.toLowerCase();
+    }
+
+    headers.forEach((th, colIdx) => {
+        // Lewati kolom nomor (#) dan kolom aksi pola
+        const title = th.textContent.trim().toLowerCase();
+        if (title === '#' || title === 'aksi pola' || th.classList.contains('no-sort')) {
+            return;
+        }
+
+        th.classList.add('sortable-col');
+        th.setAttribute('title', 'Klik untuk mengurutkan kolom ini (Naik / Turun)');
+
+        let currentOrder = null; // null -> asc -> desc
+
+        th.addEventListener('click', function (e) {
+            // Jangan trigger jika klik elemen <a> yang memiliki link sorting server
+            if (e.target.tagName.toLowerCase() === 'a') return;
+
+            headers.forEach(h => {
+                if (h !== th) {
+                    h.classList.remove('asc', 'desc');
+                }
+            });
+
+            currentOrder = (currentOrder === 'asc') ? 'desc' : 'asc';
+            th.classList.remove('asc', 'desc');
+            th.classList.add(currentOrder);
+
+            const rows = Array.from(tbody.querySelectorAll('tr')).filter(r => !r.classList.contains('empty'));
+            if (rows.length === 0) return;
+
+            rows.sort((rowA, rowB) => {
+                const cellA = rowA.children[colIdx]?.innerText || '';
+                const cellB = rowB.children[colIdx]?.innerText || '';
+
+                const valA = parseCellValue(cellA);
+                const valB = parseCellValue(cellB);
+
+                if (typeof valA === 'number' && typeof valB === 'number') {
+                    return currentOrder === 'asc' ? valA - valB : valB - valA;
+                }
+
+                const strA = valA.toString();
+                const strB = valB.toString();
+                return currentOrder === 'asc' 
+                    ? strA.localeCompare(strB, undefined, { numeric: true, sensitivity: 'base' })
+                    : strB.localeCompare(strA, undefined, { numeric: true, sensitivity: 'base' });
+            });
+
+            // Re-render sorted rows
+            rows.forEach(r => tbody.appendChild(r));
+        });
+    });
+})();
 
 // Copy symbols to clipboard with visual feedback
 function copySymbolsText(text, label) {
