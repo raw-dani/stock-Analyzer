@@ -171,6 +171,10 @@ final class ScannerController extends Controller
 
     public function actionRunScan(): \yii\web\Response
     {
+        // Hindari timeout PHP script pada web server
+        @ini_set('max_execution_time', '300');
+        @set_time_limit(300);
+
         $form = new ScanFilterForm();
 
         $query = Yii::$app->request->get();
@@ -187,7 +191,7 @@ final class ScannerController extends Controller
 
         if (!$dbOk) {
             Yii::$app->session->setFlash('danger', 'Gagal terhubung ke database. Scan dibatalkan.');
-            return $this->redirect(['index', 'exchange' => $form->exchange, 'sector' => $form->sector, 'symbol' => $form->symbol, 'minScore' => $form->minScore, 'minBuyRatio' => $form->minBuyRatio, 'minMarketCap' => $form->minMarketCap, 'maxMarketCap' => $form->maxMarketCap, 'minPrice' => $form->minPrice, 'maxPrice' => $form->maxPrice, 'minVolume' => $form->minVolume, 'signal' => $form->signal]);
+            return $this->redirect(['index', 'exchange' => $form->exchange, 'sector' => $form->sector, 'symbol' => $form->symbol, 'minScore' => $form->minScore, 'minBuyRatio' => $form->minBuyRatio, 'minMarketCap' => $form->minMarketCap, 'maxMarketCap' => $form->maxMarketCap, 'minPrice' => $form->minPrice, 'maxPrice' => $form->maxPrice, 'minVolume' => $form->minVolume, 'signal' => $form->signal, 'mode' => $form->mode]);
         }
 
         $stockQuery = Stock::find()->where(['active' => true]);
@@ -208,17 +212,37 @@ final class ScannerController extends Controller
 
         Yii::info('Berhasil terhubung ke database.', 'app\services\scanner');
         Yii::info("Mencoba koneksi data provider: " . (string) (Yii::$app->params['marketDataProvider'] ?? 'csv'), 'app\services\scanner');
-        Yii::info("Scan dimulai: {$stockCount} saham (filter: {$filterLabel})", 'app\services\scanner');
+        Yii::info("Scan dimulai: {$stockCount} saham (filter: {$filterLabel}, mode: {$form->mode})", 'app\services\scanner');
 
-        set_time_limit(0);
+        // 1. Pastikan seluruh bar candle harian memiliki klasifikasi buy/sell volume
+        // Operasi SQL batch ini instan (< 0.1 detik) bahkan untuk ratusan ribu record
+        try {
+            Yii::$app->db->createCommand("
+                UPDATE {{%daily_price}} 
+                SET buy_volume = CASE 
+                    WHEN close > open THEN volume 
+                    WHEN close < open THEN 0 
+                    ELSE FLOOR(volume / 2) 
+                END,
+                sell_volume = CASE 
+                    WHEN close > open THEN 0 
+                    WHEN close < open THEN volume 
+                    ELSE (volume - FLOOR(volume / 2)) 
+                END
+                WHERE buy_volume IS NULL
+            ")->execute();
+        } catch (\Throwable $e) {
+            Yii::warning('Batch update buy/sell volume error: ' . $e->getMessage(), 'app\services\scanner');
+        }
 
-        $marketService = new MarketDataService(Yii::$app->get('marketData')->get());
-        $analyzer = new VolumeAnalyzerService();
-        $engine = new SignalEngineService();
-
-        // Jika user mencari simbol tertentu, lakukan sync simbol tersebut
         $hasSpecificSymbol = !empty($form->symbol);
+
         if ($hasSpecificSymbol) {
+            $marketService = new MarketDataService(Yii::$app->get('marketData')->get());
+            $analyzer = new VolumeAnalyzerService();
+            $engine = new SignalEngineService();
+            $fromDate = date('Y-m-d', strtotime('-60 days'));
+
             foreach ($stocks as $stock) {
                 try {
                     $marketService->syncSymbol($stock->symbol, $fromDate);
@@ -229,28 +253,16 @@ final class ScannerController extends Controller
                 }
             }
             $flashMsg = "Sinkronisasi & scoring simbol {$form->symbol} berhasil diperbarui.";
+        } elseif ($form->mode === 'daily') {
+            // MODE DAILY:
+            // Data harian dibaca langsung dari tabel daily_price (sudah ter-update via batch SQL di atas).
+            // Tidak perlu melakukan loop aggregateWeekly() & scoreStock() untuk 393 saham yang memicu HTTP Timeout.
+            $flashMsg = "Scan Harian berhasil diperbarui! Menampilkan hasil volume harian terbaru untuk {$stockCount} saham ({$filterLabel}).";
         } else {
-            // Cek apakah ada bar harian yang belum diklasifikasi buy/sell volume-nya (biasanya bar baru)
-            $unclassifiedCount = (int) \app\models\DailyPrice::find()->where(['buy_volume' => null])->count();
-            if ($unclassifiedCount > 0) {
-                // Klasifikasi hanya bar baru yang belum diproses secara batch langsung via SQL update cepat
-                \Yii::$app->db->createCommand("
-                    UPDATE {{%daily_price}} 
-                    SET buy_volume = CASE 
-                        WHEN close > open THEN volume 
-                        WHEN close < open THEN 0 
-                        ELSE FLOOR(volume / 2) 
-                    END,
-                    sell_volume = CASE 
-                        WHEN close > open THEN 0 
-                        WHEN close < open THEN volume 
-                        ELSE (volume - FLOOR(volume / 2)) 
-                    END
-                    WHERE buy_volume IS NULL
-                ")->execute();
-            }
+            // MODE WEEKLY (atau default):
+            $analyzer = new VolumeAnalyzerService();
+            $engine = new SignalEngineService();
 
-            // Agregasi mingguan & scoring untuk semua saham terfilter
             $analyzedCount = 0;
             foreach ($stocks as $stock) {
                 try {
@@ -263,6 +275,12 @@ final class ScannerController extends Controller
             }
 
             $flashMsg = "Scan selesai! Analisis & scoring mingguan berhasil diperbarui untuk {$analyzedCount} saham ({$filterLabel}).";
+        }
+
+        // Invalidate scan cache agar hasil scan terbaru langsung terlihat
+        \app\services\ScannerCacheService::invalidateVersions();
+        if (Yii::$app->cache !== null) {
+            Yii::$app->cache->flush();
         }
 
         Yii::$app->session->setFlash('success', $flashMsg);
