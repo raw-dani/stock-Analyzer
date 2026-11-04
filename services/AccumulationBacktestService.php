@@ -497,3 +497,4 @@ final class AccumulationBacktestService
         ];
     }
 }
+
