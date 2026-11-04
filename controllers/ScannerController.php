@@ -10,6 +10,7 @@ use app\services\MarketDataService;
 use app\services\ScannerService;
 use app\services\SignalEngineService;
 use app\services\VolumeAnalyzerService;
+use app\services\AccumulationBacktestService;
 use Yii;
 use yii\web\Controller;
 
@@ -284,5 +285,70 @@ final class ScannerController extends Controller
         ], fn ($v) => $v !== null && $v !== '');
 
         return $this->redirect(array_merge(['index'], $redirectParams));
+    }
+
+    /**
+     * Halaman Validasi & Backtesting Akumulasi:
+     * Menguji kombinasi parameter RVOL, CMF, Persistence, Net Buy, OBV Slope, Window.
+     */
+    public function actionBacktest(): string
+    {
+        $request = Yii::$app->request;
+        $symbol = trim((string) $request->get('symbol', ''));
+        $exchange = trim((string) $request->get('exchange', ''));
+        $rvol = (float) $request->get('rvol', 2.0);
+        $cmf = (float) $request->get('cmf', 0.10);
+        $persistence = (int) $request->get('persistence', 3);
+        $netBuyDays = (int) $request->get('netBuyDays', 5);
+        $obvSlope = (int) $request->get('obvSlope', 10);
+        $accWindow = (int) $request->get('accWindow', 10);
+        $feePct = (float) $request->get('feePct', 0.30);
+        $slippagePct = (float) $request->get('slippagePct', 0.10);
+        $splitRatio = (float) $request->get('splitRatio', 0.70);
+        $maxStocks = (int) $request->get('maxStocks', 30);
+
+        $backtestService = new AccumulationBacktestService();
+
+        // 1. Jalankan pengujian parameter saat ini dengan walk-forward
+        $singleResult = $backtestService->runBacktest([
+            'symbol' => $symbol ?: null,
+            'exchange' => $exchange ?: null,
+            'rvolThreshold' => $rvol,
+            'cmfThreshold' => $cmf,
+            'persistenceDays' => $persistence,
+            'netBuyLookback' => $netBuyDays,
+            'obvSlopePeriod' => $obvSlope,
+            'accWindow' => $accWindow,
+            'feePct' => $feePct,
+            'slippagePct' => $slippagePct,
+            'splitRatio' => $splitRatio,
+            'maxStocks' => $maxStocks,
+        ]);
+
+        // 2. Jalankan perbandingan multi-preset untuk benchmarking
+        $comparisonResults = $backtestService->runParameterComparison([
+            'symbol' => $symbol ?: null,
+            'exchange' => $exchange ?: null,
+            'maxStocks' => min(20, $maxStocks),
+        ]);
+
+        return $this->render('backtest', [
+            'singleResult' => $singleResult,
+            'comparisonResults' => $comparisonResults,
+            'params' => [
+                'symbol' => $symbol,
+                'exchange' => $exchange,
+                'rvol' => $rvol,
+                'cmf' => $cmf,
+                'persistence' => $persistence,
+                'netBuyDays' => $netBuyDays,
+                'obvSlope' => $obvSlope,
+                'accWindow' => $accWindow,
+                'feePct' => $feePct,
+                'slippagePct' => $slippagePct,
+                'splitRatio' => $splitRatio,
+                'maxStocks' => $maxStocks,
+            ],
+        ]);
     }
 }

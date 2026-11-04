@@ -31,6 +31,11 @@ $isPresetMomentum = ($model->maxPrice == 20 && $model->minVolumeGrowth == 0.3);
         </div>
         <div class="d-flex align-items-center gap-2">
             <span class="badge bg-light text-dark border">Mode: <?= strtoupper($model->mode ?? 'weekly') ?></span>
+            <?= Html::a(
+                \app\helpers\SvgHelper::icon('graph-up') . ' Validasi & Backtesting',
+                ['/scanner/backtest'],
+                ['class' => 'btn btn-xs btn-outline-primary py-1 px-2 fw-semibold', 'title' => 'Uji empiris efektivitas threshold RVOL, CMF & Net Buy dengan walk-forward validation']
+            ) ?>
             <?= Html::a(\app\helpers\SvgHelper::icon('arrow-counterclockwise') . ' Reset', ['/scanner/index', 'mode' => $model->mode], ['class' => 'btn btn-xs btn-outline-secondary py-1 px-2']) ?>
         </div>
     </div>
