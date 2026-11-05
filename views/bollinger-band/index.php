@@ -32,22 +32,6 @@ $badgeAction = [
 ?>
 
 <!-- 1. Unified App Hero Header -->
-<div class="app-hero-header">
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
-        <div class="d-flex align-items-center gap-3">
-            <div class="app-hero-icon">
-                <?= \app\helpers\SvgHelper::icon('activity') ?>
-            </div>
-            <div>
-                <h1 class="app-hero-title">
-                    <?= Html::encode($this->title) ?>
-                </h1>
-                <p class="app-hero-desc">
-                    Penentuan waktu beli (<em>entry</em>), waktu jual (<em>take profit / exit</em>), dan deteksi <strong>⚡ Shakeout Low (Liquidity Sweep)</strong> presisi berbasis Bollinger Bands (20, 2.0).
-                </p>
-            </div>
-        </div>
-<!-- 1. Unified App Hero Header -->
 <div class="card border-0 shadow-sm mb-4 app-hero-header">
     <div class="card-body p-3 p-md-4">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
@@ -60,7 +44,7 @@ $badgeAction = [
                         <?= Html::encode($this->title) ?>
                     </h1>
                     <p class="app-hero-desc small text-muted mb-0">
-                        Strategi pembalikan &amp; breakout volatilitas: <strong>Shakeout Low</strong>, <strong>Squeeze Breakout</strong>, dan <strong>Upper Reversal</strong>.
+                        Strategi terpisah: <strong>A. Mean Reversion</strong>, <strong>B. Trend Continuation</strong>, <strong>C. Squeeze Breakout</strong>, serta prioritas utama <strong>⚡ Shakeout Low (Liquidity Sweep Engine)</strong>.
                     </p>
                 </div>
             </div>
@@ -111,47 +95,60 @@ $badgeAction = [
     </div>
 
     <div class="col-6 col-md-4 col-lg-2">
-        <a href="<?= $filterWith(['strategy' => 'buy_all']) ?>" class="kpi-card-unified card border-0 shadow-sm text-decoration-none h-100 kpi-accent-emerald <?= $params['strategy'] === 'buy_all' ? 'kpi-selected border border-success' : '' ?>">
-            <div class="card-body p-3 d-flex flex-column justify-content-between">
-                <div class="kpi-header d-flex justify-content-between align-items-center mb-1">
-                    <span class="kpi-label small fw-bold text-uppercase text-success">Sinyal Beli (Buy)</span>
-                    <?= \app\helpers\SvgHelper::icon('check-circle', ['class' => 'text-success']) ?>
-                </div>
-                <div class="kpi-value h3 fw-bold mb-1 text-success"><?= number_format((int) ($stats['buyCount'] ?? 0)) ?></div>
-                <div class="kpi-subtext small text-success">Setup Beli Aktif</div>
-            </div>
-        </a>
-    </div>
-
-    <div class="col-6 col-md-4 col-lg-3">
-        <a href="<?= $filterWith(['strategy' => 'shakeout_low']) ?>" class="kpi-card-unified card border-0 shadow-sm text-decoration-none h-100 kpi-accent-amber <?= $params['strategy'] === 'shakeout_low' ? 'kpi-selected border border-warning' : '' ?>">
+        <a href="<?= $filterWith(['strategy' => 'shakeout_low']) ?>" class="kpi-card-unified card border-0 shadow-sm text-decoration-none h-100 kpi-accent-amber <?= in_array($params['strategy'], ['shakeout_low', 'confirmed_sweep'], true) ? 'kpi-selected border border-warning' : '' ?>">
             <div class="card-body p-3 d-flex flex-column justify-content-between">
                 <div class="kpi-header d-flex justify-content-between align-items-center mb-1">
                     <span class="kpi-label small fw-bold text-uppercase text-warning-emphasis">
-                        <?= \app\helpers\SvgHelper::icon('lightning-charge-fill', ['class' => 'text-warning me-1']) ?>Shakeout Low
+                        ⚡ Shakeout Low
                     </span>
-                    <span class="badge bg-warning-subtle text-warning-emphasis px-1 py-0" style="font-size:0.65rem;">HIGH WINRATE</span>
+                    <span class="badge bg-warning text-dark px-1 py-0" style="font-size:0.65rem;">PRIORITAS</span>
                 </div>
                 <div class="kpi-value h3 fw-bold mb-1 text-dark"><?= number_format((int) ($stats['shakeoutCount'] ?? 0)) ?></div>
-                <div class="kpi-subtext small text-muted">Liquidity Sweep Bawah Band</div>
+                <div class="kpi-subtext small text-muted">Liquidity Sweep Reclaim</div>
             </div>
         </a>
     </div>
 
     <div class="col-6 col-md-4 col-lg-2">
-        <a href="<?= $filterWith(['strategy' => 'squeeze_breakout']) ?>" class="kpi-card-unified card border-0 shadow-sm text-decoration-none h-100 kpi-accent-cyan <?= $params['strategy'] === 'squeeze_breakout' ? 'kpi-selected border border-info' : '' ?>">
+        <a href="<?= $filterWith(['strategy' => 'mean_reversion']) ?>" class="kpi-card-unified card border-0 shadow-sm text-decoration-none h-100 kpi-accent-emerald <?= $params['strategy'] === 'mean_reversion' ? 'kpi-selected border border-success' : '' ?>">
             <div class="card-body p-3 d-flex flex-column justify-content-between">
                 <div class="kpi-header d-flex justify-content-between align-items-center mb-1">
-                    <span class="kpi-label small fw-bold text-uppercase text-cyan">Squeeze Breakout</span>
-                    <?= \app\helpers\SvgHelper::icon('box-arrow-up-right', ['class' => 'text-info']) ?>
+                    <span class="kpi-label small fw-bold text-uppercase text-success">A. Mean Reversion</span>
+                    <?= \app\helpers\SvgHelper::icon('arrow-down-up', ['class' => 'text-success']) ?>
                 </div>
-                <div class="kpi-value h3 fw-bold mb-1 text-info"><?= number_format((int) ($stats['squeezeCount'] ?? 0)) ?></div>
+                <div class="kpi-value h3 fw-bold mb-1 text-success"><?= number_format((int) ($stats['meanReversionCount'] ?? 0)) ?></div>
+                <div class="kpi-subtext small text-muted">Buy the Dip (Lower Reclaim)</div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-6 col-md-4 col-lg-2">
+        <a href="<?= $filterWith(['strategy' => 'trend_continuation']) ?>" class="kpi-card-unified card border-0 shadow-sm text-decoration-none h-100 kpi-accent-cyan <?= $params['strategy'] === 'trend_continuation' ? 'kpi-selected border border-info' : '' ?>">
+            <div class="card-body p-3 d-flex flex-column justify-content-between">
+                <div class="kpi-header d-flex justify-content-between align-items-center mb-1">
+                    <span class="kpi-label small fw-bold text-uppercase text-cyan">B. Trend Continue</span>
+                    <?= \app\helpers\SvgHelper::icon('graph-up-arrow', ['class' => 'text-info']) ?>
+                </div>
+                <div class="kpi-value h3 fw-bold mb-1 text-info"><?= number_format((int) ($stats['trendContinuationCount'] ?? 0)) ?></div>
+                <div class="kpi-subtext small text-muted">Pullback SMA20 / Upper Run</div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-6 col-md-4 col-lg-2">
+        <a href="<?= $filterWith(['strategy' => 'squeeze_breakout']) ?>" class="kpi-card-unified card border-0 shadow-sm text-decoration-none h-100 kpi-accent-indigo <?= $params['strategy'] === 'squeeze_breakout' ? 'kpi-selected border border-primary' : '' ?>">
+            <div class="card-body p-3 d-flex flex-column justify-content-between">
+                <div class="kpi-header d-flex justify-content-between align-items-center mb-1">
+                    <span class="kpi-label small fw-bold text-uppercase text-primary">C. Squeeze Breakout</span>
+                    <?= \app\helpers\SvgHelper::icon('box-arrow-up-right', ['class' => 'text-primary']) ?>
+                </div>
+                <div class="kpi-value h3 fw-bold mb-1 text-primary"><?= number_format((int) ($stats['squeezeCount'] ?? 0)) ?></div>
                 <div class="kpi-subtext small text-muted">Ledakan Volatilitas</div>
             </div>
         </a>
     </div>
 
-    <div class="col-12 col-md-4 col-lg-3">
+    <div class="col-6 col-md-4 col-lg-2">
         <a href="<?= $filterWith(['strategy' => 'sell_all']) ?>" class="kpi-card-unified card border-0 shadow-sm text-decoration-none h-100 kpi-accent-rose <?= $params['strategy'] === 'sell_all' ? 'kpi-selected border border-danger' : '' ?>">
             <div class="card-body p-3 d-flex flex-column justify-content-between">
                 <div class="kpi-header d-flex justify-content-between align-items-center mb-1">
@@ -159,7 +156,7 @@ $badgeAction = [
                     <?= \app\helpers\SvgHelper::icon('exclamation-triangle', ['class' => 'text-danger']) ?>
                 </div>
                 <div class="kpi-value h3 fw-bold mb-1 text-danger"><?= number_format((int) ($stats['sellCount'] ?? 0)) ?></div>
-                <div class="kpi-subtext small text-danger">Upper Reversal &amp; Cut Loss</div>
+                <div class="kpi-subtext small text-danger">Upper Rejection &amp; Cut Loss</div>
             </div>
         </a>
     </div>
@@ -171,43 +168,49 @@ $badgeAction = [
     <div class="card-header bg-white border-bottom py-2 px-3 filter-card-header">
         <div class="preset-pills-bar d-flex flex-wrap align-items-center gap-1 mb-0">
             <span class="small fw-bold text-muted me-2">
-                <?= \app\helpers\SvgHelper::icon('sliders2', ['class' => 'text-primary']) ?> Preset Cepat:
+                <?= \app\helpers\SvgHelper::icon('sliders2', ['class' => 'text-primary']) ?> Preset Strategi:
             </span>
             
             <?= Html::a(
-                \app\helpers\SvgHelper::icon('grid-fill') . ' Semua Sinyal',
+                \app\helpers\SvgHelper::icon('grid-fill') . ' Semua (' . ($stats['total'] ?? 0) . ')',
                 $filterWith(['strategy' => 'all']),
                 ['class' => 'preset-pill btn btn-sm rounded-pill px-3 py-1 ' . ($params['strategy'] === 'all' ? 'active btn-primary text-white border-primary shadow-sm' : 'btn-light text-secondary border')]
             ) ?>
 
             <?= Html::a(
-                \app\helpers\SvgHelper::icon('check-circle-fill') . ' Semua Posisi Beli',
-                $filterWith(['strategy' => 'buy_all']),
-                ['class' => 'preset-pill btn btn-sm rounded-pill px-3 py-1 ' . ($params['strategy'] === 'buy_all' ? 'active btn-primary text-white border-primary shadow-sm' : 'btn-light text-secondary border')]
-            ) ?>
-
-            <?= Html::a(
-                \app\helpers\SvgHelper::icon('lightning-charge-fill') . ' Shakeout Low (' . ($stats['shakeoutCount'] ?? 0) . ')',
+                \app\helpers\SvgHelper::icon('lightning-charge-fill') . ' ⚡ Shakeout Low (' . ($stats['shakeoutCount'] ?? 0) . ')',
                 $filterWith(['strategy' => 'shakeout_low']),
-                ['class' => 'preset-pill btn btn-sm rounded-pill px-3 py-1 ' . ($params['strategy'] === 'shakeout_low' ? 'active btn-primary text-white border-primary shadow-sm' : 'btn-light text-secondary border')]
+                ['class' => 'preset-pill btn btn-sm rounded-pill px-3 py-1 ' . ($params['strategy'] === 'shakeout_low' ? 'active btn-warning text-dark border-warning shadow-sm fw-bold' : 'btn-light text-secondary border')]
             ) ?>
 
             <?= Html::a(
-                \app\helpers\SvgHelper::icon('box-arrow-up-right') . ' Squeeze Breakout (' . ($stats['squeezeCount'] ?? 0) . ')',
+                \app\helpers\SvgHelper::icon('check2-circle') . ' Confirmed Sweep (≥70)',
+                $filterWith(['strategy' => 'confirmed_sweep']),
+                ['class' => 'preset-pill btn btn-sm rounded-pill px-3 py-1 ' . ($params['strategy'] === 'confirmed_sweep' ? 'active btn-warning text-dark border-warning shadow-sm fw-bold' : 'btn-light text-secondary border')]
+            ) ?>
+
+            <?= Html::a(
+                \app\helpers\SvgHelper::icon('arrow-down-up') . ' A. Mean Reversion (' . ($stats['meanReversionCount'] ?? 0) . ')',
+                $filterWith(['strategy' => 'mean_reversion']),
+                ['class' => 'preset-pill btn btn-sm rounded-pill px-3 py-1 ' . ($params['strategy'] === 'mean_reversion' ? 'active btn-success text-white border-success shadow-sm' : 'btn-light text-secondary border')]
+            ) ?>
+
+            <?= Html::a(
+                \app\helpers\SvgHelper::icon('graph-up-arrow') . ' B. Trend Continue (' . ($stats['trendContinuationCount'] ?? 0) . ')',
+                $filterWith(['strategy' => 'trend_continuation']),
+                ['class' => 'preset-pill btn btn-sm rounded-pill px-3 py-1 ' . ($params['strategy'] === 'trend_continuation' ? 'active btn-info text-white border-info shadow-sm' : 'btn-light text-secondary border')]
+            ) ?>
+
+            <?= Html::a(
+                \app\helpers\SvgHelper::icon('box-arrow-up-right') . ' C. Squeeze Breakout (' . ($stats['squeezeCount'] ?? 0) . ')',
                 $filterWith(['strategy' => 'squeeze_breakout']),
                 ['class' => 'preset-pill btn btn-sm rounded-pill px-3 py-1 ' . ($params['strategy'] === 'squeeze_breakout' ? 'active btn-primary text-white border-primary shadow-sm' : 'btn-light text-secondary border')]
             ) ?>
 
             <?= Html::a(
-                \app\helpers\SvgHelper::icon('arrow-down-up') . ' Lower Band Bounce',
-                $filterWith(['strategy' => 'lower_bounce']),
-                ['class' => 'preset-pill btn btn-sm rounded-pill px-3 py-1 ' . ($params['strategy'] === 'lower_bounce' ? 'active btn-primary text-white border-primary shadow-sm' : 'btn-light text-secondary border')]
-            ) ?>
-
-            <?= Html::a(
                 \app\helpers\SvgHelper::icon('shield-exclamation') . ' Exit / TP (' . ($stats['sellCount'] ?? 0) . ')',
                 $filterWith(['strategy' => 'sell_all']),
-                ['class' => 'preset-pill btn btn-sm rounded-pill px-3 py-1 ' . ($params['strategy'] === 'sell_all' ? 'active btn-primary text-white border-primary shadow-sm' : 'btn-light text-secondary border')]
+                ['class' => 'preset-pill btn btn-sm rounded-pill px-3 py-1 ' . ($params['strategy'] === 'sell_all' ? 'active btn-danger text-white border-danger shadow-sm' : 'btn-light text-secondary border')]
             ) ?>
         </div>
     </div>
@@ -261,7 +264,7 @@ $badgeAction = [
             <small class="text-muted">Menampilkan <?= count($results) ?> saham teranalisis</small>
         </div>
         <div class="small text-muted">
-            Parameter: <strong>Period 20, Multiplier 2.0</strong>
+            Parameter: <strong>Period 20, Multiplier 2.0</strong> &bull; Engine: <strong>Liquidity Sweep &amp; Multi-Strategy</strong>
         </div>
     </div>
     <div class="table-responsive">
@@ -273,6 +276,7 @@ $badgeAction = [
                     <th>Bollinger Levels</th>
                     <th>%B &amp; BandWidth</th>
                     <th>Setup &amp; Sinyal</th>
+                    <th>Skor Sweep &amp; Rejection</th>
                     <th>Area Beli (Entry)</th>
                     <th>Stop Loss</th>
                     <th>TP1 (Gain)</th>
@@ -285,7 +289,7 @@ $badgeAction = [
             <tbody>
                 <?php if (empty($results)): ?>
                     <tr>
-                        <td colspan="12" class="text-center py-5 text-muted">
+                        <td colspan="13" class="text-center py-5 text-muted">
                             <?= \app\helpers\SvgHelper::icon('inbox', ['class' => 'fs-1 d-block mb-2 text-secondary opacity-50']) ?>
                             Tidak ada saham yang memenuhi kriteria filter saat ini. Cobalah ganti preset atau reset filter.
                         </td>
@@ -296,6 +300,8 @@ $badgeAction = [
                         $act = $r['action'];
                         $actBadge = $badgeAction[$act] ?? 'secondary';
                         $isShakeout = !empty($r['is_shakeout_low']);
+                        $sweepScore = (int) ($r['sweep_score'] ?? 0);
+                        $sweepBadge = $r['sweep_badge'] ?? null;
                         ?>
                         <tr class="<?= $isShakeout ? 'table-warning bg-opacity-25' : '' ?>">
                             <td class="ps-3">
@@ -350,7 +356,7 @@ $badgeAction = [
                                         <?= Html::encode($r['action']) ?>
                                     </span>
                                     <?php if ($isShakeout): ?>
-                                        <span class="badge bg-warning text-dark border border-warning" style="font-size: 0.65rem;" title="Liquidity Sweep undercuts Lower Band by <?= $r['shakeout_undercut_pct'] ?? 0 ?>%">
+                                        <span class="badge bg-warning text-dark border border-warning" style="font-size: 0.65rem;" title="Liquidity Sweep undercut by <?= $r['shakeout_undercut_pct'] ?? 0 ?>%">
                                             <?= \app\helpers\SvgHelper::icon('lightning-charge-fill') ?> Sweep <?= $r['shakeout_undercut_pct'] ?? 0 ?>%
                                         </span>
                                     <?php endif; ?>
@@ -358,6 +364,22 @@ $badgeAction = [
                                 <div class="small text-muted mt-1" style="max-width: 170px;">
                                     <?= Html::encode($r['strategy_name']) ?>
                                 </div>
+                            </td>
+
+                            <!-- Skor Sweep & Rejection Quality -->
+                            <td>
+                                <?php if ($sweepScore > 0 || $sweepBadge !== null): ?>
+                                    <div class="d-flex align-items-center gap-1">
+                                        <span class="badge bg-<?= $sweepBadge['class'] ?? 'secondary' ?>" style="font-size: 0.75rem;" title="<?= Html::encode($sweepBadge['desc'] ?? '') ?>">
+                                            <?= $sweepScore ?>/100
+                                        </span>
+                                    </div>
+                                    <div class="small text-muted mt-0" style="font-size: 0.7rem;">
+                                        <?= Html::encode($r['sweep_status_label'] ?? '') ?>
+                                    </div>
+                                <?php else: ?>
+                                    <span class="text-muted small">-</span>
+                                <?php endif; ?>
                             </td>
 
                             <td>

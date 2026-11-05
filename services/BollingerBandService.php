@@ -29,9 +29,16 @@ final class BollingerBandService
     public const TIMEFRAME_2H = 2;
     public const TIMEFRAME_1H = 1;
 
+    // 3 Strategi Utama yang Dipisahkan Secara Eksplisit
+    public const STRATEGY_MEAN_REVERSION     = 'MEAN_REVERSION';     // Strategi A: Buy the Dip (Lower Band Reclaim)
+    public const STRATEGY_TREND_CONTINUATION = 'TREND_CONTINUATION'; // Strategi B: Buy the Trend (Middle Pullback / Upper Walking)
+    public const STRATEGY_SQUEEZE_BREAKOUT   = 'SQUEEZE_BREAKOUT';   // Strategi C: Volatility Expansion (Squeeze Breakout)
+    public const STRATEGY_LIQUIDITY_SWEEP    = 'LIQUIDITY_SWEEP';    // Fitur Prioritas: Shakeout Low Reversal
+
     // Sinyal Utama
     public const SIGNAL_SHAKEOUT_BUY     = 'SHAKEOUT_BUY';
     public const SIGNAL_LOWER_BOUNCE     = 'LOWER_BOUNCE';
+    public const SIGNAL_TREND_BUY        = 'TREND_BUY';
     public const SIGNAL_SQUEEZE_BREAKOUT = 'SQUEEZE_BREAKOUT';
     public const SIGNAL_WALKING_UPPER    = 'WALKING_UPPER';
     public const SIGNAL_UPPER_REVERSAL   = 'UPPER_REVERSAL';
@@ -46,6 +53,13 @@ final class BollingerBandService
     public const ACTION_TAKE_PROFIT = 'TAKE_PROFIT';
     public const ACTION_HOLD        = 'HOLD';
     public const ACTION_WATCH       = 'WATCH';
+
+    private ?LiquiditySweepService $sweepService = null;
+
+    public function __construct(?LiquiditySweepService $sweepService = null)
+    {
+        $this->sweepService = $sweepService ?? new LiquiditySweepService();
+    }
 
     /**
      * Timeframes yang didukung.
@@ -68,13 +82,15 @@ final class BollingerBandService
         return [
             'all' => 'Semua Saham & Kondisi',
             'buy_all' => 'Semua Sinyal Beli (Buy Signals)',
-            'shakeout_low' => '⚡ Shakeout Low (Liquidity Sweep)',
-            'lower_bounce' => 'Pantulan Lower Band (Oversold Reversal)',
-            'squeeze_breakout' => 'Squeeze Breakout (Ledakan Volatilitas)',
-            'walking_upper' => 'Walking Upper Band (Strong Bullish Momentum)',
+            'shakeout_low' => '⚡ Shakeout Low (Liquidity Sweep Engine)',
+            'confirmed_sweep' => '🔥 Confirmed Sweep (Skor ≥ 70)',
+            'mean_reversion' => 'Strategi A: Mean Reversion (Buy the Dip)',
+            'trend_continuation' => 'Strategi B: Trend Continuation (Buy the Trend)',
+            'squeeze_breakout' => 'Strategi C: Bollinger Squeeze Breakout',
+            'walking_upper' => 'Walking Upper Band (Trend Run)',
             'sell_all' => 'Sinyal Jual / Take Profit',
             'upper_reversal' => 'Upper Band Reversal (Take Profit Climax)',
-            'middle_breakdown' => 'Breakdown Middle Band (Trailing Stop / Exit)',
+            'middle_breakdown' => 'Breakdown Middle Band (Exit / Cut Loss)',
         ];
     }
 
@@ -227,7 +243,10 @@ final class BollingerBandService
             $isSqueeze = true;
         }
 
-        // Tentukan Sinyal & Rencana Trading
+        // Jalankan Dedicated Liquidity Sweep Engine
+        $sweepAnalysis = $this->sweepService->analyzeCandles($candles, (float) $currLower);
+
+        // Tentukan Sinyal & Rencana Trading dengan 3 Strategi Terpisah + Liquidity Sweep Engine
         $signalData = $this->evaluateSignal(
             $currCandle,
             $prevCandle,
@@ -244,7 +263,9 @@ final class BollingerBandService
             $rvol,
             $currRsi,
             $candlePattern,
-            $atr
+            $atr,
+            $closes,
+            $sweepAnalysis
         );
 
         $action = $signalData['action'];
@@ -335,11 +356,17 @@ final class BollingerBandService
             'candle_pattern' => $candlePattern['name'] ?? null,
             'candle_signal' => $candlePattern['signal'] ?? 'NEUTRAL',
 
-            // Sinyal & Shakeout
+            // Sinyal, Shakeout & Strategi
             'signal' => $signal,
             'action' => $action,
+            'strategy_type' => $signalData['strategy_type'] ?? self::STRATEGY_MEAN_REVERSION,
             'is_shakeout_low' => $isShakeoutLow,
             'shakeout_undercut_pct' => $shakeoutUndercutPct,
+            'sweep_score' => $sweepAnalysis['score'] ?? 0,
+            'sweep_status' => $sweepAnalysis['status'] ?? 'NONE',
+            'sweep_status_label' => $sweepAnalysis['statusLabel'] ?? 'Tidak Ada Sweep',
+            'sweep_badge' => $sweepAnalysis['statusBadge'] ?? null,
+            'sweep_analysis' => $sweepAnalysis,
             'strategy_name' => $signalData['strategy_name'],
             'strategy_badge' => $signalData['strategy_badge'],
             'description' => $signalData['description'],
@@ -373,7 +400,11 @@ final class BollingerBandService
     }
 
     /**
-     * Evaluasi sinyal Bollinger Bands dengan fitur Shakeout Low & Squeeze Breakout.
+     * Evaluasi sinyal Bollinger Bands dengan memisahkan 3 Strategi Utama:
+     * - Strategi A: Mean Reversion (Buy the Dip)
+     * - Strategi B: Trend Continuation (Buy the Trend)
+     * - Strategi C: Bollinger Squeeze Breakout (Volatility Expansion)
+     * Ditambah Fitur Prioritas: Shakeout Low (Liquidity Sweep Engine) & Hard Gate Breakdown.
      */
     private function evaluateSignal(
         array $currCandle,
@@ -391,7 +422,9 @@ final class BollingerBandService
         float $rvol,
         float $rsi,
         array $candlePattern,
-        float $atr
+        float $atr,
+        array $closes = [],
+        array $sweepAnalysis = []
     ): array {
         $currClose = (float) $currCandle['close'];
         $currOpen  = (float) $currCandle['open'];
@@ -402,156 +435,233 @@ final class BollingerBandService
         $prevOpen  = (float) $prevCandle['open'];
         $prevLow   = (float) $prevCandle['low'];
 
-        // -------------------------------------------------------------
-        // 1. ⚡ SHAKEOUT LOW (Liquidity Sweep / Bear Trap)
-        // Karakteristik: Low candle sempat menembus / undercut Lower Band
-        // sebesar 0.2% - 5.0% di bawah Lower Band, namun harga langsung
-        // diserap kuat (volume absorption) dan ditutup KEMBALI DI ATAS Lower Band.
-        // Sangat sering diiringi candle Hammer / Bullish Reversal atau RVOL >= 1.2x.
-        // -------------------------------------------------------------
-        $isShakeoutLow = false;
-        $undercutPct = 0.0;
+        // Cek Slope SMA 20 (Middle Band) & Trend Structure
+        $smaSlope = $middle - $prevMiddle;
+        $isSmaUp = $smaSlope > 0.0001;
 
-        if ($currLow < $lower && $currClose >= $lower) {
-            $undercutPct = round((($lower - $currLow) / $lower) * 100, 2);
-            if ($undercutPct >= 0.2 && $undercutPct <= 5.5 && $rsi <= 58.0) {
-                // Konfirmasi: close >= open (green candle) ATAU ada tail panjang / pin bar
-                $body = abs($currClose - $currOpen);
-                $lowerWick = min($currClose, $currOpen) - $currLow;
-                $isRejection = ($lowerWick >= $body * 1.2) || ($candlePattern['signal'] ?? '') === 'BULLISH' || $rvol >= 1.2;
-
-                if ($isRejection) {
-                    $isShakeoutLow = true;
-                }
-            }
+        // Cek EMA 20 vs EMA 50 jika closes tersedia
+        $isEmaBullish = false;
+        if (count($closes) >= 50) {
+            $ema20 = $this->calculateEma($closes, 20);
+            $ema50 = $this->calculateEma($closes, 50);
+            $currEma20 = end($ema20);
+            $currEma50 = end($ema50);
+            $isEmaBullish = ($currEma20 !== false && $currEma50 !== false && $currEma20 > $currEma50);
         }
 
-        if ($isShakeoutLow) {
+        // =============================================================
+        // HARD GATE: Breakdown Support / Lower Band Tanpa Reclaim
+        // =============================================================
+        $sweepStatus = $sweepAnalysis['status'] ?? LiquiditySweepService::STATUS_NONE;
+        $sweepScore = (int) ($sweepAnalysis['score'] ?? 0);
+        $isConfirmedSweep = in_array($sweepStatus, [
+            LiquiditySweepService::STATUS_CONFIRMED_SWEEP,
+            LiquiditySweepService::STATUS_HIGH_QUALITY_SWEEP,
+        ], true);
+
+        // Jika breakdown terdeteksi oleh sweep engine atau close di bawah lower band tanpa reclaim
+        if ($sweepStatus === LiquiditySweepService::STATUS_BREAKDOWN || ($currClose < $lower && $currClose <= $currOpen && !$isConfirmedSweep)) {
             return [
+                'strategy_type' => self::STRATEGY_MEAN_REVERSION,
+                'signal' => self::SIGNAL_LOWER_BREAKDOWN,
+                'action' => self::ACTION_SELL,
+                'is_shakeout_low' => false,
+                'shakeout_undercut_pct' => 0.0,
+                'strategy_name' => 'Breakdown Support / Lower Band (Bearish Dump)',
+                'strategy_badge' => 'dark',
+                'description' => "Harga breakdown menembus support/Lower Band tanpa reclaim ($currClose < $lower). " .
+                    ($sweepAnalysis['hardGateReason'] ?? "Tekanan jual kuat mendominasi, dilarang buy the dip sebelum reclaim terkonfirmasi."),
+            ];
+        }
+
+        // Jika Low menembus support tapi close masih di bawah support (Pending Reclaim)
+        if ($sweepStatus === LiquiditySweepService::STATUS_PENDING_RECLAIM) {
+            return [
+                'strategy_type' => self::STRATEGY_LIQUIDITY_SWEEP,
+                'signal' => self::SIGNAL_NEUTRAL,
+                'action' => self::ACTION_WATCH,
+                'is_shakeout_low' => false,
+                'shakeout_undercut_pct' => (float) ($sweepAnalysis['penetrationPct'] ?? 0.0),
+                'strategy_name' => 'Pending Reclaim (Menunggu Konfirmasi Sweep)',
+                'strategy_badge' => 'secondary',
+                'description' => "Harga sempat menusuk support reference ({$sweepAnalysis['referenceType']}) namun candle penutupan belum berhasil reclaim di atas support. Tunggu candle hijau reclaim sebelum entry.",
+            ];
+        }
+
+        // =============================================================
+        // FITUR PRIORITAS TERTINGGI: SHAKEOUT LOW (Liquidity Sweep Engine)
+        // =============================================================
+        if ($isConfirmedSweep || ($sweepScore >= 70 && !empty($sweepAnalysis['isSweep']))) {
+            $refType = $sweepAnalysis['referenceType'] ?? 'Support Zone';
+            $penPct = $sweepAnalysis['penetrationPct'] ?? 0.0;
+            return [
+                'strategy_type' => self::STRATEGY_LIQUIDITY_SWEEP,
                 'signal' => self::SIGNAL_SHAKEOUT_BUY,
                 'action' => self::ACTION_STRONG_BUY,
                 'is_shakeout_low' => true,
-                'shakeout_undercut_pct' => $undercutPct,
-                'strategy_name' => '⚡ Shakeout Low (Liquidity Sweep)',
+                'shakeout_undercut_pct' => $penPct,
+                'strategy_name' => "⚡ Shakeout Low ({$sweepAnalysis['statusLabel']})",
                 'strategy_badge' => 'warning text-dark',
-                'description' => "Terjadi liquidity sweep / bear trap di bawah Lower Band: harga sempat jebol {$undercutPct}% namun ditolak keras oleh buyer dan ditutup kembali di dalam band ($currClose >= $lower). Konfirmasi penyerapan volume (RVOL {$rvol}x). Peluang Entry Beli terbaik dengan Stop Loss sangat dekat.",
+                'description' => "Terjadi liquidity sweep berkualitas tinggi (Skor: {$sweepScore}/100) pada {$refType}. " .
+                    "Harga sempat menusuk {$penPct}% lalu di-reclaim cepat (Lower Wick: " . round(($sweepAnalysis['lowerWickRatio'] ?? 0) * 100, 1) . "%). " .
+                    "Penyerapan volume terkonfirmasi (RVOL {$rvol}x). Peluang entry terbaik dengan risiko terukur.",
             ];
         }
 
-        // -------------------------------------------------------------
-        // 2. SQUEEZE BREAKOUT (Ledakan Volatilitas)
-        // Karakteristik: Bandwidth sebelumnya sangat sempit (konsolidasi),
-        // kemudian harga breakout menembus Middle Band atau Upper Band
-        // didukung RVOL tinggi (>= 1.3x) dan candle hijau solid.
-        // -------------------------------------------------------------
+        // =============================================================
+        // STRATEGI C: BOLLINGER SQUEEZE BREAKOUT (Volatility Expansion)
+        // =============================================================
+        // Kriteria:
+        // 1. Bandwidth rendah (<= 9.0%)
+        // 2. Volume mulai meningkat (RVOL >= 1.2x)
+        // 3. Close breakout menembus Upper Band atau Middle Band dengan candle hijau
+        // =============================================================
         $wasSqueezed = ($prevBw !== null && $prevBw <= 9.0) || ($bw !== null && $bw <= 9.0);
+        $crossedAboveUpper = ($prevClose <= $prevUpper && $currClose > $upper);
         $crossedAboveMiddle = ($prevClose <= $prevMiddle && $currClose > $middle);
-        $crossedAboveUpper  = ($prevClose <= $prevUpper && $currClose > $upper);
 
-        if ($wasSqueezed && ($crossedAboveMiddle || $crossedAboveUpper) && $currClose > $currOpen && $rvol >= 1.2) {
+        if ($wasSqueezed && $crossedAboveUpper && $currClose > $currOpen && $rvol >= 1.2 && $rsi >= 50.0) {
             return [
+                'strategy_type' => self::STRATEGY_SQUEEZE_BREAKOUT,
+                'signal' => self::SIGNAL_SQUEEZE_BREAKOUT,
+                'action' => self::ACTION_STRONG_BUY,
+                'is_shakeout_low' => false,
+                'shakeout_undercut_pct' => 0.0,
+                'strategy_name' => 'Strategi C: Squeeze Breakout Upper Band',
+                'strategy_badge' => 'primary',
+                'description' => "Harga meledak breakout keluar dari fase konsolidasi sempit (BandWidth " . round($bw ?? 0, 1) . "%). " .
+                    "Close menembus Upper Band ($currClose > $upper) dengan konfirmasi volume (RVOL {$rvol}x) dan RSI bullish ($rsi). Fase awal ekspansi tren impulsif.",
+            ];
+        }
+
+        if ($wasSqueezed && $crossedAboveMiddle && $currClose > $currOpen && $rvol >= 1.15) {
+            return [
+                'strategy_type' => self::STRATEGY_SQUEEZE_BREAKOUT,
                 'signal' => self::SIGNAL_SQUEEZE_BREAKOUT,
                 'action' => self::ACTION_BUY,
                 'is_shakeout_low' => false,
-                'strategy_name' => 'Bollinger Squeeze Breakout',
+                'shakeout_undercut_pct' => 0.0,
+                'strategy_name' => 'Strategi C: Squeeze Early Breakout (Cross Middle)',
                 'strategy_badge' => 'primary',
-                'description' => "Harga meledak breakout keluar dari fase konsolidasi sempit (BandWidth " . round($bw ?? 0, 1) . "%). Transaksi didukung lonjakan volume {$rvol}x. Fase awal pergerakan tren naik impulsif.",
+                'description' => "Breakout awal fase squeeze: harga menembus Middle Band (SMA 20) dari dasar konsolidasi sempit (BW " . round($bw ?? 0, 1) . "%). RVOL {$rvol}x mengonfirmasi akumulasi baru.",
             ];
         }
 
-        // -------------------------------------------------------------
-        // 3. LOWER BAND BOUNCE (Pantulan Reversal Oversold)
-        // Karakteristik: Harga menguji atau menyentuh area Lower Band (%B <= 0.15 atau Low <= Lower Band),
-        // lalu memantul dengan candle hijau / bullish reversal, RSI oversold (< 42).
-        // -------------------------------------------------------------
-        $nearLower = ($currLow <= $lower * 1.015 && $currClose > $lower);
+        // =============================================================
+        // STRATEGI B: TREND CONTINUATION STRATEGY (Buy the Trend)
+        // =============================================================
+        // Kriteria:
+        // - Close di atas Middle Band ($currClose > $middle)
+        // - SMA 20 memiliki slope positif ($isSmaUp)
+        // - EMA 20 > EMA 50 ($isEmaBullish) atau RSI > 50
+        // - Bandwidth mulai meningkat
+        // - Entry terbaik: Pullback menuju Middle Band / area EMA 20 dengan candle bullish
+        // =============================================================
+        $isPullbackToMiddle = ($currLow <= $middle * 1.015 && $currClose >= $middle);
         $isBullishCandle = ($currClose > $currOpen) || (($candlePattern['signal'] ?? '') === 'BULLISH');
 
-        if ($nearLower && $isBullishCandle && $rsi <= 45.0) {
+        if ($currClose >= $middle && $isSmaUp && $rsi >= 50.0 && $rsi <= 68.0 && $isPullbackToMiddle && $isBullishCandle) {
             return [
-                'signal' => self::SIGNAL_LOWER_BOUNCE,
+                'strategy_type' => self::STRATEGY_TREND_CONTINUATION,
+                'signal' => self::SIGNAL_TREND_BUY,
                 'action' => self::ACTION_BUY,
                 'is_shakeout_low' => false,
-                'strategy_name' => 'Lower Band Bounce (Oversold Reversal)',
+                'shakeout_undercut_pct' => 0.0,
+                'strategy_name' => 'Strategi B: Trend Pullback to Middle Band',
                 'strategy_badge' => 'success',
-                'description' => "Harga memantul sempurna dari batas Lower Band (Oversold, RSI " . round($rsi, 1) . "). Area beli dasar (*Buy on Support*) dengan potensi rebound ke garis tengah Middle Band (SMA 20).",
+                'description' => "Saham dalam uptrend kuat (SMA 20 slope naik, RSI " . round($rsi, 1) . " > 50). " .
+                    "Terjadi pullback teratur ke garis Middle Band ($middle) lalu memantul dengan candle konfirmasi bullish. Entry momentum tren berisiko rendah.",
             ];
         }
 
-        // -------------------------------------------------------------
-        // 4. WALKING THE UPPER BAND (Strong Bullish Momentum)
-        // Karakteristik: Harga terus merambat di atas atau sepanjang Upper Band
-        // (%B >= 0.90) dan ditutup di atas Middle Band secara beruntun.
-        // -------------------------------------------------------------
-        if ($currClose >= $upper * 0.985 && $currClose > $currOpen && $rsi >= 60.0 && $rsi <= 75.0) {
+        // Walking the Upper Band: Trend run sangat kuat
+        if ($currClose >= $upper * 0.985 && $currClose > $currOpen && $rsi >= 58.0 && $rsi <= 75.0 && $isSmaUp) {
             return [
+                'strategy_type' => self::STRATEGY_TREND_CONTINUATION,
                 'signal' => self::SIGNAL_WALKING_UPPER,
                 'action' => self::ACTION_HOLD,
                 'is_shakeout_low' => false,
-                'strategy_name' => 'Walking the Upper Band',
+                'shakeout_undercut_pct' => 0.0,
+                'strategy_name' => 'Strategi B: Walking the Upper Band',
                 'strategy_badge' => 'info text-dark',
-                'description' => "Tren bullish sangat kuat: harga merayap menempel Upper Band dengan dorongan momentum tinggi. Layak dipertahankan (*Hold*) dengan trailing stop di Middle Band (SMA 20).",
+                'description' => "Harga merambat di sepanjang batas Upper Band dalam tren naik impulsif. Jangan terburu-buru SELL saat menyentuh Upper Band—ini tanda kekuatan tren. Pertahankan (Hold) dengan trailing stop di Middle Band.",
             ];
         }
 
-        // -------------------------------------------------------------
-        // 5. UPPER BAND REJECTION / OVERBOUGHT CLIMAX (Take Profit / Sell)
-        // Karakteristik: Harga sempat menembus Upper Band (%B >= 1.0 atau High > Upper),
-        // namun ditolak (Shooting Star / Bearish Engulfing / jarum atas panjang)
-        // dan RSI berada di zona Overbought (>= 70).
-        // -------------------------------------------------------------
+        // =============================================================
+        // STRATEGI A: MEAN REVERSION STRATEGY (Buy the Dip)
+        // =============================================================
+        // Kriteria BUY:
+        // 1. Harga menyentuh atau menembus Lower Band (%B <= 0.20 atau Low <= Lower Band).
+        // 2. Harga kembali close di atas Lower Band ($currClose >= $lower).
+        // 3. RSI mulai naik atau oversold reversal (RSI <= 48).
+        // 4. Volume selling mulai melemah atau ada absorption candle.
+        // 5. Tidak sedang berada dalam strong downtrend (hindari falling knife).
+        // 6. Ada konfirmasi bullish candle.
+        // Target: TP1 Middle Band, TP2 Upper Band.
+        // =============================================================
+        $touchedLower = ($currLow <= $lower * 1.015);
+        $reclaimedLower = ($currClose >= $lower);
+        $isNotStrongDowntrend = ($currClose >= $lower * 0.98); // Tidak crash ekstrem di luar band
+
+        if ($touchedLower && $reclaimedLower && $isBullishCandle && $rsi <= 48.0 && $isNotStrongDowntrend) {
+            return [
+                'strategy_type' => self::STRATEGY_MEAN_REVERSION,
+                'signal' => self::SIGNAL_LOWER_BOUNCE,
+                'action' => self::ACTION_BUY,
+                'is_shakeout_low' => false,
+                'shakeout_undercut_pct' => 0.0,
+                'strategy_name' => 'Strategi A: Mean Reversion (Buy the Dip)',
+                'strategy_badge' => 'success',
+                'description' => "Harga menyentuh batas Lower Band oversold ($lower, RSI " . round($rsi, 1) . ") lalu berhasil reclaim ditutup di atas Lower Band ($currClose) dengan candle bullish. " .
+                    "Target TP1 di Middle Band ($middle) dan TP2 di Upper Band ($upper).",
+            ];
+        }
+
+        // =============================================================
+        // EXIT & TAKE PROFIT CONDITIONS
+        // =============================================================
+        // Upper Band Rejection / Overbought Climax
         $upperRejection = ($currHigh >= $upper && $currClose < $upper);
         $isBearishCandle = ($currClose < $currOpen) || (($candlePattern['signal'] ?? '') === 'BEARISH');
 
         if (($upperRejection || ($pctB !== null && $pctB >= 0.98)) && ($isBearishCandle || $rsi >= 70.0)) {
             return [
+                'strategy_type' => self::STRATEGY_TREND_CONTINUATION,
                 'signal' => self::SIGNAL_UPPER_REVERSAL,
                 'action' => self::ACTION_TAKE_PROFIT,
                 'is_shakeout_low' => false,
-                'strategy_name' => 'Upper Band Rejection (Take Profit)',
+                'shakeout_undercut_pct' => 0.0,
+                'strategy_name' => 'Upper Band Rejection (Take Profit Climax)',
                 'strategy_badge' => 'danger',
-                'description' => "Harga mengalami penolakan tajam di Upper Band dalam kondisi jenuh beli (Overbought, RSI " . round($rsi, 1) . "). Waktu yang tepat untuk mengunci keuntungan (*Take Profit*) bertahap.",
+                'description' => "Harga mengalami penolakan tajam di Upper Band dalam kondisi jenuh beli (Overbought, RSI " . round($rsi, 1) . "). Ambil keuntungan bertahap (Partial Take Profit) 50%-70% posisi.",
             ];
         }
 
-        // -------------------------------------------------------------
-        // 6. MIDDLE BAND BREAKDOWN (Loss of Trend / Cut Loss Exit)
-        // Karakteristik: Harga menembus ke bawah garis tengah Middle Band (SMA 20)
-        // dengan candle merah solid. Sinyal perubahan tren dari bullish ke bearish.
-        // -------------------------------------------------------------
+        // Middle Band Breakdown (Loss of Trend Support)
         if ($prevClose >= $prevMiddle && $currClose < $middle * 0.995) {
             return [
+                'strategy_type' => self::STRATEGY_TREND_CONTINUATION,
                 'signal' => self::SIGNAL_MIDDLE_BREAKDOWN,
                 'action' => self::ACTION_SELL,
                 'is_shakeout_low' => false,
-                'strategy_name' => 'Middle Band Breakdown (Exit / Cut Loss)',
+                'shakeout_undercut_pct' => 0.0,
+                'strategy_name' => 'Middle Band Breakdown (Trailing Stop / Exit)',
                 'strategy_badge' => 'danger',
-                'description' => "Harga kehilangan support utama dan jebol di bawah Middle Band (SMA 20). Tren jangka pendek melemah, disarankan keluar posisi (*Exit*) atau ketatkan trailing stop.",
+                'description' => "Harga kehilangan support tren dan jebol di bawah Middle Band (SMA 20). Eksekusi exit penuh atau trailing stop untuk melindungi modal.",
             ];
         }
 
-        // -------------------------------------------------------------
-        // 7. LOWER BAND BREAKDOWN (Strong Bearish Sell)
-        // -------------------------------------------------------------
-        if ($currClose < $lower && $currClose < $currOpen && !$isShakeoutLow) {
-            return [
-                'signal' => self::SIGNAL_LOWER_BREAKDOWN,
-                'action' => self::ACTION_SELL,
-                'is_shakeout_low' => false,
-                'strategy_name' => 'Lower Band Breakdown (Bearish Dump)',
-                'strategy_badge' => 'dark',
-                'description' => "Harga breakdown ke bawah Lower Band tanpa tanda-tanda penyerapan. Tekanan jual masih mendominasi (*Avoid / Cut Loss*).",
-            ];
-        }
-
-        // 8. Kondisi Netral / Konsolidasi
+        // Kondisi Konsolidasi / Netral
         return [
+            'strategy_type' => self::STRATEGY_MEAN_REVERSION,
             'signal' => self::SIGNAL_NEUTRAL,
             'action' => self::ACTION_WATCH,
             'is_shakeout_low' => false,
+            'shakeout_undercut_pct' => 0.0,
             'strategy_name' => 'Konsolidasi Dalam Band',
             'strategy_badge' => 'secondary',
-            'description' => "Harga bergerak wajar di antara garis Middle Band dan Lower/Upper Band (%B " . round($pctB ?? 0.5, 2) . "). Tunggu konfirmasi pengujian Lower Band atau Squeeze Breakout.",
+            'description' => "Harga bergerak wajar di dalam Bollinger Bands (%B " . round($pctB ?? 0.5, 2) . "). Tunggu setup pengujian Lower Band (Mean Reversion), pullback SMA 20 (Trend Buy), atau Squeeze Breakout.",
         ];
     }
 
@@ -967,6 +1077,36 @@ final class BollingerBandService
     }
 
     /**
+     * Hitung Exponential Moving Average (EMA).
+     *
+     * @param float[] $values
+     * @param int $period
+     * @return float[]
+     */
+    public function calculateEma(array $values, int $period): array
+    {
+        $count = count($values);
+        if ($count < $period) {
+            return [];
+        }
+
+        $multiplier = 2.0 / ($period + 1.0);
+        $ema = [];
+
+        // SMA awal sebagai seed
+        $initialSlice = array_slice($values, 0, $period);
+        $currentEma = array_sum($initialSlice) / $period;
+        $ema[$period - 1] = $currentEma;
+
+        for ($i = $period; $i < $count; $i++) {
+            $currentEma = (($values[$i] - $currentEma) * $multiplier) + $currentEma;
+            $ema[$i] = $currentEma;
+        }
+
+        return $ema;
+    }
+
+    /**
      * Cocokkan hasil analisis dengan filter strategi.
      */
     private function matchesStrategyFilter(array $analysis, string $strategy): bool
@@ -974,8 +1114,10 @@ final class BollingerBandService
         return match ($strategy) {
             'buy_all' => in_array($analysis['action'], [self::ACTION_BUY, self::ACTION_STRONG_BUY], true),
             'shakeout_low' => !empty($analysis['is_shakeout_low']) || $analysis['signal'] === self::SIGNAL_SHAKEOUT_BUY,
-            'lower_bounce' => $analysis['signal'] === self::SIGNAL_LOWER_BOUNCE,
-            'squeeze_breakout' => $analysis['signal'] === self::SIGNAL_SQUEEZE_BREAKOUT,
+            'confirmed_sweep' => ($analysis['sweep_score'] ?? 0) >= 70,
+            'mean_reversion' => ($analysis['strategy_type'] ?? '') === self::STRATEGY_MEAN_REVERSION,
+            'trend_continuation' => ($analysis['strategy_type'] ?? '') === self::STRATEGY_TREND_CONTINUATION,
+            'squeeze_breakout' => ($analysis['strategy_type'] ?? '') === self::STRATEGY_SQUEEZE_BREAKOUT || $analysis['signal'] === self::SIGNAL_SQUEEZE_BREAKOUT,
             'walking_upper' => $analysis['signal'] === self::SIGNAL_WALKING_UPPER,
             'sell_all' => in_array($analysis['action'], [self::ACTION_SELL, self::ACTION_TAKE_PROFIT], true),
             'upper_reversal' => $analysis['signal'] === self::SIGNAL_UPPER_REVERSAL,

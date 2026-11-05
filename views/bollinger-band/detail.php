@@ -71,6 +71,10 @@ $markLines = [
         'label' => ['formatter' => 'TP2: $' . number_format($analysis['target_2'], 2) . ' (+' . $analysis['target_2_pct'] . '%)', 'position' => 'insideEndTop'],
     ],
 ];
+
+$sweepAnalysis = $analysis['sweep_analysis'] ?? [];
+$sweepScore = (int) ($analysis['sweep_score'] ?? 0);
+$sweepBadge = $analysis['sweep_badge'] ?? null;
 ?>
 
 <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
@@ -94,6 +98,11 @@ $markLines = [
                     <?= \app\helpers\SvgHelper::icon('lightning-charge-fill') ?> Shakeout Low (-<?= $analysis['shakeout_undercut_pct'] ?>%)
                 </span>
             <?php endif; ?>
+            <?php if ($sweepScore > 0 || $sweepBadge !== null): ?>
+                <span class="badge bg-<?= $sweepBadge['class'] ?? 'secondary' ?> fs-6 px-3 py-1 shadow-sm">
+                    <?= \app\helpers\SvgHelper::icon('shield-check') ?> Sweep: <?= $sweepScore ?>/100 (<?= Html::encode($analysis['sweep_status_label'] ?? '') ?>)
+                </span>
+            <?php endif; ?>
             <span class="badge bg-purple text-white fs-6 px-3 py-1 shadow-sm" style="background-color: #6f42c1;">
                 RSI(14): <?= number_format((float)($analysis['rsi'] ?? 50), 1) ?>
             </span>
@@ -106,6 +115,7 @@ $markLines = [
         <p class="text-muted small mb-0">
             <?= Html::encode($stock->name) ?> &bull; Sektor: <strong><?= Html::encode($stock->sector ?? 'Umum') ?></strong>
             &bull; Waktu Data: <strong><?= Html::encode($analysis['date']) ?></strong>
+            &bull; Setup Strategi: <strong><?= Html::encode($analysis['strategy_name']) ?></strong>
         </p>
     </div>
     <div class="d-flex flex-wrap align-items-center gap-2">
@@ -222,6 +232,67 @@ $markLines = [
         </div>
     </div>
 </div>
+
+<!-- SECTION SCORECARD: LIQUIDITY SWEEP & REACTION QUALITY -->
+<?php if (!empty($sweepAnalysis) && ($sweepScore > 0 || !empty($sweepAnalysis['referenceType']))): ?>
+<div class="card border-0 shadow-sm mb-4 border-start border-warning border-4">
+    <div class="card-header bg-white py-2 px-3 border-bottom d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-2">
+            <span class="text-warning fs-5"><?= \app\helpers\SvgHelper::icon('lightning-charge-fill') ?></span>
+            <h6 class="mb-0 fw-bold text-dark">Liquidity Sweep Engine Scorecard (Bobot 7-Komponen)</h6>
+        </div>
+        <div>
+            <span class="badge bg-<?= $sweepBadge['class'] ?? 'secondary' ?> fs-6 px-3 py-1">
+                Skor Sweep: <?= $sweepScore ?>/100 &bull; <?= Html::encode($analysis['sweep_status_label'] ?? '') ?>
+            </span>
+        </div>
+    </div>
+    <div class="card-body p-3">
+        <div class="row g-3">
+            <div class="col-md-3 col-6">
+                <div class="p-2 bg-light rounded">
+                    <span class="small text-muted d-block">Reference Support Low</span>
+                    <strong class="text-dark">$<?= number_format((float) ($sweepAnalysis['referenceLow'] ?? 0), 2) ?></strong>
+                    <span class="badge bg-secondary-subtle text-secondary px-1 ms-1" style="font-size:0.65rem;"><?= Html::encode($sweepAnalysis['referenceType'] ?? 'N/A') ?></span>
+                </div>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="p-2 bg-light rounded">
+                    <span class="small text-muted d-block">Penetrasi &amp; Reclaim</span>
+                    <strong class="text-danger">-<?= number_format((float) ($sweepAnalysis['penetrationPct'] ?? 0), 2) ?>%</strong>
+                    <span class="text-muted">/</span>
+                    <strong class="text-success">+<?= number_format((float) ($sweepAnalysis['reclaimPct'] ?? 0), 2) ?>%</strong>
+                </div>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="p-2 bg-light rounded">
+                    <span class="small text-muted d-block">Lower Wick Ratio (Rejection)</span>
+                    <strong class="<?= (($sweepAnalysis['lowerWickRatio'] ?? 0) >= 0.40) ? 'text-success' : 'text-muted' ?>">
+                        <?= number_format(((float) ($sweepAnalysis['lowerWickRatio'] ?? 0)) * 100, 1) ?>%
+                    </strong>
+                    <span class="small text-muted">(Min: 40%)</span>
+                </div>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="p-2 bg-light rounded">
+                    <span class="small text-muted d-block">Close Location Value (CLV)</span>
+                    <strong class="<?= (($sweepAnalysis['clv'] ?? 0) > 0) ? 'text-success' : 'text-danger' ?>">
+                        <?= number_format((float) ($sweepAnalysis['clv'] ?? 0), 2) ?>
+                    </strong>
+                    <span class="small text-muted">(Skala -1 s/d +1)</span>
+                </div>
+            </div>
+        </div>
+
+        <?php if (!empty($sweepAnalysis['hardGateReason'])): ?>
+            <div class="alert alert-danger bg-danger bg-opacity-10 border-0 mt-3 mb-0 small">
+                <strong><?= \app\helpers\SvgHelper::icon('exclamation-triangle') ?> Catatan Hard Gate:</strong>
+                <?= Html::encode($sweepAnalysis['hardGateReason']) ?>
+            </div>
+        <?php endif; ?>
+    </div>
+</div>
+<?php endif; ?>
 
 <!-- SECTION PENTING: KAPAN WAKTU BELI & KAPAN WAKTU JUAL YANG TEPAT -->
 <div class="row g-3 mb-4">

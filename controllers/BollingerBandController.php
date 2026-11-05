@@ -52,8 +52,9 @@ final class BollingerBandController extends Controller
                 'total' => count($results),
                 'buyCount' => 0,
                 'shakeoutCount' => 0,
+                'meanReversionCount' => 0,
+                'trendContinuationCount' => 0,
                 'squeezeCount' => 0,
-                'bounceCount' => 0,
                 'sellCount' => 0,
             ];
 
@@ -66,14 +67,17 @@ final class BollingerBandController extends Controller
                 if (in_array($r['action'], [BollingerBandService::ACTION_BUY, BollingerBandService::ACTION_STRONG_BUY], true)) {
                     $stats['buyCount']++;
                 }
-                if (!empty($r['is_shakeout_low']) || ($r['signal'] ?? '') === BollingerBandService::SIGNAL_SHAKEOUT_BUY) {
+                if (!empty($r['is_shakeout_low']) || ($r['signal'] ?? '') === BollingerBandService::SIGNAL_SHAKEOUT_BUY || ($r['sweep_score'] ?? 0) >= 70) {
                     $stats['shakeoutCount']++;
                 }
-                if (($r['signal'] ?? '') === BollingerBandService::SIGNAL_SQUEEZE_BREAKOUT || !empty($r['is_squeeze'])) {
-                    $stats['squeezeCount']++;
+                if (($r['strategy_type'] ?? '') === BollingerBandService::STRATEGY_MEAN_REVERSION || ($r['signal'] ?? '') === BollingerBandService::SIGNAL_LOWER_BOUNCE) {
+                    $stats['meanReversionCount']++;
                 }
-                if (($r['signal'] ?? '') === BollingerBandService::SIGNAL_LOWER_BOUNCE) {
-                    $stats['bounceCount']++;
+                if (($r['strategy_type'] ?? '') === BollingerBandService::STRATEGY_TREND_CONTINUATION || ($r['signal'] ?? '') === BollingerBandService::SIGNAL_TREND_BUY || ($r['signal'] ?? '') === BollingerBandService::SIGNAL_WALKING_UPPER) {
+                    $stats['trendContinuationCount']++;
+                }
+                if (($r['strategy_type'] ?? '') === BollingerBandService::STRATEGY_SQUEEZE_BREAKOUT || ($r['signal'] ?? '') === BollingerBandService::SIGNAL_SQUEEZE_BREAKOUT || !empty($r['is_squeeze'])) {
+                    $stats['squeezeCount']++;
                 }
                 if (in_array($r['action'], [BollingerBandService::ACTION_SELL, BollingerBandService::ACTION_TAKE_PROFIT], true)) {
                     $stats['sellCount']++;
