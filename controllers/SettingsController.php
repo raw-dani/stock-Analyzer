@@ -60,6 +60,15 @@ final class SettingsController extends Controller
             'btnClass' => 'info text-dark',
             'hasLimit' => true,
         ],
+        'data/refresh-next-batch' => [
+            'key' => 'data/refresh-next-batch',
+            'title' => 'Sync Batch Bergilir (Next 50 Stocks)',
+            'cli' => 'data/refresh-next-batch',
+            'desc' => 'Sinkronisasi cerdas bertahap 50 saham bergilir per jam (Daily + Volume Scoring + Intraday 1H) tanpa timeout & tanpa membebani server',
+            'badge' => 'Rekomendasi Utama (Anti-Timeout)',
+            'btnClass' => 'primary',
+            'hasLimit' => true,
+        ],
         'dividend/sync-all' => [
             'key' => 'dividend/sync-all',
             'title' => 'Sync Dividen Pasar (All Stocks)',
@@ -198,10 +207,15 @@ final class SettingsController extends Controller
         $marketStatus['lastIntradayAt'] = (int) (IntradayPrice::find()->max('updated_at') ?: 0);
         $marketStatus['lastIntradayDatetime'] = (string) (IntradayPrice::find()->max('datetime') ?: '');
 
+        $currentOffset = (int) \app\models\Setting::getValue('sync_rolling_batch_offset', 0);
+        $totalStocks = (int) \app\models\Stock::find()->where(['active' => true])->count();
+
         return $this->asJson([
             'success' => true,
             'market' => $marketStatus,
             'sync' => self::getLastSyncStatus(),
+            'batchOffset' => $currentOffset,
+            'totalStocks' => $totalStocks,
         ]);
     }
 
@@ -223,6 +237,11 @@ final class SettingsController extends Controller
             @ob_end_flush();
         }
         ob_implicit_flush(true);
+
+        // Lepas session lock PHP agar tab / halaman web lain bisa diakses secara bebas dan cepat tanpa terblokir
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            @session_write_close();
+        }
 
         header('Content-Type: text/event-stream; charset=utf-8');
         header('Cache-Control: no-cache, no-store, must-revalidate');
@@ -322,6 +341,11 @@ final class SettingsController extends Controller
     {
         @set_time_limit(0);
         @ini_set('max_execution_time', '0');
+
+        // Lepas session lock PHP agar tab lain tidak terblokir
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            @session_write_close();
+        }
 
         $phpBin = self::getPhpExecutable();
         $yiiBin = Yii::getAlias('@app/yii');

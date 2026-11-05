@@ -33,10 +33,11 @@ final class DataController extends Controller
 
     public function options($actionID): array
     {
-        return array_merge(parent::options($actionID), ['from', 'to', 'limit', 'sleepMs', 'interval']);
+        return array_merge(parent::options($actionID), ['from', 'to', 'limit', 'offset', 'sleepMs', 'interval']);
     }
 
     public int $limit = 0;
+    public int $offset = 0;
     public int $sleepMs = 0;
 
     /**
@@ -115,6 +116,9 @@ final class DataController extends Controller
         $limit ??= $this->limit;
         $sleepMs ??= ($this->sleepMs ?: 1200);
         $q = Stock::find()->where(['active' => true])->orderBy(['symbol' => SORT_ASC]);
+        if ($this->offset > 0) {
+            $q->offset($this->offset);
+        }
         if ($limit > 0) {
             $q->limit($limit);
         }
@@ -164,6 +168,9 @@ final class DataController extends Controller
             return ExitCode::UNSPECIFIED_ERROR;
         }
         $q = Stock::find()->where(['active' => true])->orderBy(['symbol' => SORT_ASC]);
+        if ($this->offset > 0) {
+            $q->offset($this->offset);
+        }
         if ($limit > 0) {
             $q->limit($limit);
         }
@@ -210,6 +217,9 @@ final class DataController extends Controller
             $stocks = Stock::findAll(['symbol' => MarketDataService::normalizeSymbol($symbol)]);
         } else {
             $q = Stock::find()->where(['active' => true])->orderBy(['symbol' => SORT_ASC]);
+            if ($this->offset > 0) {
+                $q->offset($this->offset);
+            }
             if ($limit > 0) {
                 $q->limit($limit);
             }
@@ -223,6 +233,99 @@ final class DataController extends Controller
             $this->stdout(sprintf('[%d/%d] Analyzed %s: %d weeks, %d scored', $i + 1, $total, $stock->symbol, $weeks, $scored) . "\n", Console::FG_GREEN);
             // Jeda mikro (15ms) agar CPU tidak 100% dan halaman web tetap cepat responsif
             usleep(15000);
+        }
+
+        return ExitCode::OK;
+    }
+
+    /**
+     * Sinkronisasi Batch Bergilir Otomatis (Next Batch of 50 Stocks).
+     * Sangat cocok untuk cron tiap jam:
+     * Putaran 1: Saham 1-50, Putaran 2: 51-100, dst.
+     * Alur: Sync Daily Data -> Analisis Volume & Scoring -> Sync Intraday 1H.
+     * Contoh: php yii data/refresh-next-batch [--limit=50]
+     */
+    public function actionRefreshNextBatch(?int $limit = null): int
+    {
+        $batchSize = $limit ?: ($this->limit > 0 ? $this->limit : 50);
+        $totalStocks = (int) Stock::find()->where(['active' => true])->count();
+        if ($totalStocks === 0) {
+            $this->stdout("Tidak ada saham aktif. Jalankan php yii market/refresh-stocklist dulu.\n", Console::FG_YELLOW);
+            return ExitCode::OK;
+        }
+
+        // Ambil offset terakhir dari state/setting
+        $currentOffset = (int) \app\models\Setting::getValue('sync_rolling_batch_offset', 0);
+        if ($currentOffset >= $totalStocks) {
+            $currentOffset = 0;
+        }
+
+        $stocks = Stock::find()
+            ->where(['active' => true])
+            ->orderBy(['symbol' => SORT_ASC])
+            ->offset($currentOffset)
+            ->limit($batchSize)
+            ->all();
+
+        $count = count($stocks);
+        $endIndex = $currentOffset + $count;
+        $this->stdout(sprintf("=== MEMULAI BATCH BERGILIR: Saham #%d s/d #%d (Total %d dari %d saham aktif) ===\n", 
+            $currentOffset + 1, $endIndex, $count, $totalStocks), Console::FG_CYAN, Console::BOLD);
+
+        $provider = Yii::$app->get('marketData')->get();
+        $svc = new MarketDataService($provider);
+        $analyzer = new VolumeAnalyzerService();
+        $engine = new SignalEngineService();
+        $hasIntraday = method_exists($provider, 'getIntradayBars');
+
+        $successCount = 0;
+        $failSymbols = [];
+
+        foreach ($stocks as $idx => $stock) {
+            $sym = $stock->symbol;
+            $num = $idx + 1;
+            $this->stdout(sprintf("[%d/%d] Memproses %s (%s)... ", $num, $count, $sym, $stock->name), Console::FG_YELLOW);
+
+            try {
+                // 1. Tarik candle harian terbaru (incremental)
+                $dailyBars = $svc->syncSymbol($sym, $this->from, $this->to);
+
+                // 2. Analisis volume & scoring sinyal
+                $weeks = $analyzer->analyzeStock($stock->id);
+                $scored = $engine->scoreStock($stock);
+
+                // 3. Tarik candle 1H intraday terbaru
+                $intraBars = 0;
+                if ($hasIntraday) {
+                    try {
+                        $intraBars = $svc->syncIntraday($sym, '1h', $this->from, $this->to);
+                    } catch (\Throwable $ie) {
+                        // toleransi kegagalan intraday agar batch tidak batal
+                    }
+                }
+
+                $this->stdout(sprintf("OK (Daily: %d bars, Score: OK, 1H: %d bars)\n", $dailyBars, $intraBars), Console::FG_GREEN);
+                $successCount++;
+            } catch (\Throwable $e) {
+                $this->stdout("GAGAL: " . $e->getMessage() . "\n", Console::FG_RED);
+                $failSymbols[] = $sym;
+            }
+
+            // Jeda mikro antar saham (600ms) untuk menghormati rate limit API tanpa lemot
+            usleep(600000);
+        }
+
+        // Update offset untuk eksekusi batch berikutnya
+        $nextOffset = $endIndex >= $totalStocks ? 0 : $endIndex;
+        \app\models\Setting::setValue('sync_rolling_batch_offset', (string) $nextOffset, 'State offset batch sinkronisasi bertahap');
+
+        $this->stdout(sprintf("\n=== BATCH SELESAI: %d Sukses, %d Gagal. Offset berikutnya: #%d (%s) ===\n",
+            $successCount, count($failSymbols), $nextOffset + 1, 
+            $nextOffset === 0 ? 'Siklus penuh selesai, reset ke awal' : 'Lanjut jam berikutnya'
+        ), $failSymbols ? Console::FG_YELLOW : Console::FG_GREEN, Console::BOLD);
+
+        if ($successCount > 0) {
+            \app\services\ScannerCacheService::invalidateVersions();
         }
 
         return ExitCode::OK;

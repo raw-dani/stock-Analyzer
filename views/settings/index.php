@@ -234,6 +234,46 @@ $this->params['breadcrumbs'][] = $this->title;
                 </div>
             </div>
 
+                        <!-- CARD UTAMA REKOMENDASI: ROTASI BATCH BERGILIR OTOMATIS (50 SAHAM PER PUTARAN) -->
+            <div class="card border-0 shadow-sm mb-4 border-start border-4 border-primary bg-primary bg-opacity-10">
+                <div class="card-body p-3 d-flex justify-content-between align-items-center flex-wrap gap-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="p-3 bg-primary text-white rounded-circle shadow-sm">
+                            <i class="bi bi-arrow-repeat fs-3"></i>
+                        </div>
+                        <div>
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <h6 class="fw-bold text-dark mb-0 fs-6">🔄 Sinkronisasi Cerdas: Batch Bergilir Otomatis (Next 50 Saham)</h6>
+                                <span class="badge bg-primary text-white font-monospace" style="font-size:0.75rem;">data/refresh-next-batch</span>
+                                <span class="badge bg-success text-white font-semibold" style="font-size:0.72rem;">Rekomendasi Utama (Anti-Timeout)</span>
+                            </div>
+                            <p class="text-muted small mb-0" style="font-size:0.83rem;">
+                                Menjalankan rangkaian lengkap (<strong>Daily OHLCV &rarr; Analisis Scoring &rarr; Intraday 1H</strong>) bergilir 50 saham setiap jam.
+                                <br><span class="text-primary fw-semibold">Tidak mengunci web session, selesai dalam ~1.5 - 2 menit, dan otomatis memutar saham #1 s/d #398 tanpa duplikasi.</span>
+                            </p>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <div class="d-flex flex-column text-end me-1">
+                            <span class="small text-muted" style="font-size:0.75rem;">Ukuran Batch:</span>
+                            <select class="form-select form-select-sm" id="limit-refresh-next-batch" style="width: auto;">
+                                <option value="50" selected>50 Saham (Rekomendasi ~1.5 mnt)</option>
+                                <option value="25">25 Saham (~45 dtk)</option>
+                                <option value="75">75 Saham (~2.5 mnt)</option>
+                                <option value="100">100 Saham (~3.5 mnt)</option>
+                            </select>
+                        </div>
+                        <button type="button" class="btn btn-primary fw-bold btn-run-cmd px-3 py-2 shadow-sm text-nowrap"
+                            data-cmd="data/refresh-next-batch"
+                            data-limit-id="limit-refresh-next-batch"
+                            data-title="Sync Batch Bergilir (Next 50 Stocks)"
+                            data-cli="php yii data/refresh-next-batch">
+                            <?= \app\helpers\SvgHelper::icon('play-circle-fill', ['class' => 'me-1']) ?> Eksekusi Batch Bergilir
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Master Action Banner: Jalankan Semua Pipeline Sekaligus -->
             <div class="p-3 bg-white rounded border shadow-sm d-flex justify-content-between align-items-center flex-wrap gap-3">
                 <div class="d-flex align-items-center gap-3">

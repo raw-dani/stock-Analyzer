@@ -47,10 +47,24 @@ class Setting extends ActiveRecord
         ];
     }
 
-    public static function getValue(string $key): ?string
+    public static function getValue(string $key, mixed $default = null): ?string
     {
         $raw = static::find()->select('value')->where(['key' => $key])->scalar();
 
-        return ($raw === false || $raw === null) ? null : (string) $raw;
+        return ($raw === false || $raw === null) ? ($default !== null ? (string) $default : null) : (string) $raw;
+    }
+
+    public static function setValue(string $key, string $value, string $label = '', string $group = 'system'): bool
+    {
+        $model = static::findOne(['key' => $key]);
+        if (!$model) {
+            $model = new static();
+            $model->key = $key;
+            $model->label = $label ?: $key;
+            $model->type = self::TYPE_STRING;
+            $model->group = $group;
+        }
+        $model->value = $value;
+        return $model->save(false);
     }
 }
