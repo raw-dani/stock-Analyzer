@@ -445,9 +445,6 @@ $badgeAction = [
                                     <?= \app\helpers\SvgHelper::icon('clock') ?> <?= Html::encode($r['bar_date']) ?>
                                 </div>
                             </td>
-                                    <?= \app\helpers\SvgHelper::icon('clock') ?> <?= Html::encode($r['bar_date']) ?>
-                                </div>
-                            </td>
 
                             <!-- 3. Sinyal / Waktu Aksi -->
                             <td>
