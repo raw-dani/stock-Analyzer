@@ -130,6 +130,7 @@ $config = [
                 'stochastic/export' => 'stochastic/export',
                 'stochastic/<symbol:[A-Za-z0-9.]+>' => 'stochastic/detail',
                 'stock/chart-data' => 'stock/chart-data',
+                'stock/live-sync' => 'stock/live-sync',
                 'stock/<symbol:[A-Z.]+>' => 'stock/view',
                 'api/v1/stocks/<symbol:[A-Z0-9.\-]+>' => 'api/v1/stocks/view',
                 'POST api/v1/<controller:[\w-]+>/<action:[\w-]+>' => 'api/v1/<controller>/<action>',

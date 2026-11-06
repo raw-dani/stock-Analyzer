@@ -235,6 +235,108 @@ final class StockController extends Controller
     }
 
     /**
+     * Endpoint untuk get live data terbaru dari Yahoo Finance langsung dari halaman detail saham.
+     * Mendukung pemanggilan via GET normal (redirect) maupun AJAX/Fetch (JSON).
+     */
+    public function actionLiveSync(string $symbol): Response
+    {
+        @ini_set('max_execution_time', '120');
+        @set_time_limit(120);
+
+        $symbol = MarketDataService::normalizeSymbol($symbol);
+        $stock = Stock::find()->where(['symbol' => $symbol])->one();
+
+        $isAjax = Yii::$app->request->isAjax || Yii::$app->request->get('format') === 'json';
+
+        if ($stock === null) {
+            if ($isAjax) {
+                Yii::$app->response->format = Response::FORMAT_JSON;
+                return $this->asJson(['success' => false, 'message' => "Saham {$symbol} tidak ditemukan."]);
+            }
+            Yii::$app->session->setFlash('danger', "Saham {$symbol} tidak ditemukan.");
+            return $this->redirect(['/scanner/index']);
+        }
+
+        try {
+            $provider = new YahooFinanceProvider();
+            $marketService = new MarketDataService($provider);
+
+            // 1. Sync data candle harian terbaru (ambil 30 hari ke belakang agar candle hari ini & revisi ter-update)
+            $fromDateDaily = date('Y-m-d', strtotime('-30 days'));
+            $syncedDaily = $marketService->syncSymbol($symbol, $fromDateDaily);
+
+            // 2. Sync data intraday 1H terbaru
+            $syncedIntraday = 0;
+            try {
+                $fromDateIntraday = date('Y-m-d H:i:s', strtotime('-14 days'));
+                $syncedIntraday = $marketService->syncIntraday($symbol, '1h', $fromDateIntraday);
+            } catch (\Throwable $ie) {
+                Yii::warning("Intraday live sync skipped for {$symbol}: " . $ie->getMessage(), 'app\controllers\stock');
+            }
+
+            // 3. Klasifikasi buy/sell volume untuk bar baru
+            Yii::$app->db->createCommand("
+                UPDATE {{%daily_price}} 
+                SET buy_volume = CASE 
+                    WHEN close > open THEN volume 
+                    WHEN close < open THEN 0 
+                    ELSE FLOOR(volume / 2) 
+                END,
+                sell_volume = CASE 
+                    WHEN close > open THEN 0 
+                    WHEN close < open THEN volume 
+                    ELSE (volume - FLOOR(volume / 2)) 
+                END
+                WHERE stock_id = :stockId AND buy_volume IS NULL
+            ", [':stockId' => $stock->id])->execute();
+
+            // 4. Hitung ulang analisis mingguan & skor
+            $analyzer = new VolumeAnalyzerService();
+            $analyzer->analyzeStock($stock->id);
+
+            $engine = new SignalEngineService();
+            $engine->scoreStock($stock);
+
+            // 5. Invalidate cache scanner & app cache
+            \app\services\ScannerCacheService::invalidateVersions();
+            Yii::$app->cache?->flush();
+
+            // Ambil harga penutupan / bar terakhir yang baru didapatkan
+            $latestBar = DailyPrice::find()->where(['stock_id' => $stock->id])->orderBy(['date' => SORT_DESC])->asArray()->one();
+            $lastDate = $latestBar['date'] ?? date('Y-m-d');
+            $lastClose = isset($latestBar['close']) ? (float) $latestBar['close'] : (float) ($stock->price ?? 0);
+
+            $msg = "Live data berhasil diperbarui dari Yahoo Finance! {$syncedDaily} daily bar diperbarui (Tanggal data: {$lastDate}, Close: \${$lastClose}).";
+
+            if ($isAjax) {
+                Yii::$app->response->format = Response::FORMAT_JSON;
+                return $this->asJson([
+                    'success' => true,
+                    'message' => $msg,
+                    'lastDate' => $lastDate,
+                    'lastClose' => $lastClose,
+                    'syncedDaily' => $syncedDaily,
+                    'syncedIntraday' => $syncedIntraday,
+                ]);
+            }
+
+            Yii::$app->session->setFlash('success', $msg);
+            return $this->redirect(['view', 'symbol' => $symbol]);
+        } catch (\Throwable $e) {
+            Yii::error("Live sync failed for {$symbol}: " . $e->getMessage(), 'app\controllers\stock');
+            $errMsg = "Gagal mengambil data live dari Yahoo Finance: " . $e->getMessage();
+
+            if ($isAjax) {
+                Yii::$app->response->format = Response::FORMAT_JSON;
+                return $this->asJson(['success' => false, 'message' => $errMsg]);
+            }
+
+            Yii::$app->session->setFlash('danger', $errMsg);
+            return $this->redirect(['view', 'symbol' => $symbol]);
+        }
+    }
+
+    /**
      * JSON data untuk chart candlestick + volume + buy/sell (task 7.6).
      */
     public function actionChartData(string $symbol): array

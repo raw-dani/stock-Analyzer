@@ -67,6 +67,11 @@ $tfList = [
 
     <!-- Hubungan Antar Modul (Cross-Module Fast Actions) -->
     <div class="d-flex flex-wrap align-items-center gap-2">
+        <!-- Tombol Get Live Data Yahoo Finance -->
+        <button type="button" id="btn-live-sync" class="btn btn-success btn-sm shadow-sm fw-bold d-inline-flex align-items-center gap-1" data-symbol="<?= Html::encode($stock->symbol) ?>" title="Tarik langsung candle harga & volume harian terbaru dari Yahoo Finance">
+            <span id="btn-live-sync-icon"><?= \app\helpers\SvgHelper::icon('arrow-repeat') ?></span>
+            <span id="btn-live-sync-text">Get Live Data</span>
+        </button>
         <a href="#strategy-synthesis-section" class="btn btn-primary btn-sm shadow-sm fw-bold">
             <?= \app\helpers\SvgHelper::icon('lightning-charge-fill') ?> Keputusan Beli (Multi-Strategi)
         </a>
@@ -725,3 +730,64 @@ document.addEventListener('DOMContentLoaded', function () {
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const btnSync = document.getElementById('btn-live-sync');
+    if (!btnSync) return;
+
+    btnSync.addEventListener('click', function () {
+        const symbol = this.getAttribute('data-symbol');
+        const iconSpan = document.getElementById('btn-live-sync-icon');
+        const textSpan = document.getElementById('btn-live-sync-text');
+
+        if (!confirm('Tarik live data terbaru untuk saham ' + symbol + ' dari Yahoo Finance sekarang?')) {
+            return;
+        }
+
+        // Tampilkan state loading
+        btnSync.disabled = true;
+        btnSync.classList.remove('btn-success');
+        btnSync.classList.add('btn-secondary');
+        iconSpan.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+        textSpan.textContent = 'Mengambil Data...';
+
+        const syncUrl = '<?= Url::to(['/stock/live-sync']) ?>?symbol=' + encodeURIComponent(symbol) + '&format=json';
+
+        fetch(syncUrl, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                textSpan.textContent = 'Berhasil Diperbarui!';
+                btnSync.classList.remove('btn-secondary');
+                btnSync.classList.add('btn-success');
+                // Reload halaman agar seluruh analisis, chart, dan metrik terbaru langsung ter-render ulang
+                setTimeout(() => {
+                    window.location.reload();
+                }, 700);
+            } else {
+                alert('Gagal mengambil live data: ' + (data.message || 'Terjadi kesalahan sistem'));
+                resetBtn();
+            }
+        })
+        .catch(err => {
+            console.error('Live sync error:', err);
+            // Jika AJAX diblokir atau error jaringan, fallback direct navigation
+            window.location.href = '<?= Url::to(['/stock/live-sync']) ?>?symbol=' + encodeURIComponent(symbol);
+        });
+
+        function resetBtn() {
+            btnSync.disabled = false;
+            btnSync.classList.remove('btn-secondary');
+            btnSync.classList.add('btn-success');
+            iconSpan.innerHTML = '<?= addslashes(\app\helpers\SvgHelper::icon('arrow-repeat')) ?>';
+            textSpan.textContent = 'Get Live Data';
+        }
+    });
+});
+</script>
