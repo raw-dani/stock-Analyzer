@@ -224,6 +224,8 @@ final class CandlestickController extends Controller
         $pattern = trim((string) $request->get('pattern', 'all'));
         $volumeFilter = trim((string) $request->get('volume_filter', 'all'));
         $action = trim((string) $request->get('action', 'all'));
+        $confirmationFilter = trim((string) $request->get('confirmation_status', 'all'));
+        $minScore = (int) $request->get('min_score', 0);
 
         // Handle Quick Presets
         if ($preset === 'shakeout_low') {
@@ -243,6 +245,12 @@ final class CandlestickController extends Controller
             $action = 'buy_only';
         } elseif ($preset === 'supportive_vol') {
             $volumeFilter = 'supportive_only';
+        } elseif ($preset === 'confirmed_buys') {
+            $action = 'buy_only';
+            $confirmationFilter = 'confirmed_only';
+        } elseif ($preset === 'excellent_setups') {
+            $action = 'buy_only';
+            $minScore = 75;
         } elseif ($preset === 'doji_watch') {
             $pattern = CandlestickService::PATTERN_DOJI;
         } elseif ($preset === 'sell_alerts') {
@@ -255,6 +263,8 @@ final class CandlestickController extends Controller
             'pattern' => $pattern,
             'volume_filter' => $volumeFilter,
             'action' => $action,
+            'confirmation_status' => $confirmationFilter,
+            'min_score' => $minScore,
             'symbol' => trim((string) $request->get('symbol', '')),
             'sector' => trim((string) $request->get('sector', '')),
             'exchange' => trim((string) $request->get('exchange', '')),

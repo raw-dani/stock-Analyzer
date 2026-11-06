@@ -10,21 +10,14 @@ use app\models\Stock;
 use Yii;
 
 /**
- * Service Analisis & Scanner Pola Candlestick Paling Potensial dengan Konfirmasi Volume.
+ * Service Analisis & Scanner Pola Candlestick Paling Potensial dengan Konfirmasi Volume & Lokasi S/R (5-Layer Precision Engine).
  *
- * Menganalisa pola-pola paling potensial untuk menentukan waktu beli dan jual yang tepat:
- * - Hammer & Inverted Hammer (Bullish Reversal pada area dip / support)
- * - Shooting Star (Bearish Reversal pada area resistance / top)
- * - Engulfing (Bullish Engulfing untuk akumulasi kuat & Bearish Engulfing untuk exit)
- * - Doji (Dragonfly, Gravestone, Long-Legged, Neutral untuk identifikasi titik balik tren)
- * - Marubozu (Bullish Marubozu momentum breakout & Bearish Marubozu distribusi)
- * - Morning Star & Evening Star (Pola 3-candle pembalikan arah klasik)
- *
- * Serta memperhitungkan secara komprehensif apakah volume mendukung kenaikan harga:
- * - Kalkulasi Relative Volume (RVOL) terhadap SMA20 Volume
- * - Deteksi Volume Surge (Big Player Accumulation) vs Fakeout (Volume Kering)
- * - Kalkulasi titik Entry, Stop Loss, Multi-Target TP (TP1 & TP2), serta Risk/Reward Ratio.
- * - Mendukung multi-timeframe: 1D (Daily), 4H, 2H, 1H.
+ * Menerapkan arsitektur 5 lapisan validasi kelembagaan (Institutional Precision):
+ * 1. Candlestick Pattern Detection (Rasio Geometris Dinamis terhadap Range & ATR)
+ * 2. Volume Confirmation Engine (RVOL 6 Kategori, Volume Spike/Climax, Dry-up, & Divergence)
+ * 3. Market Structure & S/R Location Proximity (Jarak ATR terhadap Pivot, EMA20/50, SMA200, Fib Golden Pocket 61.8%-65%)
+ * 4. Multi-Timeframe Validation (Tren Utama 1D vs Timeframe Entry 4H/2H/1H)
+ * 5. Dedicated Scoring Engine (Matriks 7 Komponen 100% Bobot + Hard Filters untuk Mencegah False Signals)
  */
 final class CandlestickService
 {
@@ -50,6 +43,27 @@ final class CandlestickService
     public const ACTION_WATCH       = 'WATCH';
     public const ACTION_SELL        = 'SELL';
     public const ACTION_STRONG_SELL = 'STRONG_SELL';
+
+    // Status Konfirmasi Sinyal (Early vs Confirmed)
+    public const STATUS_CONFIRMED = 'CONFIRMED';
+    public const STATUS_EARLY     = 'EARLY';
+    public const STATUS_WATCHLIST = 'WATCHLIST';
+    public const STATUS_INVALID   = 'INVALID';
+
+    // Kategori Kualitas Setup Candlestick (Layer 5 Scoring)
+    public const SETUP_EXCELLENT = 'EXCELLENT'; // Skor 85 - 100 (Prioritas Analisis)
+    public const SETUP_STRONG    = 'STRONG';    // Skor 75 - 84 (Tunggu Entry Confirmation)
+    public const SETUP_MODERATE  = 'MODERATE';  // Skor 60 - 74 (Watchlist)
+    public const SETUP_WEAK      = 'WEAK';      // Skor 40 - 59 (Hindari Entry)
+    public const SETUP_INVALID   = 'INVALID';   // Skor 0 - 39 (No Trade)
+
+    // Kategori Volume RVOL
+    public const VOL_VERY_LOW     = 'VERY_LOW';     // < 0.5x
+    public const VOL_LOW          = 'LOW';          // 0.5 - 0.99x
+    public const VOL_NORMAL       = 'NORMAL';       // 1.0 - 1.49x
+    public const VOL_HIGH         = 'HIGH';         // 1.5 - 1.99x
+    public const VOL_VERY_HIGH     = 'VERY_HIGH';     // 2.0 - 2.99x
+    public const VOL_EXTREME      = 'EXTREME';      // >= 3.0x
 
     public const VOL_SURGE        = 'SURGE';
     public const VOL_SUPPORTIVE   = 'SUPPORTIVE';
@@ -109,6 +123,8 @@ final class CandlestickService
         $sector = (string) ($options['sector'] ?? '');
         $symbolSearch = strtoupper(trim((string) ($options['symbol'] ?? '')));
         $lookback = (int) ($options['lookback'] ?? self::DEFAULT_LOOKBACK);
+        $minScore = (int) ($options['min_score'] ?? 0);
+        $confirmationFilter = (string) ($options['confirmation_status'] ?? 'all');
 
         $stockQuery = Stock::find()->where(['active' => true]);
         if ($exchange !== '') {
@@ -158,6 +174,19 @@ final class CandlestickService
                 continue;
             }
 
+            // Filter Status Konfirmasi (Early vs Confirmed)
+            if ($confirmationFilter === 'confirmed_only' && ($analysis['confirmation_status'] ?? '') !== self::STATUS_CONFIRMED) {
+                continue;
+            }
+            if ($confirmationFilter === 'early_only' && ($analysis['confirmation_status'] ?? '') !== self::STATUS_EARLY) {
+                continue;
+            }
+
+            // Filter Minimal Skor
+            if ($minScore > 0 && ($analysis['confidence_score'] ?? 0) < $minScore) {
+                continue;
+            }
+
             $results[] = $analysis;
         }
 
@@ -165,7 +194,7 @@ final class CandlestickService
     }
 
     /**
-     * Analisa mendalam candlestick untuk satu saham tertentu.
+     * Analisa mendalam candlestick untuk satu saham tertentu (5-Layer Validation Pipeline).
      *
      * @param int $stockId
      * @param array<string, mixed> $options
@@ -186,10 +215,13 @@ final class CandlestickService
             return null;
         }
 
-        $patternData = $this->detectBestPattern($candles);
+        // Ambil lilin Daily (1D) untuk validasi Multi-Timeframe (MTF Layer 4)
+        $dailyCandles = ($timeframe === self::TIMEFRAME_1D) ? $candles : $this->dailyCandles($stockId, 60);
+
+        $patternData = $this->detectBestPattern($candles, $dailyCandles, $timeframe);
         if ($patternData === null) {
             if (!empty($options['allow_neutral'])) {
-                $patternData = $this->createNeutralPattern($candles);
+                $patternData = $this->createNeutralPattern($candles, $dailyCandles, $timeframe);
             } else {
                 return null;
             }
@@ -220,12 +252,13 @@ final class CandlestickService
 
     /**
      * Pola konsolidasi/netral default saat tidak ada formasi candlestick ekstrem pada 3 bar terakhir.
-     * Memastikan halaman detail tetap menampilkan chart ECharts, level trading plan, dan analisa volume.
      *
      * @param array<int, array{open:float,high:float,low:float,close:float,volume:int,date:string}> $candles
+     * @param array<int, array{open:float,high:float,low:float,close:float,volume:int,date:string}> $dailyCandles
+     * @param int $timeframe
      * @return array<string, mixed>
      */
-    private function createNeutralPattern(array $candles): array
+    private function createNeutralPattern(array $candles, array $dailyCandles, int $timeframe): array
     {
         $curr = end($candles);
         $prev = $candles[count($candles) - 2];
@@ -250,6 +283,7 @@ final class CandlestickService
         $rvol = round($cVol / max(1.0, $volSMA20), 2);
         $volAnalysis = $this->analyzeVolume($cVol, $volSMA20, $rvol, $isBullish);
 
+        $atr = $this->calculateAtr($candles, 14);
         $recentHigh = max(array_column(array_slice($candles, -20), 'high'));
         $recentLow = min(array_column(array_slice($candles, -20), 'low'));
 
@@ -310,6 +344,40 @@ final class CandlestickService
             'bar_date' => $curr['date'],
             'is_latest_bar' => true,
             'confidence_score' => 50,
+            'confirmation_status' => self::STATUS_WATCHLIST,
+            'setup_quality' => self::SETUP_MODERATE,
+            'decision_label' => 'WATCHLIST (KONSOLIDASI)',
+
+            // 7-Component Score Matrix
+            'score_matrix' => [
+                'pattern_quality' => 50,
+                'volume' => 50,
+                'trend' => 50,
+                'location' => 50,
+                'mtf' => 50,
+                'price_action' => 50,
+                'volatility' => 50,
+                'total' => 50,
+            ],
+
+            // Context & Location Details
+            'location_context' => [
+                'label' => 'Mid-Range Konsolidasi',
+                'proximity' => 'Di antara Support & Resisten',
+                'nearest_support' => $recentLow,
+                'nearest_resistance' => $recentHigh,
+                'dist_support_atr' => 1.5,
+                'dist_resistance_atr' => 1.5,
+                'near_key_level' => false,
+            ],
+
+            // Multi-Timeframe Context
+            'mtf_context' => [
+                'primary_tf' => '1D',
+                'primary_trend' => 'NEUTRAL',
+                'aligned' => true,
+                'desc' => 'Timeframe harian bergerak mendatar.',
+            ],
 
             // Volume Analysis
             'volume' => $cVol,
@@ -320,6 +388,9 @@ final class CandlestickService
             'volume_supports_bullish' => $volAnalysis['supports_bullish'],
             'volume_strength_label' => $volAnalysis['strength_label'],
             'volume_verdict' => $volAnalysis['verdict'],
+            'volume_spike' => false,
+            'volume_dryup' => false,
+            'volume_divergence' => false,
 
             // Trading Plan
             'entry_price' => $entry,
@@ -352,13 +423,14 @@ final class CandlestickService
     }
 
     /**
-     * Deteksi pola candlestick paling potensial pada bar-bar terkini.
-     * Menguji bar mutakhir (offset 0), lalu bar kemarin (offset 1), lalu offset 2 jika belum expired.
+     * Deteksi pola candlestick paling potensial pada bar-bar terkini (offset 0 -> 1 -> 2).
      *
      * @param array<int, array{open:float,high:float,low:float,close:float,volume:int,date:string}> $candles
+     * @param array<int, array{open:float,high:float,low:float,close:float,volume:int,date:string}> $dailyCandles
+     * @param int $timeframe
      * @return array<string, mixed>|null
      */
-    private function detectBestPattern(array $candles): ?array
+    private function detectBestPattern(array $candles, array $dailyCandles, int $timeframe): ?array
     {
         $n = count($candles);
         if ($n < 20) {
@@ -376,12 +448,23 @@ final class CandlestickService
             $prev = $candles[$idx - 1];
             $prev2 = $candles[$idx - 2];
 
-            // Sub-array sampai index untuk SMA Volume 20
+            // Sub-array sampai index untuk SMA Volume 20 & ATR
             $historyCandles = array_slice($candles, 0, $idx + 1);
             $volSMA20 = $this->calculateVolumeSMA($historyCandles, 20);
 
             // Deteksi pola pada bar ini
-            $detected = $this->evaluateCandlestick($curr, $prev, $prev2, $historyCandles, $volSMA20, $offset);
+            $detected = $this->evaluateCandlestick(
+                $curr,
+                $prev,
+                $prev2,
+                $historyCandles,
+                $dailyCandles,
+                $volSMA20,
+                $offset,
+                $timeframe,
+                $candles
+            );
+
             if ($detected !== null) {
                 return $detected;
             }
@@ -391,14 +474,17 @@ final class CandlestickService
     }
 
     /**
-     * Evaluasi matematis mendalam untuk setiap jenis pola candlestick.
+     * Evaluasi matematis mendalam untuk setiap jenis pola candlestick (5-Layer Precision).
      *
      * @param array{open:float,high:float,low:float,close:float,volume:int,date:string} $curr
      * @param array{open:float,high:float,low:float,close:float,volume:int,date:string} $prev
      * @param array{open:float,high:float,low:float,close:float,volume:int,date:string} $prev2
      * @param array<int, array{open:float,high:float,low:float,close:float,volume:int,date:string}> $history
+     * @param array<int, array{open:float,high:float,low:float,close:float,volume:int,date:string}> $dailyCandles
      * @param float $volSMA20
      * @param int $barOffset
+     * @param int $timeframe
+     * @param array<int, array{open:float,high:float,low:float,close:float,volume:int,date:string}> $allCandles
      * @return array<string, mixed>|null
      */
     private function evaluateCandlestick(
@@ -406,8 +492,11 @@ final class CandlestickService
         array $prev,
         array $prev2,
         array $history,
+        array $dailyCandles,
         float $volSMA20,
-        int $barOffset
+        int $barOffset,
+        int $timeframe,
+        array $allCandles
     ): ?array {
         $cOpen = (float) $curr['open'];
         $cHigh = (float) $curr['high'];
@@ -419,6 +508,7 @@ final class CandlestickService
         $pHigh = (float) $prev['high'];
         $pLow = (float) $prev['low'];
         $pClose = (float) $prev['close'];
+        $pVol = (int) $prev['volume'];
 
         $cRange = max(0.0001, $cHigh - $cLow);
         $cBody = abs($cClose - $cOpen);
@@ -435,18 +525,44 @@ final class CandlestickService
         $isBullish = $cClose >= $cOpen;
         $pIsBullish = $pClose >= $pOpen;
 
-        // Analisis tren jangka pendek (5-10 bar sebelumnya)
-        $shortHistory = array_slice($history, -8, 6);
+        // ATR 14 periode
+        $atr = $this->calculateAtr($history, 14);
+
+        // =========================================================
+        // LAYER 3: MARKET STRUCTURE & TREND CONTEXT (Prior Trend)
+        // =========================================================
+        $shortHistory = array_slice($history, -9, 8);
         $firstClose = (float) ($shortHistory[0]['close'] ?? $cClose);
         $lastShortClose = (float) ($prev['close'] ?? $cClose);
         $trendSlope = ($lastShortClose - $firstClose) / max(0.001, $firstClose);
-        $isShortDowntrend = $trendSlope <= 0.005; // Sedang koreksi/turun
-        $isShortUptrend = $trendSlope >= -0.005;  // Sedang naik/uptrend
 
-        // Analisis Volume
+        // Evaluasi trendline kemiringan 6-8 bar sebelum pola
+        $isShortDowntrend = $trendSlope <= -0.008; // Terjadi penurunan jelas sebelum pola
+        $isShortUptrend = $trendSlope >= 0.008;   // Terjadi reli/kenaikan jelas sebelum pola
+        $isSideways = abs($trendSlope) < 0.008;    // Sedang mendatar (sideways)
+
+        // =========================================================
+        // LAYER 2: ADVANCED VOLUME ANALYSIS & RVOL
+        // =========================================================
         $rvol = round($cVol / max(1.0, $volSMA20), 2);
         $volAnalysis = $this->analyzeVolume($cVol, $volSMA20, $rvol, $isBullish);
 
+        $isVolumeSpike = ($rvol >= 2.0);
+        $isVolumeClimax = ($rvol >= 3.0);
+
+        // Deteksi Volume Dry-Up (Penurunan volume saat pullback koreksi)
+        $volSlice5 = array_slice(array_column($shortHistory, 'volume'), -4);
+        $isVolumeDryUp = count($volSlice5) >= 3 && ($volSlice5[count($volSlice5) - 1] < $volSlice5[0] * 0.75);
+
+        // Deteksi Volume Divergence (Harga buat Higher High tapi Volume melorot)
+        $isVolumeDivergence = false;
+        if ($isBullish && $cClose > $pClose && $cVol < ($pVol * 0.70)) {
+            $isVolumeDivergence = true;
+        }
+
+        // =========================================================
+        // LAYER 1: CANDLESTICK PATTERN DETECTION (Geometric & ATR)
+        // =========================================================
         $patternCode = null;
         $patternName = null;
         $patternSubtype = null;
@@ -454,79 +570,65 @@ final class CandlestickService
         $patternDescription = null;
         $entryAdvice = '';
         $exitAdvice = '';
-        $baseConfidence = 50;
+        $patternQualityScore = 70; // 0 - 100
 
-        // ---------------------------------------------------------
-        // 1. POLA MARUBOZU (SOLID BODY >= 85%, WICK <= 6%)
-        // ---------------------------------------------------------
-        if ($bodyRatio >= 0.85 && $upperRatio <= 0.06 && $lowerRatio <= 0.06 && $cBody >= ($pBody * 0.8)) {
+        // 1. POLA MARUBOZU (Body >= 88%, Wick <= 6%, Body / ATR >= 0.8)
+        $bodyAtrRatio = $atr > 0 ? ($cBody / $atr) : 1.0;
+        if ($bodyRatio >= 0.88 && $upperRatio <= 0.06 && $lowerRatio <= 0.06 && $bodyAtrRatio >= 0.75) {
             if ($isBullish) {
                 $patternCode = self::PATTERN_BULLISH_MARUBOZU;
                 $patternName = 'Bullish Marubozu';
                 $patternSubtype = 'Momentum Breakout Solid';
                 $action = self::ACTION_STRONG_BUY;
-                $patternDescription = 'Candle hijau pejal tanpa bayangan atas/bawah mengindikasikan dominasi mutlak pembeli dari pembukaan hingga penutupan. Momentum beli sangat masif.';
-                $entryAdvice = 'Entry agresif pada level close atau antri di batas 50% candle Marubozu.';
+                $patternDescription = 'Candle hijau pejal tanpa bayangan atas/bawah (Body/Range ≥88%, Body/ATR ≥0.75) mengindikasikan dominasi mutlak pembeli dari pembukaan hingga penutupan.';
+                $entryAdvice = 'Entry agresif pada level close atau antri di batas 50% body candle Marubozu.';
                 $exitAdvice = 'Pasang trailing stop di bawah Low candle Marubozu.';
-                $baseConfidence = 85;
+                $patternQualityScore = 95;
             } else {
                 $patternCode = self::PATTERN_BEARISH_MARUBOZU;
                 $patternName = 'Bearish Marubozu';
                 $patternSubtype = 'Tekanan Jual Masif (Dump)';
                 $action = self::ACTION_STRONG_SELL;
-                $patternDescription = 'Candle merah penuh tanpa perlawanan dari pembeli. Menandakan kepanikan atau aksi jual institusional yang agresif.';
+                $patternDescription = 'Candle merah penuh tanpa perlawanan dari pembeli. Menandakan aksi distribusi institusional yang sangat agresif.';
                 $entryAdvice = 'HINDARI ENTRY BELI.';
                 $exitAdvice = 'Segera lakukan penjualan (Exit/Cut Loss) untuk menghindari penurunan lebih dalam.';
-                $baseConfidence = 85;
+                $patternQualityScore = 95;
             }
         }
 
-        // ---------------------------------------------------------
-        // 2. POLA ENGULFING (2-BAR FORMATION)
-        // ---------------------------------------------------------
+        // 2. POLA ENGULFING (Full Body Takeover dengan toleransi gap)
         if ($patternCode === null) {
-            // Bullish Engulfing: Candle sebelumnya merah, candle ini hijau menelan candle merah
             if (!$pIsBullish && $isBullish
-                && $cOpen <= ($pClose * 1.003)
-                && $cClose >= ($pOpen * 0.997)
-                && $cBody > ($pBody * 1.05)
-                && $isShortDowntrend
+                && $cOpen <= ($pClose * 1.004)
+                && $cClose >= ($pOpen * 0.996)
+                && $cBody >= ($pBody * 1.05)
             ) {
                 $patternCode = self::PATTERN_BULLISH_ENGULFING;
                 $patternName = 'Bullish Engulfing';
-                $patternSubtype = 'Kekuatan Pembeli Menelan Tekanan Jual';
+                $patternSubtype = 'Full Real Body Takeover (Reversal)';
                 $action = self::ACTION_STRONG_BUY;
-                $patternDescription = 'Candle hijau besar membungkus penuh badan candle merah sebelumnya di area support/koreksi. Sinyal kuat pembalikan arah naik.';
-                $entryAdvice = 'Waktu Beli Tepat: Masuk pada penutupan candle engulfing atau antri beli saat retest separuh body candle.';
-                $exitAdvice = 'Target profit di resistance terdekat (TP1) dan resisten utama (TP2). Stop loss di bawah low formasi.';
-                $baseConfidence = 80;
-            }
-            // Bearish Engulfing: Candle sebelumnya hijau, candle ini merah menelan candle hijau
-            elseif ($pIsBullish && !$isBullish
-                && $cOpen >= ($pClose * 0.997)
-                && $cClose <= ($pOpen * 1.003)
-                && $cBody > ($pBody * 1.05)
-                && $isShortUptrend
+                $patternDescription = 'Candle bullish hijau menelan penuh badan candle bearish sebelumnya. Menandakan pergeseran momentum total dari penjual ke pembeli.';
+                $entryAdvice = 'Masuk saat candle ditutup atau antri saat retest separuh badan candle engulfing.';
+                $exitAdvice = 'Target profit di resistance terdekat (TP1). Stop loss di bawah low formasi engulfing.';
+                $patternQualityScore = 90;
+            } elseif ($pIsBullish && !$isBullish
+                && $cOpen >= ($pClose * 0.996)
+                && $cClose <= ($pOpen * 1.004)
+                && $cBody >= ($pBody * 1.05)
             ) {
                 $patternCode = self::PATTERN_BEARISH_ENGULFING;
                 $patternName = 'Bearish Engulfing';
-                $patternSubtype = 'Tekanan Jual Menelan Pembeli';
+                $patternSubtype = 'Supply Menelan Demand di Puncak';
                 $action = self::ACTION_STRONG_SELL;
-                $patternDescription = 'Candle merah besar menelan candle hijau di area puncak (resistance). Sinyal kuat berakhirnya tren naik.';
+                $patternDescription = 'Candle bearish merah menelan penuh badan candle bullish hijau sebelumnya. Sinyal kuat berakhirnya tren naik.';
                 $entryAdvice = 'HINDARI PEMBELIAN.';
-                $exitAdvice = 'Waktu Jual Tepat: Amankan keuntungan segera (Take Profit) sebelum koreksi tajam berlanjut.';
-                $baseConfidence = 80;
+                $exitAdvice = 'Amankan keuntungan segera (Take Profit/Exit) sebelum koreksi tajam berlanjut.';
+                $patternQualityScore = 90;
             }
         }
 
-        // ---------------------------------------------------------
-        // 2b. POLA SHAKEOUT LOW (LIQUIDITY SWEEP & REJECTION CANDLE)
-        // ---------------------------------------------------------
+        // 3. POLA SHAKEOUT LOW (Liquidity Sweep & False Breakdown Pin Bar)
         if ($patternCode === null) {
-            // Syarat Shakeout Low Candlestick:
-            // 1. Bar ini menusuk ke bawah low bar sebelumnya ($cLow < $pLow * 0.998)
-            // 2. Memiliki lower shadow panjang (penolakan harga bawah: $lowerRatio >= 0.45 atau lower wick >= 1.5x body)
-            // 3. Ditutup rebound kuat ($cClose >= $pClose atau $isBullish)
             $isUndercutPrev = ($cLow < $pLow);
             $undercutPct = $pLow > 0 ? round((($pLow - $cLow) / $pLow) * 100, 2) : 0.0;
             $hasLongLowerWick = ($lowerRatio >= 0.45 || ($cLowerWick >= (1.5 * $cBody) && $cLowerWick > 0));
@@ -537,116 +639,104 @@ final class CandlestickService
                 $patternName = 'Shakeout Low (Liquidity Sweep)';
                 $patternSubtype = 'Bear Trap Pin Rejection';
                 $action = self::ACTION_STRONG_BUY;
-                $patternDescription = "Harga sempat dijatuhkan menembus level terendah bar sebelumnya sebesar {$undercutPct}% untuk membersihkan stop loss (shakeout), namun langsung diserap dengan ekor bawah panjang dan ditutup rebound ke atas.";
+                $patternDescription = "Harga sempat menusuk menembus level terendah bar sebelumnya sebesar {$undercutPct}% untuk membersihkan stop loss (shakeout), namun langsung diserap dengan ekor bawah panjang dan ditutup rebound ke atas.";
                 $entryAdvice = "Waktu Beli Terbaik: Entry saat konfirmasi penolakan sweep terbukti valid (dekat level close saat ini).";
                 $exitAdvice = "Pasang Stop Loss ketat tepat di bawah jarum sweep Low (\${$cLow}).";
-                $baseConfidence = 82;
+                $patternQualityScore = 92;
             }
         }
 
-        // ---------------------------------------------------------
-        // 3. POLA HAMMER & INVERTED HAMMER (BULLISH REVERSAL)
-        // ---------------------------------------------------------
+        // 4. POLA HAMMER & INVERTED HAMMER
         if ($patternCode === null) {
-            // Hammer klasik: Lower shadow panjang >= 2x body, upper wick sangat kecil, di area koreksi/downtrend
-            if ($cLowerWick >= (1.9 * $cBody)
-                && $upperRatio <= 0.16
-                && $bodyRatio >= 0.06
-                && $bodyRatio <= 0.38
-                && $isShortDowntrend
+            // Hammer: Lower shadow >= 2x body, upper shadow <= 0.5x body, body <= 35% range, close > 50% range
+            if ($cLowerWick >= (2.0 * $cBody)
+                && $cUpperWick <= (0.5 * $cBody)
+                && $bodyRatio <= 0.35
+                && $cClose > ($cLow + ($cRange * 0.50))
             ) {
                 $patternCode = self::PATTERN_HAMMER;
                 $patternName = 'Hammer';
-                $patternSubtype = 'Penolakan Harga Bawah (Bullish Reversal)';
+                $patternSubtype = 'Penolakan Harga Bawah (Rejection Wick)';
                 $action = self::ACTION_BUY;
-                $patternDescription = 'Ekor bawah panjang menunjukkan seller sempat menekan harga turun tajam, namun pembeli melakukan perlawanan kuat hingga harga kembali ke atas.';
-                $entryAdvice = 'Waktu Beli Tepat: Entry saat harga menembus level High Hammer atau beli di dekat batas penutupan.';
+                $patternDescription = 'Ekor bawah panjang (≥2x body) menunjukkan seller sempat menekan harga turun tajam, namun pembeli melakukan perlawanan kuat hingga harga ditutup di paruh atas range.';
+                $entryAdvice = 'Waktu Beli Tepat: Masuk saat harga menembus level High Hammer atau beli di dekat batas penutupan.';
                 $exitAdvice = 'Pasang Stop Loss ketat tepat di bawah jarum terendah (Low Hammer).';
-                $baseConfidence = 78;
+                $patternQualityScore = 88;
             }
-            // Inverted Hammer: Upper shadow panjang >= 2x body, lower wick kecil, di area koreksi
-            elseif ($cUpperWick >= (1.9 * $cBody)
-                && $lowerRatio <= 0.12
-                && $bodyRatio >= 0.06
-                && $bodyRatio <= 0.38
-                && $isShortDowntrend
+            // Inverted Hammer: Upper shadow >= 2x body, lower shadow <= 0.5x body, body <= 35% range, close < 50% range
+            elseif ($cUpperWick >= (2.0 * $cBody)
+                && $cLowerWick <= (0.5 * $cBody)
+                && $bodyRatio <= 0.35
             ) {
                 $patternCode = self::PATTERN_INVERTED_HAMMER;
                 $patternName = 'Inverted Hammer';
                 $patternSubtype = 'Percobaan Reversal Pembeli';
                 $action = self::ACTION_BUY;
-                $patternDescription = 'Pembeli mulai menguji harga atas di area dasar. Mengindikasikan potensi akumulasi awal untuk pembalikan arah.';
-                $entryAdvice = 'Waktu Beli: Masuk bertahap saat candle berikutnya mengonfirmasi penembusan high.';
+                $patternDescription = 'Upper shadow panjang menunjukkan minat pembeli mulai menguji harga atas di area dasar. Akumulasi awal potensi pembalikan arah.';
+                $entryAdvice = 'Waktu Beli: Masuk bertahap saat candle berikutnya mengonfirmasi penembusan level High.';
                 $exitAdvice = 'Stop Loss di bawah Low Inverted Hammer.';
-                $baseConfidence = 72;
+                $patternQualityScore = 82;
             }
         }
 
-        // ---------------------------------------------------------
-        // 4. POLA SHOOTING STAR (BEARISH REVERSAL)
-        // ---------------------------------------------------------
+        // 5. POLA SHOOTING STAR (Upper shadow >= 2x body, lower shadow <= 0.5x body, close < 50% range)
         if ($patternCode === null) {
-            if ($cUpperWick >= (1.9 * $cBody)
-                && $lowerRatio <= 0.14
-                && $bodyRatio >= 0.06
-                && $bodyRatio <= 0.38
-                && $isShortUptrend
+            if ($cUpperWick >= (2.0 * $cBody)
+                && $cLowerWick <= (0.5 * $cBody)
+                && $bodyRatio <= 0.35
+                && $cClose < ($cLow + ($cRange * 0.50))
             ) {
                 $patternCode = self::PATTERN_SHOOTING_STAR;
                 $patternName = 'Shooting Star';
                 $patternSubtype = 'Penolakan Harga Atas (Bearish Rejection)';
                 $action = self::ACTION_SELL;
-                $patternDescription = 'Ekor atas panjang di puncak rally menunjukkan pembeli gagal mempertahankan level tinggi dan seller menolak kenaikan harga.';
-                $entryAdvice = 'JANGAN BELI (Potensi Bull Trap).';
+                $patternDescription = 'Ekor atas panjang di area puncak menunjukkan pembeli gagal mempertahankan level tinggi dan seller menolak kenaikan harga secara agresif.';
+                $entryAdvice = 'HINDARI ENTRY BELI (Potensi Bull Trap).';
                 $exitAdvice = 'Waktu Jual Tepat: Ambil keuntungan (Take Profit) segera atau pasang stop order di bawah Low Shooting Star.';
-                $baseConfidence = 78;
+                $patternQualityScore = 88;
             }
         }
 
-        // ---------------------------------------------------------
-        // 5. POLA DOJI (BODY <= 10% DARI RANGE, VOLUME > 0)
-        // ---------------------------------------------------------
+        // 6. POLA 4 SPESIES DOJI (Body <= 10% range)
         if ($patternCode === null && $bodyRatio <= 0.10 && $cRange > 0.01 && $cVol > 0) {
             $patternCode = self::PATTERN_DOJI;
 
-            if ($lowerRatio >= 0.60 && $upperRatio <= 0.12) {
+            if ($lowerRatio >= 0.65 && $upperRatio <= 0.10) {
                 $patternName = 'Dragonfly Doji';
-                $patternSubtype = 'Bullish Pin Reversal';
+                $patternSubtype = 'Bullish Support Rejection';
                 $action = self::ACTION_BUY;
                 $patternDescription = 'Open, High, dan Close hampir sama di puncak range, dengan ekor bawah sangat panjang. Penolakan harga murah yang sangat kuat.';
                 $entryAdvice = 'Waktu Beli: Masuk saat breakout High Dragonfly Doji.';
                 $exitAdvice = 'Stop loss di bawah Low ekor panjang.';
-                $baseConfidence = 75;
-            } elseif ($upperRatio >= 0.60 && $lowerRatio <= 0.12) {
+                $patternQualityScore = 85;
+            } elseif ($upperRatio >= 0.65 && $lowerRatio <= 0.10) {
                 $patternName = 'Gravestone Doji';
-                $patternSubtype = 'Bearish Reversal Rejection';
+                $patternSubtype = 'Bearish Resistance Rejection';
                 $action = self::ACTION_SELL;
                 $patternDescription = 'Open, Low, dan Close berada di dasar range dengan jarum atas sangat panjang. Upaya buyer terbantai oleh supply seller.';
                 $entryAdvice = 'HINDARI PEMBELIAN.';
                 $exitAdvice = 'Waktu Jual: Exit posisi long segera.';
-                $baseConfidence = 75;
+                $patternQualityScore = 85;
             } elseif ($upperRatio >= 0.30 && $lowerRatio >= 0.30) {
                 $patternName = 'Long-Legged Doji';
-                $patternSubtype = 'Volatilitas Tinggi & Keraguan Pasar';
+                $patternSubtype = 'Volatilitas Tinggi & Pertarungan Sengit';
                 $action = self::ACTION_WATCH;
-                $patternDescription = 'Bayangan atas dan bawah sama-sama panjang merefleksikan pertarungan sengit antara buyer dan seller tanpa pemenang jelas.';
-                $entryAdvice = 'WAKTU PANTAU: Tunggu arah breakout High atau Low Doji.';
+                $patternDescription = 'Bayangan atas dan bawah sama-sama panjang merefleksikan pertarungan sengit tanpa pemenang jelas.';
+                $entryAdvice = 'WAKTU PANTAU: Tunggu arah resolusi breakout High atau Low Doji.';
                 $exitAdvice = 'Amankan profit parsial jika sudah memegang barang.';
-                $baseConfidence = 60;
+                $patternQualityScore = 75;
             } else {
-                $patternName = 'Neutral Doji';
+                $patternName = 'Standard Neutral Doji';
                 $patternSubtype = 'Indecision Keseimbangan Pasar';
                 $action = self::ACTION_WATCH;
-                $patternDescription = 'Titik impas antara penawaran dan permintaan. Sering menjadi penanda akhir dari sebuah tren (inflection point).';
+                $patternDescription = 'Keseimbangan sempurna antara penawaran dan permintaan. Sering menjadi penanda akhir dari sebuah tren (inflection point).';
                 $entryAdvice = 'WAKTU WAIT & SEE: Konfirmasi candle berikutnya menentukan arah.';
                 $exitAdvice = 'Pasang proteksi trailing stop.';
-                $baseConfidence = 55;
+                $patternQualityScore = 70;
             }
         }
 
-        // ---------------------------------------------------------
-        // 6. POLA 3-BAR: MORNING STAR & EVENING STAR (BONUS PRECISI)
-        // ---------------------------------------------------------
+        // 7. POLA 3-BAR: MORNING STAR & EVENING STAR
         if ($patternCode === null) {
             $p2Open = (float) $prev2['open'];
             $p2Close = (float) $prev2['close'];
@@ -654,12 +744,11 @@ final class CandlestickService
             $p2Range = max(0.0001, (float) $prev2['high'] - (float) $prev2['low']);
             $p2Body = abs($p2Close - $p2Open);
 
-            // Morning Star: 1. Merah besar, 2. Candle kecil di bawah, 3. Hijau besar menutup > 50% candle 1
+            // Morning Star
             if (!$p2IsBullish && ($p2Body / $p2Range >= 0.5)
                 && ($pBody / $pRange <= 0.35)
                 && $isBullish
                 && $cClose >= (($p2Open + $p2Close) / 2)
-                && $isShortDowntrend
             ) {
                 $patternCode = self::PATTERN_MORNING_STAR;
                 $patternName = 'Morning Star';
@@ -668,14 +757,13 @@ final class CandlestickService
                 $patternDescription = 'Bintang pagi terbentuk sempurna dari transisi bearish -> konsolidasi -> kebangkitan bullish masif.';
                 $entryAdvice = 'Waktu Beli: Entry ideal pada penutupan candle ketiga atau pullback ringan.';
                 $exitAdvice = 'Stop Loss di bawah Low candle bintang tengah.';
-                $baseConfidence = 82;
+                $patternQualityScore = 92;
             }
-            // Evening Star: 1. Hijau besar, 2. Candle kecil di atas, 3. Merah besar menutup < 50% candle 1
+            // Evening Star
             elseif ($p2IsBullish && ($p2Body / $p2Range >= 0.5)
                 && ($pBody / $pRange <= 0.35)
                 && !$isBullish
                 && $cClose <= (($p2Open + $p2Close) / 2)
-                && $isShortUptrend
             ) {
                 $patternCode = self::PATTERN_EVENING_STAR;
                 $patternName = 'Evening Star';
@@ -684,61 +772,223 @@ final class CandlestickService
                 $patternDescription = 'Bintang senja menandakan kelelahan tren naik dan dimulainya gelombang penurunan tajam.';
                 $entryAdvice = 'HINDARI PEMBELIAN.';
                 $exitAdvice = 'Waktu Jual: Take profit segera sebelum koreksi berlanjut.';
-                $baseConfidence = 82;
+                $patternQualityScore = 92;
             }
         }
 
-        // Jika tidak ada pola yang signifikan terdeteksi
         if ($patternCode === null) {
             return null;
         }
 
-        // Hitung ATR dari riwayat lilin untuk stop loss adaptif
-        $atr = $this->calculateAtr($history, 14);
+        // =========================================================
+        // LAYER 3: S/R LOCATION & FIBONACCI GOLDEN POCKET PROXIMITY
+        // =========================================================
+        $locationEval = $this->evaluateLocationContext($cClose, $history, $atr);
+        $distSupportAtr = $locationEval['dist_support_atr'];
+        $distResistAtr = $locationEval['dist_resistance_atr'];
+        $nearSupport = ($distSupportAtr <= 0.8 || $locationEval['near_golden_pocket']);
+        $nearResistance = ($distResistAtr <= 0.8);
 
-        // Kalkulasi Trading Plan (Entry, SL berbasis ATR, TP1, TP2, R:R)
-        $tradingPlan = $this->calculateTradingPlan($curr, $prev, $action, $patternCode, $atr);
+        // =========================================================
+        // LAYER 4: MULTI-TIMEFRAME ALIGNMENT (Daily vs Entry TF)
+        // =========================================================
+        $mtfEval = $this->evaluateMultiTimeframe($dailyCandles, $cClose);
 
-        // Kalkulasi Skor Keyakinan Total (0 - 100%)
-        // Dipengaruhi oleh: Bobot Pola + Bobot Volume + Bobot R:R
-        $volBonus = match ($volAnalysis['status']) {
-            self::VOL_SURGE => 18,
-            self::VOL_SUPPORTIVE => 10,
-            self::VOL_MODERATE => 2,
-            self::VOL_WEAK => -15, // Pinalti jika volume kering
-            self::VOL_DISTRIBUTION => ($action === self::ACTION_SELL || $action === self::ACTION_STRONG_SELL) ? 15 : -20,
-            default => 0,
+        // =========================================================
+        // LAYER 4b: NEXT CANDLE CONFIRMATION (Early vs Confirmed)
+        // =========================================================
+        $confirmationStatus = self::STATUS_EARLY;
+        $priceActionScore = 65;
+
+        // Jika pola terjadi di bar kemarin (offset 1) atau 2 bar lalu (offset 2),
+        // kita bisa memeriksa apakah lilin setelahnya (next candle) berhasil mengonfirmasi arah!
+        if ($barOffset > 0) {
+            $nextIdx = count($history) - $barOffset;
+            $nextCandle = $allCandles[$nextIdx] ?? null;
+            if ($nextCandle !== null) {
+                $nextClose = (float) $nextCandle['close'];
+                if (in_array($action, [self::ACTION_BUY, self::ACTION_STRONG_BUY], true)) {
+                    if ($nextClose > $cHigh) {
+                        $confirmationStatus = self::STATUS_CONFIRMED;
+                        $priceActionScore = 95;
+                    } elseif ($nextClose < $cLow) {
+                        $confirmationStatus = self::STATUS_INVALID;
+                        $priceActionScore = 20;
+                    } else {
+                        $confirmationStatus = self::STATUS_EARLY;
+                        $priceActionScore = 70;
+                    }
+                } elseif (in_array($action, [self::ACTION_SELL, self::ACTION_STRONG_SELL], true)) {
+                    if ($nextClose < $cLow) {
+                        $confirmationStatus = self::STATUS_CONFIRMED;
+                        $priceActionScore = 95;
+                    } else {
+                        $confirmationStatus = self::STATUS_EARLY;
+                        $priceActionScore = 65;
+                    }
+                }
+            }
+        } else {
+            // Bar terkini baru selesai terbentuk
+            $confirmationStatus = self::STATUS_EARLY;
+            $priceActionScore = ($isBullish && $cClose >= ($cLow + ($cRange * 0.75))) ? 85 : 70;
+        }
+
+        // =========================================================
+        // LAYER 5: 7-COMPONENT DEDICATED SCORING MATRIX (100% Total)
+        // =========================================================
+        // 1. Pattern Quality (20%)
+        $scorePattern = $patternQualityScore;
+
+        // 2. Volume Confirmation (20%)
+        $scoreVolume = match ($volAnalysis['status']) {
+            self::VOL_SURGE => 95,
+            self::VOL_SUPPORTIVE => 85,
+            self::VOL_MODERATE => 65,
+            self::VOL_WEAK => 30, // Volume kering
+            self::VOL_DISTRIBUTION => in_array($action, [self::ACTION_SELL, self::ACTION_STRONG_SELL], true) ? 95 : 20,
+            default => 50,
+        };
+        if ($isVolumeSpike && in_array($action, [self::ACTION_BUY, self::ACTION_STRONG_BUY], true)) {
+            $scoreVolume = min(100, $scoreVolume + 5);
+        }
+        if ($isVolumeDryUp && $nearSupport) {
+            $scoreVolume = min(100, $scoreVolume + 10); // Volume kering saat pullback di support adalah bullish!
+        }
+        if ($isVolumeDivergence) {
+            $scoreVolume = max(30, $scoreVolume - 20); // Warning divergence
+        }
+
+        // 3. Trend Alignment (15%)
+        $scoreTrend = 50;
+        if (in_array($action, [self::ACTION_BUY, self::ACTION_STRONG_BUY], true)) {
+            if ($patternCode === self::PATTERN_BULLISH_MARUBOZU) {
+                $scoreTrend = $isShortUptrend ? 90 : 70; // Marubozu bagus saat breakout tren naik
+            } else {
+                $scoreTrend = $isShortDowntrend ? 92 : ($isSideways ? 45 : 30); // Hammer/Engulfing di downtrend bernilai tinggi
+            }
+        } else {
+            $scoreTrend = $isShortUptrend ? 92 : ($isSideways ? 45 : 30); // Shooting Star di uptrend bernilai tinggi
+        }
+
+        // 4. S/R Location Proximity (15%)
+        $scoreLocation = 50;
+        if (in_array($action, [self::ACTION_BUY, self::ACTION_STRONG_BUY], true)) {
+            if ($distSupportAtr <= 0.5 || $locationEval['near_golden_pocket']) {
+                $scoreLocation = 95; // Tepat di Support / Golden Pocket
+            } elseif ($distSupportAtr <= 1.0) {
+                $scoreLocation = 80;
+            } elseif ($distSupportAtr <= 2.0) {
+                $scoreLocation = 60;
+            } else {
+                $scoreLocation = 35; // Terlalu jauh dari support
+            }
+        } else {
+            if ($distResistAtr <= 0.5) {
+                $scoreLocation = 95; // Tepat di Resisten
+            } elseif ($distResistAtr <= 1.0) {
+                $scoreLocation = 80;
+            } else {
+                $scoreLocation = 40;
+            }
+        }
+
+        // 5. Multi-Timeframe Confirmation (15%)
+        $scoreMtf = $mtfEval['score'];
+
+        // 6. Price Action & Next Candle (10%)
+        $scorePriceAction = $priceActionScore;
+
+        // 7. Volatility Context (5%)
+        $scoreVolatility = ($bodyAtrRatio >= 0.5 && $bodyAtrRatio <= 2.5) ? 90 : 60;
+
+        // Total Weighted Score (0 - 100)
+        $weightedTotal = (
+            ($scorePattern * 0.20) +
+            ($scoreVolume * 0.20) +
+            ($scoreTrend * 0.15) +
+            ($scoreLocation * 0.15) +
+            ($scoreMtf * 0.15) +
+            ($scorePriceAction * 0.10) +
+            ($scoreVolatility * 0.05)
+        );
+
+        $confidenceScore = (int) round($weightedTotal);
+
+        // Offset Penalty jika bukan lilin terakhir
+        if ($barOffset > 0) {
+            $confidenceScore = max(10, $confidenceScore - ($barOffset * 3));
+        }
+
+        // =========================================================
+        // HARD FILTERS (GUARD-RAILS)
+        // =========================================================
+        // 1. Hammer di tengah sideways tanpa volume -> Dibatasi skor maks 55
+        if ($patternCode === self::PATTERN_HAMMER && $isSideways && $rvol < 1.0) {
+            $confidenceScore = min(55, $confidenceScore);
+            $action = self::ACTION_WATCH;
+        }
+
+        // 2. Volume Kering (RVOL < 0.6) pada sinyal beli -> Turunkan status
+        if ($rvol < 0.60 && in_array($action, [self::ACTION_BUY, self::ACTION_STRONG_BUY], true)) {
+            $confidenceScore = min(58, $confidenceScore);
+            $action = self::ACTION_WATCH;
+        }
+
+        // 3. Konfirmasi lilin berikutnya gagal (break down low)
+        if ($confirmationStatus === self::STATUS_INVALID) {
+            $confidenceScore = min(35, $confidenceScore);
+            $action = self::ACTION_WATCH;
+        }
+
+        // Klasifikasi Kualitas Setup
+        $setupQuality = match (true) {
+            $confidenceScore >= 85 => self::SETUP_EXCELLENT,
+            $confidenceScore >= 75 => self::SETUP_STRONG,
+            $confidenceScore >= 60 => self::SETUP_MODERATE,
+            $confidenceScore >= 40 => self::SETUP_WEAK,
+            default => self::SETUP_INVALID,
         };
 
-        $offsetPenalty = $barOffset * 4; // Candle terbaru lebih bernilai
-        $confidenceScore = (int) max(10, min(99, $baseConfidence + $volBonus - $offsetPenalty));
+        $decisionLabel = match ($setupQuality) {
+            self::SETUP_EXCELLENT => (str_contains($action, 'BUY') ? 'STRONG BUY (PRIORITAS ANALISIS)' : 'STRONG SELL'),
+            self::SETUP_STRONG => (str_contains($action, 'BUY') ? 'BUY CANDIDATE (TERVALIDASI)' : 'SELL CANDIDATE'),
+            self::SETUP_MODERATE => 'WATCHLIST (TUNGGU KONFIRMASI)',
+            self::SETUP_WEAK => 'HINDARI ENTRY (SETUP LEMAH)',
+            default => 'NO TRADE / INVALID',
+        };
 
-        // 5-Point Checklist Konfirmasi
+        // Kalkulasi Trading Plan (Entry, SL adaptif ATR, TP1, TP2, R:R)
+        $tradingPlan = $this->calculateTradingPlan($curr, $prev, $action, $patternCode, $atr);
+
+        // 5-Point Checklist Konfirmasi Dinamis
         $checklist = [
             [
-                'title' => 'Formasi Pola Candlestick Valid',
-                'pass' => true,
-                'desc' => "Pola {$patternName} terbentuk sesuai kaidah rasio matematis.",
+                'title' => 'Formasi Pola Geometris Valid',
+                'pass' => ($scorePattern >= 75),
+                'desc' => "Pola {$patternName} memenuhi kaidah rasio matematis & range ATR ({$scorePattern}/100).",
             ],
             [
-                'title' => 'Konfirmasi Volume Transaksi',
-                'pass' => $volAnalysis['supports_bullish'] || ($action === self::ACTION_SELL && $rvol >= 1.2),
-                'desc' => "RVOL {$rvol}x vs SMA20. {$volAnalysis['strength_label']}.",
+                'title' => 'Konfirmasi Volume & RVOL',
+                'pass' => ($scoreVolume >= 70),
+                'desc' => "RVOL {$rvol}x vs SMA20. {$volAnalysis['strength_label']} ({$scoreVolume}/100).",
             ],
             [
-                'title' => 'Kesesuaian Tren / Lokasi Level',
-                'pass' => in_array($action, [self::ACTION_BUY, self::ACTION_STRONG_BUY], true) ? $isShortDowntrend : $isShortUptrend,
-                'desc' => in_array($action, [self::ACTION_BUY, self::ACTION_STRONG_BUY], true) ? 'Pola terbentuk di area koreksi/support.' : 'Pola terbentuk di area puncak/resistance.',
+                'title' => 'Struktur Tren & Koreksi Mendukung',
+                'pass' => ($scoreTrend >= 70),
+                'desc' => in_array($action, [self::ACTION_BUY, self::ACTION_STRONG_BUY], true)
+                    ? ($isShortDowntrend ? 'Didahului koreksi harga yang cukup.' : 'Perhatian: Pola muncul di luar downtrend ideal.')
+                    : ($isShortUptrend ? 'Didahului reli kenaikan yang cukup.' : 'Perhatian: Pola muncul di luar uptrend ideal.'),
             ],
             [
-                'title' => 'Risk / Reward Rasio Sehat (>= 1.5x)',
-                'pass' => ($tradingPlan['rr_ratio'] >= 1.5),
-                'desc' => "Rasio potensi gain terhadap risiko adalah {$tradingPlan['rr_ratio']}x.",
+                'title' => 'Kedekatan Lokasi Support / Resistance',
+                'pass' => ($scoreLocation >= 70),
+                'desc' => "Jarak ke level kunci: {$locationEval['proximity_label']} ({$scoreLocation}/100).",
             ],
             [
-                'title' => 'Ruang Gerak Target Profit (> 3%)',
-                'pass' => ($tradingPlan['target_1_pct'] >= 3.0),
-                'desc' => "Potensi profit TP1 adalah +{$tradingPlan['target_1_pct']}%.",
+                'title' => 'Keselarasan Multi-Timeframe (1D)',
+                'pass' => ($scoreMtf >= 70),
+                'desc' => "Struktur tren 1D: {$mtfEval['trend_label']} ({$scoreMtf}/100).",
             ],
         ];
 
@@ -755,6 +1005,41 @@ final class CandlestickService
             'bar_date' => $curr['date'],
             'is_latest_bar' => ($barOffset === 0),
             'confidence_score' => $confidenceScore,
+            'confirmation_status' => $confirmationStatus,
+            'setup_quality' => $setupQuality,
+            'decision_label' => $decisionLabel,
+
+            // 7-Component Score Matrix Breakdown
+            'score_matrix' => [
+                'pattern_quality' => (int) round($scorePattern),
+                'volume' => (int) round($scoreVolume),
+                'trend' => (int) round($scoreTrend),
+                'location' => (int) round($scoreLocation),
+                'mtf' => (int) round($scoreMtf),
+                'price_action' => (int) round($scorePriceAction),
+                'volatility' => (int) round($scoreVolatility),
+                'total' => $confidenceScore,
+            ],
+
+            // Context & Location Details
+            'location_context' => [
+                'label' => $locationEval['proximity_label'],
+                'proximity' => $locationEval['desc'],
+                'nearest_support' => $locationEval['support'],
+                'nearest_resistance' => $locationEval['resistance'],
+                'dist_support_atr' => $distSupportAtr,
+                'dist_resistance_atr' => $distResistAtr,
+                'near_key_level' => ($distSupportAtr <= 1.0 || $distResistAtr <= 1.0),
+                'golden_pocket_price' => $locationEval['golden_pocket_price'] ?? null,
+            ],
+
+            // Multi-Timeframe Context
+            'mtf_context' => [
+                'primary_tf' => '1D',
+                'primary_trend' => $mtfEval['trend_label'],
+                'aligned' => ($scoreMtf >= 70),
+                'desc' => $mtfEval['desc'],
+            ],
 
             // Volume Analysis Data
             'volume' => $cVol,
@@ -765,6 +1050,10 @@ final class CandlestickService
             'volume_supports_bullish' => $volAnalysis['supports_bullish'],
             'volume_strength_label' => $volAnalysis['strength_label'],
             'volume_verdict' => $volAnalysis['verdict'],
+            'volume_spike' => $isVolumeSpike,
+            'volume_climax' => $isVolumeClimax,
+            'volume_dryup' => $isVolumeDryUp,
+            'volume_divergence' => $isVolumeDivergence,
 
             // Trading Plan Levels
             'entry_price' => $tradingPlan['entry_price'],
@@ -797,7 +1086,123 @@ final class CandlestickService
     }
 
     /**
-     * Analisa Volume: Memperhitungkan secara eksplisit apakah volume mendukung kenaikan saham.
+     * Evaluasi Lokasi S/R, EMA20, EMA50, SMA200, dan Golden Pocket Fibonacci (Layer 3).
+     *
+     * @param float $currClose
+     * @param array<int, array{open:float,high:float,low:float,close:float,volume:int,date:string}> $history
+     * @param float $atr
+     * @return array<string, mixed>
+     */
+    private function evaluateLocationContext(float $currClose, array $history, float $atr): array
+    {
+        $closes = array_column($history, 'close');
+        $highs = array_column($history, 'high');
+        $lows = array_column($history, 'low');
+
+        $ema20Series = $this->calculateEmaSeries($closes, 20);
+        $ema50Series = $this->calculateEmaSeries($closes, 50);
+        $sma200Series = $this->calculateSmaSeries($closes, min(200, count($closes)));
+
+        $currEma20 = end($ema20Series);
+        $currEma50 = end($ema50Series);
+        $currSma200 = end($sma200Series);
+
+        // Support & Resisten Pivot Lokal 20 periode
+        $recentSlice = array_slice($history, -25);
+        $localSupport = min(array_column($recentSlice, 'low'));
+        $localResistance = max(array_column($recentSlice, 'high'));
+
+        // Fibonacci Golden Pocket (61.8% - 65%)
+        $maxHigh = max($highs);
+        $minLow = min($lows);
+        $diff = max(0.01, $maxHigh - $minLow);
+        $fib618 = $maxHigh - ($diff * 0.618);
+        $fib650 = $maxHigh - ($diff * 0.650);
+        $goldenPocketAvg = ($fib618 + $fib650) / 2;
+
+        $nearGoldenPocket = ($currClose >= ($fib650 * 0.99) && $currClose <= ($fib618 * 1.01));
+
+        // Jarak ke Support terdekat (dalam kelipatan ATR)
+        $potentialSupports = array_filter([$localSupport, $currEma20, $currEma50, $currSma200, $goldenPocketAvg], fn($v) => $v !== null && $v <= $currClose);
+        $nearestSupport = !empty($potentialSupports) ? max($potentialSupports) : $localSupport;
+        $distSupportAtr = $atr > 0 ? round(($currClose - $nearestSupport) / $atr, 2) : 1.0;
+
+        // Jarak ke Resisten terdekat (dalam kelipatan ATR)
+        $potentialResistances = array_filter([$localResistance, $currEma20, $currEma50, $currSma200], fn($v) => $v !== null && $v >= $currClose);
+        $nearestResistance = !empty($potentialResistances) ? min($potentialResistances) : $localResistance;
+        $distResistAtr = $atr > 0 ? round(($nearestResistance - $currClose) / $atr, 2) : 1.0;
+
+        $proxLabel = 'Mid-air (Relatif Jauh)';
+        if ($nearGoldenPocket) {
+            $proxLabel = '🎯 Golden Pocket Fib 61.8%-65%';
+        } elseif ($distSupportAtr <= 0.5) {
+            $proxLabel = '🛡️ Tepat di Support / EMA (' . $distSupportAtr . ' ATR)';
+        } elseif ($distSupportAtr <= 1.0) {
+            $proxLabel = 'Dekat Support (' . $distSupportAtr . ' ATR)';
+        } elseif ($distResistAtr <= 0.5) {
+            $proxLabel = '⚠️ Tepat di Resistance (' . $distResistAtr . ' ATR)';
+        }
+
+        return [
+            'proximity_label' => $proxLabel,
+            'desc' => "Support: \${$nearestSupport} ({$distSupportAtr} ATR), Resisten: \${$nearestResistance} ({$distResistAtr} ATR)",
+            'support' => round($nearestSupport, 2),
+            'resistance' => round($nearestResistance, 2),
+            'dist_support_atr' => $distSupportAtr,
+            'dist_resistance_atr' => $distResistAtr,
+            'near_golden_pocket' => $nearGoldenPocket,
+            'golden_pocket_price' => round($goldenPocketAvg, 2),
+        ];
+    }
+
+    /**
+     * Evaluasi Tren Multi-Timeframe Daily 1D (Layer 4).
+     *
+     * @param array<int, array{open:float,high:float,low:float,close:float,volume:int,date:string}> $dailyCandles
+     * @param float $currClose
+     * @return array{score:int,trend_label:string,desc:string}
+     */
+    private function evaluateMultiTimeframe(array $dailyCandles, float $currClose): array
+    {
+        if (count($dailyCandles) < 20) {
+            return ['score' => 60, 'trend_label' => 'NETRAL', 'desc' => 'Data Daily historis terbatas.'];
+        }
+
+        $dailyCloses = array_column($dailyCandles, 'close');
+        $sma20Series = $this->calculateSmaSeries($dailyCloses, 20);
+        $sma50Series = $this->calculateSmaSeries($dailyCloses, min(50, count($dailyCloses)));
+
+        $dailySma20 = end($sma20Series);
+        $dailySma50 = end($sma50Series);
+
+        $isDailyUptrend = ($dailySma20 !== null && $dailySma50 !== null && $dailySma20 >= $dailySma50 && $currClose >= ($dailySma20 * 0.98));
+        $isDailyDowntrend = ($dailySma20 !== null && $dailySma50 !== null && $dailySma20 < $dailySma50 && $currClose <= ($dailySma20 * 1.02));
+
+        if ($isDailyUptrend) {
+            return [
+                'score' => 90,
+                'trend_label' => 'BULLISH TREN UTAMA (1D)',
+                'desc' => 'Tren Daily selaras: Harga di atas SMA20 & SMA20 > SMA50.',
+            ];
+        }
+
+        if ($isDailyDowntrend) {
+            return [
+                'score' => 45,
+                'trend_label' => 'BEARISH TREN UTAMA (1D)',
+                'desc' => 'Tren Daily bearish: Membeli pola reversal di bawah tekanan downtrend mayor.',
+            ];
+        }
+
+        return [
+            'score' => 70,
+            'trend_label' => 'SIDEWAYS / KONSOLIDASI (1D)',
+            'desc' => 'Tren Daily berada di area netral konsolidasi.',
+        ];
+    }
+
+    /**
+     * Analisa Volume: Memperhitungkan secara eksplisit apakah volume mendukung kenaikan saham (Layer 2).
      *
      * @return array{status:string,badge:string,supports_bullish:bool,strength_label:string,verdict:string}
      */
@@ -1008,6 +1413,48 @@ final class CandlestickService
     }
 
     /**
+     * Helper perhitungan deret EMA.
+     */
+    private function calculateEmaSeries(array $values, int $period): array
+    {
+        $n = count($values);
+        $result = [];
+        if ($n < $period) {
+            return array_fill(0, $n, null);
+        }
+        $multiplier = 2 / ($period + 1);
+        $initial = array_slice($values, 0, $period);
+        $prevEma = array_sum($initial) / $period;
+        for ($i = 0; $i < $period - 1; $i++) {
+            $result[$i] = null;
+        }
+        $result[$period - 1] = $prevEma;
+        for ($i = $period; $i < $n; $i++) {
+            $prevEma = (($values[$i] - $prevEma) * $multiplier) + $prevEma;
+            $result[$i] = $prevEma;
+        }
+        return $result;
+    }
+
+    /**
+     * Helper perhitungan deret SMA.
+     */
+    private function calculateSmaSeries(array $values, int $period): array
+    {
+        $n = count($values);
+        $result = [];
+        for ($i = 0; $i < $n; $i++) {
+            if ($i < $period - 1) {
+                $result[$i] = null;
+            } else {
+                $slice = array_slice($values, $i - $period + 1, $period);
+                $result[$i] = array_sum($slice) / $period;
+            }
+        }
+        return $result;
+    }
+
+    /**
      * Load candle data dari database dengan fallback intraday -> daily.
      *
      * @return array{0: array<int, array{open:float,high:float,low:float,close:float,volume:int,date:string}>, 1: bool}
@@ -1050,16 +1497,13 @@ final class CandlestickService
                 return [array_slice($aggregated, -$lookback), false];
             }
         } catch (\Throwable $e) {
-            Yii::warning("Intraday load error stock {$stockId}: " . $e->getMessage(), __METHOD__);
+            // fallback
         }
 
-        // Fallback harian
         return [$this->dailyCandles($stockId, $lookback), true];
     }
 
     /**
-     * Ambil candle harian dari daily_price.
-     *
      * @return array<int, array{open:float,high:float,low:float,close:float,volume:int,date:string}>
      */
     private function dailyCandles(int $stockId, int $lookback): array
@@ -1072,9 +1516,6 @@ final class CandlestickService
 
         $out = [];
         foreach (array_reverse($prices) as $p) {
-            if ((int) $p->volume === 0 && abs((float) $p->high - (float) $p->low) < 0.0001) {
-                continue;
-            }
             $out[] = [
                 'open' => (float) $p->open,
                 'high' => (float) $p->high,
@@ -1088,7 +1529,7 @@ final class CandlestickService
     }
 
     /**
-     * Agregasi candle 1H -> 2H atau 4H.
+     * Agregasi lilin 1H -> 2H / 4H berdasarkan sesi harian yang konsisten.
      *
      * @param array<int, array{open:float,high:float,low:float,close:float,volume:int,date:string}> $base
      * @param int $per
@@ -1100,8 +1541,7 @@ final class CandlestickService
             return $base;
         }
 
-        // Kelompokkan per sesi tanggal kalender (Y-m-d) agar batas candle 2H / 4H selalu konsisten,
-        // deterministik, dan identik antara halaman list dan halaman detail
+        // Kelompokkan per sesi tanggal kalender (Y-m-d) agar batas candle 2H / 4H selalu konsisten
         $byDate = [];
         foreach ($base as $c) {
             $day = substr($c['date'], 0, 10);

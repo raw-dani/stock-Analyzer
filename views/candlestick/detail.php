@@ -116,6 +116,14 @@ $markPoints = [
             <span class="badge bg-<?= $analysis['pattern_badge'] ?> px-2 py-1 shadow-sm">
                 <?= $analysis['pattern_icon'] ?> <?= Html::encode($analysis['pattern_name']) ?>
             </span>
+            <?php if (!empty($analysis['confirmation_status'])): ?>
+                <span class="badge bg-<?= $analysis['confirmation_status'] === 'CONFIRMED' ? 'success' : 'info text-dark' ?> px-2 py-1 shadow-sm">
+                    <?= $analysis['confirmation_status'] === 'CONFIRMED' ? '✓ Confirmed Signal' : '⚡ Early Detection' ?>
+                </span>
+            <?php endif; ?>
+            <span class="badge bg-dark px-2 py-1 shadow-sm">
+                Setup: <?= Html::encode($analysis['setup_quality'] ?? 'STANDARD') ?> (<?= $analysis['confidence_score'] ?? 0 ?>%)
+            </span>
         </div>
         <p class="text-muted small mb-0">
             <?= Html::encode($stock->name) ?> &bull; Sektor: <strong><?= Html::encode($stock->sector ?? 'Umum') ?></strong>
@@ -449,6 +457,95 @@ $markPoints = [
                 </div>
             </div>
         </div>
+
+        <!-- Panel 2b: 7-Component Score Matrix Breakdown -->
+        <?php if (!empty($analysis['score_matrix'])): ?>
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0 fw-bold text-dark">
+                        <?= \app\helpers\SvgHelper::icon('bar-chart-steps', ['class' => 'text-primary me-1']) ?> Matriks Skor 7-Komponen (100%)
+                    </h6>
+                    <span class="badge bg-<?= ($analysis['setup_quality'] ?? '') === 'EXCELLENT' ? 'success' : (($analysis['setup_quality'] ?? '') === 'STRONG' ? 'primary' : 'warning text-dark') ?>">
+                        Total: <?= $analysis['confidence_score'] ?>/100
+                    </span>
+                </div>
+                <div class="card-body p-3">
+                    <div class="small mb-2">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>1. Kualitas Pola (20%):</span>
+                            <strong><?= $analysis['score_matrix']['pattern_quality'] ?>/100</strong>
+                        </div>
+                        <div class="progress" style="height: 5px;">
+                            <div class="progress-bar bg-primary" style="width: <?= $analysis['score_matrix']['pattern_quality'] ?>%;"></div>
+                        </div>
+                    </div>
+
+                    <div class="small mb-2">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>2. Konfirmasi Volume (20%):</span>
+                            <strong><?= $analysis['score_matrix']['volume'] ?>/100</strong>
+                        </div>
+                        <div class="progress" style="height: 5px;">
+                            <div class="progress-bar bg-success" style="width: <?= $analysis['score_matrix']['volume'] ?>%;"></div>
+                        </div>
+                    </div>
+
+                    <div class="small mb-2">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>3. Arah & Konteks Tren (15%):</span>
+                            <strong><?= $analysis['score_matrix']['trend'] ?>/100</strong>
+                        </div>
+                        <div class="progress" style="height: 5px;">
+                            <div class="progress-bar bg-info" style="width: <?= $analysis['score_matrix']['trend'] ?>%;"></div>
+                        </div>
+                    </div>
+
+                    <div class="small mb-2">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>4. Lokasi S/R & Fib Golden Pocket (15%):</span>
+                            <strong><?= $analysis['score_matrix']['location'] ?>/100</strong>
+                        </div>
+                        <div class="progress" style="height: 5px;">
+                            <div class="progress-bar bg-warning" style="width: <?= $analysis['score_matrix']['location'] ?>%;"></div>
+                        </div>
+                    </div>
+
+                    <div class="small mb-2">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>5. Keselarasan Multi-Timeframe 1D (15%):</span>
+                            <strong><?= $analysis['score_matrix']['mtf'] ?>/100</strong>
+                        </div>
+                        <div class="progress" style="height: 5px;">
+                            <div class="progress-bar bg-dark" style="width: <?= $analysis['score_matrix']['mtf'] ?>%;"></div>
+                        </div>
+                    </div>
+
+                    <div class="small mb-2">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>6. Price Action / Next Candle (10%):</span>
+                            <strong><?= $analysis['score_matrix']['price_action'] ?>/100</strong>
+                        </div>
+                        <div class="progress" style="height: 5px;">
+                            <div class="progress-bar bg-secondary" style="width: <?= $analysis['score_matrix']['price_action'] ?>%;"></div>
+                        </div>
+                    </div>
+
+                    <div class="small">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>7. Konteks Volatilitas ATR (5%):</span>
+                            <strong><?= $analysis['score_matrix']['volatility'] ?>/100</strong>
+                        </div>
+                        <div class="progress" style="height: 5px;">
+                            <div class="progress-bar bg-secondary" style="width: <?= $analysis['score_matrix']['volatility'] ?>%;"></div>
+                        </div>
+                    </div>
+
+                    <div class="mt-3 p-2 bg-light rounded text-center small fw-semibold text-dark">
+                        Keputusan: <?= Html::encode($analysis['decision_label'] ?? '') ?>
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
 
         <!-- Panel 3: 5-Point Checklist Konfirmasi Sinyal -->
         <div class="card border-0 shadow-sm mb-3">

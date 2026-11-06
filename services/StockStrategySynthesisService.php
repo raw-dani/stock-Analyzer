@@ -265,23 +265,26 @@ final class StockStrategySynthesisService
 
                 case 'candlestick':
                     $svc = new CandlestickService();
-                    $r = $svc->analyzeStock($stockId, ['timeframe' => $timeframe]);
+                    $r = $svc->analyzeStock($stockId, ['timeframe' => $timeframe, 'allow_neutral' => true]);
                     if ($r === null) {
                         return $this->buildFallbackResult('Data historis tidak mencukupi');
                     }
                     $isBuy = in_array($r['action'], ['BUY', 'STRONG_BUY'], true);
-                    $patternName = $r['primary_pattern']['name'] ?? 'Netral / Tanpa Pola Khusus';
+                    $isSell = in_array($r['action'], ['SELL', 'STRONG_SELL'], true);
+                    $patternName = $r['pattern_name'] ?? ($r['primary_pattern']['name'] ?? 'Netral / Tanpa Pola Khusus');
+                    $locationLabel = $r['location_context']['label'] ?? 'Area Netral';
+                    $confirmStatus = $r['confirmation_status'] ?? 'EARLY';
                     return [
                         'status' => 'success',
                         'action' => $r['action'] ?? 'WATCH',
-                        'action_type' => $isBuy ? 'BUY' : 'WAIT',
-                        'signal_title' => $patternName,
-                        'score' => $r['confidence'] ?? ($isBuy ? 70 : 45),
-                        'entry' => '$' . number_format($r['entry_price'] ?? $r['current_price'], 2),
-                        'stop_loss' => isset($r['stop_loss']) ? ('$' . number_format($r['stop_loss'], 2)) : '-',
-                        'target' => isset($r['target_1']) ? ('$' . number_format($r['target_1'], 2)) : '-',
+                        'action_type' => $isBuy ? 'BUY' : ($isSell ? 'SELL' : 'WAIT'),
+                        'signal_title' => $patternName . ' (' . $confirmStatus . ')',
+                        'score' => $r['confidence_score'] ?? 50,
+                        'entry' => '$' . number_format($r['entry_price'] ?? $r['last_price'] ?? 0, 2),
+                        'stop_loss' => isset($r['stop_loss']) ? ('$' . number_format($r['stop_loss'], 2) . ' (-' . ($r['stop_loss_pct'] ?? 0) . '%)') : '-',
+                        'target' => isset($r['target_1']) ? ('$' . number_format($r['target_1'], 2) . ' (+' . ($r['target_1_pct'] ?? 0) . '%)') : '-',
                         'rr_ratio' => ($r['rr_ratio'] ?? 0) . 'x',
-                        'description' => 'Pola: ' . $patternName . ' (RVOL: ' . ($r['rvol'] ?? 1.0) . 'x)',
+                        'description' => "Pola: {$patternName} • RVOL: " . ($r['rvol'] ?? 1.0) . "x • Lokasi: {$locationLabel}",
                     ];
 
                 case 'fibonacci':

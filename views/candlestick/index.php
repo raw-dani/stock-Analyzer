@@ -412,12 +412,21 @@ $badgeAction = [
                                 </span>
                             </td>
 
-                            <!-- 2. Pola Candlestick -->
+                            <!-- 2. Pola Candlestick & Status Konfirmasi -->
                             <td>
-                                <div class="d-flex align-items-center gap-1 mb-1">
+                                <div class="d-flex align-items-center gap-1 mb-1 flex-wrap">
                                     <span class="badge bg-<?= $r['pattern_badge'] ?> candlestick-badge shadow-sm">
                                         <?= $r['pattern_icon'] ?> <?= Html::encode($r['pattern_name']) ?>
                                     </span>
+                                    <?php if (!empty($r['confirmation_status']) && $r['confirmation_status'] === 'CONFIRMED'): ?>
+                                        <span class="badge bg-success text-white" style="font-size: 0.65rem;" title="Candle konfirmasi berikutnya berhasil ditutup valid">
+                                            ✓ Confirmed
+                                        </span>
+                                    <?php elseif (!empty($r['confirmation_status']) && $r['confirmation_status'] === 'EARLY'): ?>
+                                        <span class="badge bg-info text-dark" style="font-size: 0.65rem;" title="Pola baru terbentuk pada bar terakhir, tunggu konfirmasi candle berikutnya">
+                                            ⚡ Early Detection
+                                        </span>
+                                    <?php endif; ?>
                                     <?php if ($r['bar_offset'] > 0): ?>
                                         <span class="badge bg-light text-muted border" style="font-size: 0.65rem;">
                                             <?= $r['bar_offset'] ?> bar lalu
@@ -427,7 +436,15 @@ $badgeAction = [
                                 <div class="text-secondary small fw-medium" style="font-size: 0.74rem;">
                                     <?= Html::encode($r['pattern_subtype']) ?>
                                 </div>
+                                <?php if (!empty($r['location_context']['label'])): ?>
+                                    <div class="small text-primary fw-semibold mt-1" style="font-size: 0.69rem;" title="<?= Html::encode($r['location_context']['proximity'] ?? '') ?>">
+                                        <?= Html::encode($r['location_context']['label']) ?>
+                                    </div>
+                                <?php endif; ?>
                                 <div class="text-muted" style="font-size: 0.68rem;">
+                                    <?= \app\helpers\SvgHelper::icon('clock') ?> <?= Html::encode($r['bar_date']) ?>
+                                </div>
+                            </td>
                                     <?= \app\helpers\SvgHelper::icon('clock') ?> <?= Html::encode($r['bar_date']) ?>
                                 </div>
                             </td>
@@ -525,19 +542,24 @@ $badgeAction = [
                                 </div>
                             </td>
 
-                            <!-- 7. Skor Keyakinan (Confidence Score) -->
+                            <!-- 7. Skor Keyakinan (7-Component Score Matrix) -->
                             <td>
                                 <div class="d-flex align-items-center justify-content-between mb-1">
                                     <span class="fw-bold fs-6 <?= $r['confidence_score'] >= 80 ? 'text-success' : ($r['confidence_score'] >= 60 ? 'text-primary' : 'text-secondary') ?>">
                                         <?= $r['confidence_score'] ?>%
                                     </span>
-                                    <span class="text-muted small" style="font-size: 0.68rem;">Keyakinan</span>
+                                    <span class="badge bg-<?= ($r['setup_quality'] ?? '') === 'EXCELLENT' ? 'success' : (($r['setup_quality'] ?? '') === 'STRONG' ? 'primary' : (($r['setup_quality'] ?? '') === 'MODERATE' ? 'warning text-dark' : 'secondary')) ?>" style="font-size: 0.65rem;">
+                                        <?= Html::encode($r['setup_quality'] ?? 'SCORE') ?>
+                                    </span>
                                 </div>
-                                <div class="progress progress-confidence">
+                                <div class="progress progress-confidence" title="Pattern: <?= $r['score_matrix']['pattern_quality'] ?? 0 ?> | Volume: <?= $r['score_matrix']['volume'] ?? 0 ?> | Location: <?= $r['score_matrix']['location'] ?? 0 ?> | MTF: <?= $r['score_matrix']['mtf'] ?? 0 ?>">
                                     <div class="progress-bar <?= $r['confidence_score'] >= 80 ? 'bg-success' : ($r['confidence_score'] >= 60 ? 'bg-primary' : 'bg-warning') ?>"
                                          role="progressbar"
                                          style="width: <?= $r['confidence_score'] ?>%;">
                                     </div>
+                                </div>
+                                <div class="text-muted text-truncate mt-1" style="font-size: 0.66rem;" title="<?= Html::encode($r['decision_label'] ?? '') ?>">
+                                    <?= Html::encode($r['decision_label'] ?? '') ?>
                                 </div>
                             </td>
 
