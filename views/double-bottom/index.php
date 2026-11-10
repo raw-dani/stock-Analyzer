@@ -32,6 +32,8 @@ $volOnly = !empty($volOnly);
 
 $breakoutCount = count(array_filter($results, fn($r) => !empty($r['breakout'])));
 $buyZoneCount = count(array_filter($results, fn($r) => ($r['trade_status'] ?? '') === 'buy_zone'));
+$retestCount = count(array_filter($results, fn($r) => ($r['trade_status'] ?? '') === 'retest'));
+$earlyCount = count(array_filter($results, fn($r) => ($r['trade_status'] ?? '') === 'early_setup'));
 $highRrCount = count(array_filter($results, fn($r) => ((float)($r['best_rr'] ?? 0)) >= 2.0));
 
 $stockCount = (int) ($stats['stockCount'] ?? 0);
@@ -180,6 +182,12 @@ $filterWith = fn(array $overrides) => \yii\helpers\Url::to(array_merge(['/double
             ) ?>
 
             <?= Html::a(
+                \app\helpers\SvgHelper::icon('lightning-charge-fill') . ' Early Setup (B2)',
+                $filterWith(['statusFilter' => 'early_setup']),
+                ['class' => 'preset-pill btn btn-sm rounded-pill px-3 py-1 ' . ($statusFilter === 'early_setup' ? 'active btn-primary text-white border-primary shadow-sm' : 'btn-light text-secondary border')]
+            ) ?>
+
+            <?= Html::a(
                 \app\helpers\SvgHelper::icon('rocket-takeoff') . ' Terkonfirmasi Breakout',
                 $filterWith(['statusFilter' => 'breakout']),
                 ['class' => 'preset-pill btn btn-sm rounded-pill px-3 py-1 ' . ($statusFilter === 'breakout' ? 'active btn-primary text-white border-primary shadow-sm' : 'btn-light text-secondary border')]
@@ -208,7 +216,8 @@ $filterWith = fn(array $overrides) => \yii\helpers\Url::to(array_merge(['/double
                 <label class="form-label small fw-bold text-dark mb-1">Status Transaksi</label>
                 <?= Html::dropDownList('statusFilter', $statusFilter, [
                     'all' => 'Semua Status',
-                    'buy_zone' => '🟢 In Golden Buy Zone (0-3%)',
+                    'buy_zone' => '🟢 In Golden Buy Zone (0-3.5%)',
+                    'early_setup' => '⚡ Early Setup (Dekat B2 Rejection)',
                     'breakout' => '🚀 Terkonfirmasi Breakout',
                     'retest' => '🔄 Retest Neckline',
                     'approaching' => '👀 Mendekati Breakout (-3%..0)',
@@ -229,6 +238,8 @@ $filterWith = fn(array $overrides) => \yii\helpers\Url::to(array_merge(['/double
                 <label class="form-label small fw-bold text-dark mb-1">Urutan (Sort)</label>
                 <?= Html::dropDownList('sort', $sort, [
                     'confidence' => 'Score Confidence',
+                    'trade_score' => 'Trade Score (Kelayakan Beli)',
+                    'pattern_score' => 'Pattern Score (Kualitas W)',
                     'rr' => 'Risk/Reward Tertinggi',
                     'distance' => 'Terdekat ke Neckline',
                     'rvol' => 'Lonjakan Volume (RVOL)',
@@ -349,12 +360,14 @@ $filterWith = fn(array $overrides) => \yii\helpers\Url::to(array_merge(['/double
                                 <span class="badge bg-success px-2 py-1">BUY (Golden Zone)</span>
                             <?php elseif ($tradeStatus === 'retest'): ?>
                                 <span class="badge bg-info text-dark px-2 py-1">BUY (Retest)</span>
+                            <?php elseif ($tradeStatus === 'early_setup'): ?>
+                                <span class="badge bg-primary px-2 py-1">⚡ EARLY (B2 Bounce)</span>
                             <?php elseif ($tradeStatus === 'extended'): ?>
                                 <span class="badge bg-warning text-dark px-2 py-1">HATI-HATI (Extended)</span>
                             <?php elseif ($tradeStatus === 'overextended'): ?>
                                 <span class="badge bg-danger px-2 py-1">TUNGGU PULLBACK</span>
                             <?php elseif ($tradeStatus === 'approaching'): ?>
-                                <span class="badge bg-primary px-2 py-1">PANTAU BREAKOUT</span>
+                                <span class="badge bg-info text-white px-2 py-1">PANTAU BREAKOUT</span>
                             <?php else: ?>
                                 <span class="badge bg-secondary px-2 py-1">WAITING</span>
                             <?php endif; ?>
@@ -419,7 +432,10 @@ $filterWith = fn(array $overrides) => \yii\helpers\Url::to(array_merge(['/double
                         </td>
                         <td class="text-end pe-3">
                             <?php $cc = $r['confidence'] >= 75 ? 'text-success' : ($r['confidence'] >= 55 ? 'text-warning' : 'text-danger'); ?>
-                            <span class="<?= $cc ?> fw-bold fs-6"><?= $r['confidence'] ?>%</span>
+                            <span class="<?= $cc ?> fw-bold fs-6" title="Trade Score: <?= $r['trade_score'] ?? '-' ?> | Pattern Score: <?= $r['pattern_score'] ?? '-' ?>"><?= $r['confidence'] ?>%</span>
+                            <?php if (isset($r['trade_score'])): ?>
+                                <div class="small text-muted" style="font-size: 0.68rem;">Trade: <?= $r['trade_score'] ?></div>
+                            <?php endif; ?>
                         </td>
                         <td class="text-end pe-3">
                             <?= Html::a(\app\helpers\SvgHelper::icon('bar-chart-fill') . ' Detail', array_merge(['double-bottom/detail', 'symbol' => $r['symbol']], $filterParams), ['class' => 'btn btn-sm btn-primary shadow-sm']) ?>

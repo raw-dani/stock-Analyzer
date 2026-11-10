@@ -36,23 +36,26 @@ $lossSwingPct = $currentPrice > 0 ? abs(($currentPrice - $stopLossSwing) / $curr
 <div class="card mb-4 border-0 shadow-sm <?php
     if ($tradeStatus === 'buy_zone') echo 'bg-success text-white';
     elseif ($tradeStatus === 'retest') echo 'bg-info text-dark';
+    elseif ($tradeStatus === 'early_setup') echo 'bg-primary text-white';
     elseif ($tradeStatus === 'extended') echo 'bg-warning text-dark';
     elseif ($tradeStatus === 'overextended') echo 'bg-danger text-white';
-    elseif ($tradeStatus === 'approaching') echo 'bg-primary text-white';
+    elseif ($tradeStatus === 'approaching') echo 'bg-info text-white';
     else echo 'bg-secondary text-white';
 ?>">
     <div class="card-body py-3 px-4 d-flex flex-wrap justify-content-between align-items-center">
         <div>
-            <span class="text-uppercase small fw-bold" style="letter-spacing: 0.05rem;">Status Trading Pola</span>
+            <span class="text-uppercase small fw-bold" style="letter-spacing: 0.05rem;">Status Trading &amp; Eksekusi</span>
             <h4 class="mb-0 fw-bold">
                 <?php if ($tradeStatus === 'buy_zone'): ?>
-                    🎯 Golden Entry Zone (0% - +3% dari Neckline)
+                    🎯 Golden Entry Zone (0% - +3.5% dari Neckline)
                 <?php elseif ($tradeStatus === 'retest'): ?>
-                    🔄 Retest Neckline (Peluang Beli Reversal Tinggi)
+                    🔄 Retest Neckline (Peluang Beli Reversal Optimal)
+                <?php elseif ($tradeStatus === 'early_setup'): ?>
+                    ⚡ Early Entry Setup (Rejection Bullish di B2)
                 <?php elseif ($tradeStatus === 'extended'): ?>
-                    ⚠️ Harga Mulai Extended (+3% - +6%)
+                    ⚠️ Harga Mulai Extended (+3.5% - +6.5%)
                 <?php elseif ($tradeStatus === 'overextended'): ?>
-                    ⛔ Overextended (> +6%) — Jangan Kejar! Tunggu Pullback
+                    ⛔ Overextended (> +6.5%) — Jangan Kejar! Tunggu Pullback
                 <?php elseif ($tradeStatus === 'approaching'): ?>
                     👀 Menjelang Breakout (Pantau Penembusan Neckline)
                 <?php else: ?>
@@ -60,9 +63,15 @@ $lossSwingPct = $currentPrice > 0 ? abs(($currentPrice - $stopLossSwing) / $curr
                 <?php endif; ?>
             </h4>
         </div>
-        <div class="text-end">
-            <span class="fs-4 fw-bold"><?= $pattern['confidence'] ?>%</span>
-            <div class="small">Confidence Score</div>
+        <div class="d-flex align-items-center gap-3">
+            <div class="text-center bg-white bg-opacity-25 px-3 py-1 rounded">
+                <span class="fs-5 fw-bold"><?= $pattern['trade_score'] ?? $pattern['confidence'] ?></span>
+                <div class="small" style="font-size: 0.7rem;">Trade Score</div>
+            </div>
+            <div class="text-center bg-white bg-opacity-25 px-3 py-1 rounded">
+                <span class="fs-5 fw-bold"><?= $pattern['pattern_score'] ?? $pattern['confidence'] ?></span>
+                <div class="small" style="font-size: 0.7rem;">Pattern Score</div>
+            </div>
         </div>
     </div>
 </div>
@@ -90,6 +99,42 @@ $lossSwingPct = $currentPrice > 0 ? abs(($currentPrice - $stopLossSwing) / $curr
                                 <small class="text-muted d-block"><?= $pattern['pattern_span'] ?? 0 ?> candle jarak L1-L2</small>
                             </td>
                         </tr>
+                        <?php if (isset($pattern['entries'])): ?>
+                        <tr class="table-info">
+                            <td class="ps-3 fw-bold" colspan="2">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span>🎯 3 Skenario Eksekusi Entri:</span>
+                                    <span class="badge bg-light text-dark border">Pilih Sesuai Karakteristik</span>
+                                </div>
+                                <div class="row g-2 small fw-normal text-dark">
+                                    <div class="col-4">
+                                        <div class="p-2 bg-white rounded border">
+                                            <strong>1. Early (B2):</strong><br>
+                                            Buy: $<?= number_format($pattern['entries']['early']['entry'], 2) ?><br>
+                                            SL: $<?= number_format($pattern['entries']['early']['sl'], 2) ?><br>
+                                            R/R: <span class="text-success fw-bold"><?= $pattern['entries']['early']['rr'] ?>x</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="p-2 bg-white rounded border">
+                                            <strong>2. Breakout:</strong><br>
+                                            Buy: $<?= number_format($pattern['entries']['breakout']['entry'], 2) ?><br>
+                                            SL: $<?= number_format($pattern['entries']['breakout']['sl'], 2) ?><br>
+                                            R/R: <span class="text-success fw-bold"><?= $pattern['entries']['breakout']['rr'] ?>x</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="p-2 bg-white rounded border">
+                                            <strong>3. Retest:</strong><br>
+                                            Buy: $<?= number_format($pattern['entries']['retest']['entry'], 2) ?><br>
+                                            SL: $<?= number_format($pattern['entries']['retest']['sl'], 2) ?><br>
+                                            R/R: <span class="text-success fw-bold"><?= $pattern['entries']['retest']['rr'] ?>x</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        <?php endif; ?>
                         <tr>
                             <td class="ps-3 text-muted">Support Low 1 &amp; Low 2</td>
                             <td class="text-end pe-3">

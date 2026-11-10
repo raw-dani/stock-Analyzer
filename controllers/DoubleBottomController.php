@@ -17,7 +17,7 @@ use yii\web\Controller;
 final class DoubleBottomController extends Controller
 {
     private const SCAN_CACHE_TTL = 900;
-    private const SORTS = ['confidence', 'target', 'rr', 'distance', 'rvol', 'symbol', 'low1_date'];
+    private const SORTS = ['confidence', 'trade_score', 'pattern_score', 'target', 'rr', 'distance', 'rvol', 'symbol', 'low1_date'];
 
     public function actionIndex(): string
     {
@@ -110,7 +110,7 @@ final class DoubleBottomController extends Controller
         $breakoutOnly = (bool) $req->get('breakoutOnly', false);
         
         $statusFilter = (string) $req->get('statusFilter', 'all');
-        if (!in_array($statusFilter, ['all', 'buy_zone', 'retest', 'breakout', 'approaching'], true)) {
+        if (!in_array($statusFilter, ['all', 'buy_zone', 'retest', 'breakout', 'early_setup', 'approaching'], true)) {
             $statusFilter = 'all';
         }
         $minRr = (float) $req->get('minRr', 0);
@@ -170,6 +170,12 @@ final class DoubleBottomController extends Controller
     private function sortResults(array $results, string $sort): array
     {
         switch ($sort) {
+            case 'trade_score':
+                usort($results, fn ($a, $b) => ($b['trade_score'] ?? 0) <=> ($a['trade_score'] ?? 0));
+                break;
+            case 'pattern_score':
+                usort($results, fn ($a, $b) => ($b['pattern_score'] ?? 0) <=> ($a['pattern_score'] ?? 0));
+                break;
             case 'rr':
                 usort($results, fn ($a, $b) => ((float) ($b['best_rr'] ?? 0)) <=> ((float) ($a['best_rr'] ?? 0)));
                 break;
