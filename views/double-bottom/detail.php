@@ -16,6 +16,7 @@
 /** @var array $candles candle analisa: open/high/low/close/volume/date */
 
 use yii\bootstrap5\Html;
+use yii\helpers\Url;
 use app\assets\ChartAsset;
 
 ChartAsset::register($this);
@@ -93,7 +94,11 @@ $chartId = 'db-chart';
                 <label class="form-label small fw-bold">Neckline min (%)</label>
                 <?= Html::input('number', 'necklineMinDepth', round($necklineMinDepth * 100, 1), ['class' => 'form-control form-control-sm', 'min' => 0, 'max' => 50, 'step' => 0.1]) ?>
             </div>
-            <div class="col-12 text-end">
+            <div class="col-12 text-end d-flex justify-content-end align-items-center gap-2">
+                <button type="button" id="btn-live-sync" class="btn btn-sm btn-success fw-bold d-inline-flex align-items-center gap-1 shadow-sm" data-symbol="<?= Html::encode($stock->symbol) ?>" title="Tarik data harga & volume terbaru dari Yahoo Finance">
+                    <span id="btn-live-sync-icon"><?= \app\helpers\SvgHelper::icon('arrow-repeat') ?></span>
+                    <span id="btn-live-sync-text">Get Live Data</span>
+                </button>
                 <?= Html::submitButton(\app\helpers\SvgHelper::icon('arrow-repeat') . ' Update Analisis', ['class' => 'btn btn-sm btn-primary px-3']) ?>
             </div>
         <?= Html::endForm() ?>
@@ -252,4 +257,62 @@ $chartId = 'db-chart';
             ?>
         <?php endif; ?>
     </div>
-</div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const btnSync = document.getElementById('btn-live-sync');
+    if (!btnSync) return;
+
+    btnSync.addEventListener('click', function () {
+        const symbol = this.getAttribute('data-symbol');
+        const iconSpan = document.getElementById('btn-live-sync-icon');
+        const textSpan = document.getElementById('btn-live-sync-text');
+
+        if (!confirm('Tarik live data terbaru untuk saham ' + symbol + ' dari Yahoo Finance sekarang?')) {
+            return;
+        }
+
+        btnSync.disabled = true;
+        btnSync.classList.remove('btn-success');
+        btnSync.classList.add('btn-secondary');
+        iconSpan.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+        textSpan.textContent = 'Mengambil Data...';
+
+        const syncUrl = '<?= Url::to(['/stock/live-sync']) ?>?symbol=' + encodeURIComponent(symbol) + '&format=json';
+
+        fetch(syncUrl, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                textSpan.textContent = 'Berhasil Diperbarui!';
+                btnSync.classList.remove('btn-secondary');
+                btnSync.classList.add('btn-success');
+                setTimeout(() => {
+                    window.location.reload();
+                }, 700);
+            } else {
+                alert('Gagal mengambil live data: ' + (data.message || 'Terjadi kesalahan sistem'));
+                resetBtn();
+            }
+        })
+        .catch(err => {
+            console.error('Live sync error:', err);
+            window.location.href = '<?= Url::to(['/stock/live-sync']) ?>?symbol=' + encodeURIComponent(symbol);
+        });
+
+        function resetBtn() {
+            btnSync.disabled = false;
+            btnSync.classList.remove('btn-secondary');
+            btnSync.classList.add('btn-success');
+            iconSpan.innerHTML = '<?= addslashes(\app\helpers\SvgHelper::icon('arrow-repeat')) ?>';
+            textSpan.textContent = 'Get Live Data';
+        }
+    });
+});
+</script>
