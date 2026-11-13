@@ -47,6 +47,8 @@ final class RsiDoubleBottomService
         int $maxSeparation = 30,
         float $necklineMin = 2.0
     ): array {
+        @ini_set('max_execution_time', '300');
+        @set_time_limit(300);
         $this->validateOptions($timeframe, $lookback, $tol, $period, $maxRsi, $minSeparation, $maxSeparation, $necklineMin);
         if (function_exists('set_time_limit')) {
             set_time_limit(0);

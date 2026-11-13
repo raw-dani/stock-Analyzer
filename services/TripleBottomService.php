@@ -59,6 +59,8 @@ final class TripleBottomService
         ?string $patternType = null,
         ?string $falseBreakoutRisk = null
     ): array {
+        @ini_set('max_execution_time', '300');
+        @set_time_limit(300);
         $singleSymbol = null;
         if (is_array($timeframe)) {
             $opts = $timeframe;

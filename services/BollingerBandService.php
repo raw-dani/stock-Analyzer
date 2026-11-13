@@ -102,6 +102,8 @@ final class BollingerBandService
      */
     public function scanAll(array $options = []): array
     {
+        @ini_set('max_execution_time', '300');
+        @set_time_limit(300);
         $strategy = $options['strategy'] ?? 'all';
         $minRr = (float) ($options['minRr'] ?? 0.0);
         $exchange = $options['exchange'] ?? null;

@@ -71,6 +71,8 @@ final class MultiIndicatorStrategyService
      */
     public function scanAll(array $options = []): array
     {
+        @ini_set('max_execution_time', '300');
+        @set_time_limit(300);
         $timeframe = (int) ($options['timeframe'] ?? self::TIMEFRAME_1D);
         $preset = (string) ($options['strategy'] ?? 'all');
         $minScore = (int) ($options['minScore'] ?? 0);

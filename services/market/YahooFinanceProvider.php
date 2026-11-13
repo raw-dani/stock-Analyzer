@@ -672,8 +672,8 @@ final class YahooFinanceProvider implements DataProviderInterface, IntradayDataP
             CURLOPT_MAXREDIRS => 5,
             CURLOPT_USERAGENT => self::USER_AGENT,
             CURLOPT_SSL_VERIFYPEER => false,
-            CURLOPT_TIMEOUT => 30,
-            CURLOPT_CONNECTTIMEOUT => 10,
+            CURLOPT_TIMEOUT => 15,
+            CURLOPT_CONNECTTIMEOUT => 5,
         ]);
 
         $response = curl_exec($ch);

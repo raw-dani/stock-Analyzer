@@ -71,6 +71,8 @@ final class MovingAverageService
      */
     public function scanAll(array $options = []): array
     {
+        @ini_set('max_execution_time', '300');
+        @set_time_limit(300);
         $maPair = $options['maPair'] ?? self::PAIR_20_50;
         $strategy = $options['strategy'] ?? 'all';
         $minRr = (float) ($options['minRr'] ?? 0.0);

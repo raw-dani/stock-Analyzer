@@ -44,8 +44,19 @@ final class StochasticController extends Controller
             'lookback'     => (int) $request->get('lookback', 80),
         ];
 
-        // Jalankan scan
-        $results = $this->stochasticService->scanAll($params);
+        // Jalankan scan dengan cache berbasis versi data pasar
+        $cacheArgs = array_values($params);
+        $cacheKey = \app\services\ScannerCacheService::buildCacheKey('stochastic', $cacheArgs, $params['timeframe']);
+        $cached = Yii::$app->cache ? Yii::$app->cache->get($cacheKey) : false;
+
+        if (is_array($cached)) {
+            $results = $cached;
+        } else {
+            $results = $this->stochasticService->scanAll($params);
+            if (Yii::$app->cache) {
+                Yii::$app->cache->set($cacheKey, $results, \app\services\ScannerCacheService::DEFAULT_TTL);
+            }
+        }
 
         // Sorting
         $sort = $params['sort'];

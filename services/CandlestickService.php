@@ -115,6 +115,8 @@ final class CandlestickService
      */
     public function scanAll(array $options = []): array
     {
+        @ini_set('max_execution_time', '300');
+        @set_time_limit(300);
         $timeframe = (int) ($options['timeframe'] ?? self::TIMEFRAME_1D);
         $patternFilter = (string) ($options['pattern'] ?? 'all');
         $volumeFilter = (string) ($options['volume_filter'] ?? 'all');

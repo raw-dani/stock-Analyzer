@@ -9,8 +9,10 @@ Event::on(Connection::class, Connection::EVENT_AFTER_OPEN, function ($event) {
     if ($event->sender->getDriverName() === 'sqlite') {
         $event->sender->createCommand('PRAGMA foreign_keys = ON;')->execute();
         $event->sender->createCommand('PRAGMA journal_mode = WAL;')->execute();
-        $event->sender->createCommand('PRAGMA busy_timeout = 10000;')->execute();
+        $event->sender->createCommand('PRAGMA busy_timeout = 30000;')->execute();
         $event->sender->createCommand('PRAGMA synchronous = NORMAL;')->execute();
+        $event->sender->createCommand('PRAGMA cache_size = -64000;')->execute();
+        $event->sender->createCommand('PRAGMA temp_store = MEMORY;')->execute();
     }
 });
 
