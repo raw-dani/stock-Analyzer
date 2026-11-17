@@ -20,6 +20,8 @@ $rvol = (float) ($pattern['rvol'] ?? 1.0);
 $volDryUp = !empty($pattern['volume_dry_up']);
 $volConfirmed = !empty($pattern['volume_confirmed']) || $rvol >= 1.3;
 
+$isBreakout = !empty($pattern['breakout']);
+$effectiveSl = ($isBreakout && $currentPrice > $stopLossTight) ? $stopLossTight : $stopLossSwing;
 $profitTp1Pct = $currentPrice > 0 ? (($tp1 - $currentPrice) / $currentPrice) * 100 : 0;
 $profitTp2Pct = $currentPrice > 0 ? (($tp2 - $currentPrice) / $currentPrice) * 100 : 0;
 $lossTightPct = $currentPrice > 0 ? abs(($currentPrice - $stopLossTight) / $currentPrice) * 100 : 0;
@@ -212,7 +214,7 @@ $lossSwingPct = $currentPrice > 0 ? abs(($currentPrice - $stopLossSwing) / $curr
                             <td class="ps-3 fw-bold">Rasio Risk / Reward (R:R)</td>
                             <td class="text-end pe-3 fw-bold fs-5 <?= $bestRr >= 2.0 ? 'text-success' : ($bestRr >= 1.5 ? 'text-warning' : 'text-danger') ?>">
                                 <?= number_format($bestRr, 1) ?> : 1
-                                <small class="text-muted d-block fw-normal" style="font-size: 0.75rem;">(Berdasarkan Tight SL ke TP2)</small>
+                                <small class="text-muted d-block fw-normal" style="font-size: 0.75rem;">(<?= ($isBreakout && $currentPrice > $stopLossTight) ? 'Berdasarkan Tight SL ke TP2' : 'Berdasarkan Swing SL ke TP2' ?>)</small>
                             </td>
                         </tr>
                     </tbody>
@@ -335,13 +337,19 @@ $lossSwingPct = $currentPrice > 0 ? abs(($currentPrice - $stopLossSwing) / $curr
         var cap = parseFloat(document.getElementById('calc-capital').value) || 0;
         var rPct = parseFloat(document.getElementById('calc-risk-pct').value) || 0;
         var currPrice = <?= json_encode($currentPrice) ?>;
-        var sl = <?= json_encode($stopLossTight) ?>;
+        var sl = <?= json_encode($effectiveSl) ?>;
         var tp = <?= json_encode($tp2) ?>;
 
         var maxRiskDollar = cap * (rPct / 100);
-        var riskPerShare = Math.max(currPrice - sl, 0.01);
+        var riskPerShare = Math.max(currPrice - sl, currPrice * 0.01);
         var shares = Math.floor(maxRiskDollar / riskPerShare);
         if (shares < 0) shares = 0;
+
+        // Batasi alokasi modal maksimal 30% per transaksi untuk diversifikasi sehat
+        var maxAlloc = cap * 0.30;
+        if (shares * currPrice > maxAlloc && currPrice > 0) {
+            shares = Math.floor(maxAlloc / currPrice);
+        }
 
         var totalAlloc = shares * currPrice;
         var potentialProfit = shares * Math.max(tp - currPrice, 0);

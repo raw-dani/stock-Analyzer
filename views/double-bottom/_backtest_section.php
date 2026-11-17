@@ -34,9 +34,20 @@ $trades = $res['recentTrades'] ?? [];
                 </small>
             </div>
         </div>
-        <div class="d-flex align-items-center gap-2">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <?php
+            $modeLabel = match($p['entryMode'] ?? 'breakout') {
+                'breakout' => 'Breakout Neckline A+',
+                'early'    => 'Early Rebound (B2)',
+                default    => 'Semua Setup',
+            };
+            $modeBadge = ($p['entryMode'] ?? 'breakout') === 'breakout' ? 'success' : 'primary';
+            ?>
+            <span class="badge bg-<?= $modeBadge ?> text-white px-2 py-1 shadow-xs">
+                <?= Html::encode($modeLabel) ?>
+            </span>
             <span class="badge bg-light text-secondary border px-2 py-1">
-                Fee + Slippage: <?= number_format($p['totalCostPct'], 2) ?>%
+                Fee + Slip: <?= number_format($p['totalCostPct'], 2) ?>%
             </span>
             <a href="#backtest-form-box" class="btn btn-sm btn-outline-primary">
                 <?= \app\helpers\SvgHelper::icon('sliders') ?> Ganti Parameter
@@ -287,6 +298,8 @@ $trades = $res['recentTrades'] ?? [];
                                     <td>
                                         <?php if (!empty($t['hit_tp2'])): ?>
                                             <span class="badge bg-primary">HIT TP2 (+<?= number_format((float) ($t['tp2_gain_pct'] ?? 0), 1) ?>%)</span>
+                                        <?php elseif (($t['exit_reason'] ?? '') === 'TP1_TRAILING_BEP'): ?>
+                                            <span class="badge bg-success">TP1 + Trailing BEP (+<?= number_format((float) ($t['trade_net_ret'] ?? 0), 1) ?>%)</span>
                                         <?php elseif (!empty($t['hit_tp1'])): ?>
                                             <span class="badge bg-success">HIT TP1 (+<?= number_format((float) ($t['tp1_gain_pct'] ?? 0), 1) ?>%)</span>
                                         <?php elseif (!empty($t['hit_sl'])): ?>

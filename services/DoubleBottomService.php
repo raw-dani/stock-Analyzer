@@ -715,17 +715,33 @@ final class DoubleBottomService
         $retestLow = $retestAnalysis['retest_low'] > 0 ? $retestAnalysis['retest_low'] : $neckline;
         $slRetest = round(min($retestLow, $neckline) - ($atr * 0.25), 2);
 
-        // Risk / Reward
-        $riskTight = max($currentClose - $slTight, 0.01);
-        $rewardTp1 = max($tp1 - $currentClose, 0.0);
-        $rewardTp2 = max($tp2 - $currentClose, 0.0);
+        // Risk / Reward Presisi (Mencegah Anomali Division by Near Zero)
+        $minRiskAmount = max($atr * 0.35, $neckline * 0.008);
 
-        $rrTight = round($rewardTp2 / $riskTight, 2);
+        // Jika harga sudah di atas Neckline / Breakout:
+        if ($currentClose > $slTight) {
+            $riskTight = max($currentClose - $slTight, $minRiskAmount);
+            $rewardTp2Tight = max($tp2 - $currentClose, 0.0);
+            $rrTight = min(round($rewardTp2Tight / $riskTight, 2), 25.0);
+        } else {
+            // Masih di bawah neckline (Early setup) -> R/R dihitung dari titik breakout potensial
+            $breakoutEntry = $neckline + max($atr * 0.1, $neckline * 0.005);
+            $riskTight = max($breakoutEntry - $slTight, $minRiskAmount);
+            $rewardTp2Tight = max($tp2 - $breakoutEntry, 0.0);
+            $rrTight = min(round($rewardTp2Tight / $riskTight, 2), 25.0);
+        }
 
-        $riskSwing = max($currentClose - $slSwing, 0.01);
-        $rrSwing = round($rewardTp2 / $riskSwing, 2);
+        // Untuk Swing SL (Bawah Lembah 1 & 2):
+        $riskSwing = max($currentClose - $slSwing, $minRiskAmount);
+        $rewardTp2Swing = max($tp2 - $currentClose, 0.0);
+        $rrSwing = min(round($rewardTp2Swing / $riskSwing, 2), 25.0);
 
-        $bestRr = max($rrTight, $rrSwing);
+        // Sinyal Early setup memakai R/R swing ke Neckline / TP1
+        if ($currentClose < $neckline) {
+            $bestRr = $rrSwing;
+        } else {
+            $bestRr = $rrTight;
+        }
 
         return [
             'tp1' => $tp1,

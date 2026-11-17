@@ -10,19 +10,18 @@ use app\models\Stock;
 use Yii;
 
 /**
- * DoubleBottomBacktestService
+ * DoubleBottomBacktestService (Optimized Institutional Edition)
  *
  * Menguji performa historis sinyal pola Double Bottom (W Reversal)
- * untuk satu kode saham secara empiris dan anti-lookahead bias.
+ * untuk satu kode saham secara empiris, robust, dan anti-lookahead bias.
  *
- * Fitur & Metrik Pengujian:
- * - Walk-Forward Validation (70% In-Sample Train / 30% Out-of-Sample Test)
- * - Anti-Lookahead Bias: Deteksi pola W hanya menggunakan bar t dan sebelumnya,
- *   evaluasi forward outcome dihitung dari candle t+1 s/d t+20 (atau hingga hit TP1/TP2/SL).
- * - Forward Return Horizons: +3 candle, +5 candle, +10 candle, +20 candle.
- * - MAE (Maximum Adverse Excursion) & MFE (Maximum Favorable Excursion).
- * - Realistis: Return bersih setelah biaya transaksi (fee beli + fee jual + slippage).
- * - Evaluasi Target: Rasio pencapaian target TP1 (50% pattern height), TP2 (100% height), dan Stop Loss.
+ * Fitur & Optimasi Utama:
+ * - Opsi Entry Mode: 'breakout' (Breakout Neckline A+), 'all' (Breakout + Early), 'early' (Rejection B2).
+ * - Multi-Timeframe Trend Filter & Anti-Falling-Knife.
+ * - Volume Confirmation: Dry-up di Lembah 2 dan Breakout Volume Surge.
+ * - Anti-Overlapping / Trade Cooldown: Mencegah duplikasi posisi beruntun pada pergerakan yang sama.
+ * - Dynamic Trade Management: Mengunci 50% profit di TP1 dan menggeser SL ke Breakeven (BEP).
+ * - Realistis: Exit harga aktual pada Time Exit (bar 20) dan perhitungan bersih setelah fee & slippage.
  */
 final class DoubleBottomBacktestService
 {
@@ -30,6 +29,10 @@ final class DoubleBottomBacktestService
     public const TIMEFRAME_2H = 2;
     public const TIMEFRAME_4H = 4;
     public const TIMEFRAME_1D = 24;
+
+    public const MODE_BREAKOUT = 'breakout';
+    public const MODE_ALL      = 'all';
+    public const MODE_EARLY    = 'early';
 
     /**
      * Jalankan backtesting Double Bottom untuk 1 saham.
@@ -45,6 +48,10 @@ final class DoubleBottomBacktestService
      *     feePct?: float,
      *     slippagePct?: float,
      *     splitRatio?: float,
+     *     entryMode?: string,
+     *     trendFilter?: bool,
+     *     volumeFilter?: bool,
+     *     trailingSl?: bool,
      * }
      * @return array<string, mixed>
      */
@@ -61,6 +68,12 @@ final class DoubleBottomBacktestService
         $slippagePct = (float) ($options['slippagePct'] ?? 0.10); // 0.10% slippage
         $totalCostPct = $feePct + $slippagePct;
         $splitRatio = (float) ($options['splitRatio'] ?? 0.70); // 70% In-Sample, 30% Out-of-Sample
+
+        // Mode & Filter Lanjutan
+        $entryMode = (string) ($options['entryMode'] ?? self::MODE_BREAKOUT);
+        $trendFilter = (bool) ($options['trendFilter'] ?? true);
+        $volumeFilter = (bool) ($options['volumeFilter'] ?? true);
+        $trailingSl = (bool) ($options['trailingSl'] ?? true);
 
         // 1. Ambil Candle Berurutan Kronologis (ASC)
         $candles = $this->loadAscCandles((int) $stock->id, $timeframe, $lookbackCandles);
@@ -79,32 +92,42 @@ final class DoubleBottomBacktestService
         $splitIndex = (int) floor($totalBars * $splitRatio);
         $startBar = 25; // Butuh minimal 25 bar untuk membentuk pivot L1, N, L2
 
-        $lastDetectedL2 = -1;
+        $currentTradeActiveUntil = -1;
 
         for ($i = $startBar; $i < $totalBars; $i++) {
+            // Hindari eksekusi berulang jika transaksi sebelumnya masih aktif
+            if ($i < $currentTradeActiveUntil) {
+                continue;
+            }
+
             // Ambil snapshot candle sampai bar $i (tidak melihat masa depan)
-            $sliceWindow = min(75, $i + 1);
+            $sliceWindow = min(80, $i + 1);
             $sliceCandles = array_slice($candles, $i - $sliceWindow + 1, $sliceWindow);
 
-            $pattern = $this->detectBarDoubleBottom($sliceCandles, $tolerance, $minSeparation, $maxSeparation, $necklineMinDepth);
+            $pattern = $this->detectBarDoubleBottom(
+                $sliceCandles,
+                $tolerance,
+                $minSeparation,
+                $maxSeparation,
+                $necklineMinDepth,
+                $entryMode,
+                $trendFilter,
+                $volumeFilter
+            );
+
             if ($pattern === null) {
                 continue;
             }
 
-            // Hindari duplikasi sinyal pola yang sama
-            $l2GlobalIdx = $i - ($sliceWindow - 1 - $pattern['low2_idx_in_slice']);
-            if ($l2GlobalIdx <= $lastDetectedL2 + 3) {
-                continue;
-            }
-            $lastDetectedL2 = $l2GlobalIdx;
-
-            // Evaluasi Forward Outcome (t+1 s/d t+20)
-            $evaluated = $this->evaluateForwardOutcome($candles, $i, $pattern, $totalCostPct);
+            // Evaluasi Forward Outcome (t+1 s/d t+20) dengan trailing stop breakeven
+            $evaluated = $this->evaluateForwardOutcome($candles, $i, $pattern, $totalCostPct, $trailingSl);
             $evaluated['split_type'] = ($i < $splitIndex) ? 'train' : 'test';
             $allSignals[] = $evaluated;
 
-            // Jeda cooling-off 3 bar
-            $i += 2;
+            // Kunci cooling-off: Jangan membuka posisi baru hingga trade selesai atau minimal 5 bar
+            $holdingBars = max(4, (int) ($evaluated['holding_bars'] ?? 4));
+            $currentTradeActiveUntil = $i + $holdingBars;
+            $i += max(2, min(6, $holdingBars - 1));
         }
 
         // 3. Agregasi Metrik Performa
@@ -130,6 +153,10 @@ final class DoubleBottomBacktestService
                 'feePct' => $feePct,
                 'slippagePct' => $slippagePct,
                 'totalCostPct' => $totalCostPct,
+                'entryMode' => $entryMode,
+                'trendFilter' => $trendFilter,
+                'volumeFilter' => $volumeFilter,
+                'trailingSl' => $trailingSl,
                 'trainRange' => [
                     'start' => $candles[$startBar]['date'] ?? '',
                     'end' => $candles[min($splitIndex - 1, $totalBars - 1)]['date'] ?? '',
@@ -156,18 +183,22 @@ final class DoubleBottomBacktestService
         float $tolerance,
         int $minSep,
         int $maxSep,
-        float $necklineMinDepth
+        float $necklineMinDepth,
+        string $entryMode,
+        bool $trendFilter,
+        bool $volumeFilter
     ): ?array {
         $n = count($slice);
-        if ($n < 15) {
+        if ($n < 20) {
             return null;
         }
 
         $currentClose = (float) $slice[$n - 1]['close'];
-        $currentLow = (float) $slice[$n - 1]['low'];
-        $currentHigh = (float) $slice[$n - 1]['high'];
+        $currentOpen  = (float) $slice[$n - 1]['open'];
+        $currentLow   = (float) $slice[$n - 1]['low'];
+        $currentHigh  = (float) $slice[$n - 1]['high'];
 
-        // Cari pivot low di dalam slice
+        // Cari pivot low di dalam slice (Swing Lows)
         $pivotLows = [];
         for ($i = 2; $i < $n - 1; $i++) {
             $l = (float) $slice[$i]['low'];
@@ -176,15 +207,24 @@ final class DoubleBottomBacktestService
             }
         }
 
-        // Bar terakhir juga bisa menjadi Bottom 2 jika sedang rebound
+        // Bar terakhir juga bisa menjadi Bottom 2 jika sedang rejection rebound
         $prevL = (float) $slice[$n - 2]['low'];
-        if ($currentClose >= (float) $slice[$n - 1]['open'] && $prevL <= (float) $slice[$n - 3]['low']) {
+        if ($currentClose >= $currentOpen && $prevL <= (float) $slice[$n - 3]['low']) {
             $pivotLows[] = ['index' => $n - 2, 'price' => $prevL, 'date' => $slice[$n - 2]['date']];
         }
 
         if (count($pivotLows) < 2) {
             return null;
         }
+
+        // Hitung rata-rata volume untuk kalkulasi RVOL
+        $volSlice = array_column($slice, 'volume');
+        $avgVol = count($volSlice) > 0 ? (array_sum($volSlice) / count($volSlice)) : 1.0;
+        $currRvol = $avgVol > 0 ? ((float) $slice[$n - 1]['volume'] / $avgVol) : 1.0;
+
+        // Hitung SMA20 untuk Trend Filter
+        $closes = array_column($slice, 'close');
+        $sma20 = count($closes) >= 20 ? (array_sum(array_slice($closes, -20)) / 20) : $currentClose;
 
         // Periksa pasangan B1 dan B2 dari pivot terbaru
         $numLows = count($pivotLows);
@@ -197,14 +237,14 @@ final class DoubleBottomBacktestService
                     continue;
                 }
 
-                // Cek kesetaraan harga (Toleransi)
+                // Cek kesetaraan harga Lembah 1 dan Lembah 2
                 $avgLow = ($b1['price'] + $b2['price']) / 2;
                 $diffPct = abs($b1['price'] - $b2['price']) / max($avgLow, 0.01);
                 if ($diffPct > $tolerance) {
                     continue;
                 }
 
-                // Cari neckline (peak tertinggi di antara B1 dan B2)
+                // Cari Neckline (peak tertinggi di antara B1 dan B2)
                 $neckPrice = 0.0;
                 $neckIdx = -1;
                 for ($m = $b1['index'] + 1; $m < $b2['index']; $m++) {
@@ -221,20 +261,78 @@ final class DoubleBottomBacktestService
 
                 $patternHeight = $neckPrice - $avgLow;
                 $isBreakout = ($currentClose >= $neckPrice);
-                $isEarly = ($currentClose < $neckPrice && ($n - 1 - $b2['index']) <= 5);
+                $isEarly = ($currentClose < $neckPrice && ($n - 1 - $b2['index']) <= 4);
 
-                if (!$isBreakout && !$isEarly) {
+                // --- 1. FILTER ENTRY MODE ---
+                if ($entryMode === self::MODE_BREAKOUT && !$isBreakout) {
+                    continue; // Mode Breakout murni: hanya ambil sinyal saat Neckline tertembus
+                } elseif ($entryMode === self::MODE_EARLY && !$isEarly) {
+                    continue; // Mode Early murni
+                } elseif (!$isBreakout && !$isEarly) {
                     continue;
+                }
+
+                // --- 2. FILTER TREND (ANTI PISAU JATUH) ---
+                if ($trendFilter) {
+                    // Jangan ambil Early jika harga terjun bebas jauh di bawah SMA20 (> 5%)
+                    if ($isEarly && $currentClose < ($sma20 * 0.95)) {
+                        continue;
+                    }
+                    // Pastikan ada tren turun awal sebelum B1 (reversal valid, bukan noise sideways)
+                    $preDropBars = min(20, $b1['index']);
+                    if ($preDropBars >= 5) {
+                        $preHigh = max(array_column(array_slice($slice, $b1['index'] - $preDropBars, $preDropBars), 'high'));
+                        $dropPct = ($preHigh - $b1['price']) / max($preHigh, 0.01);
+                        if ($dropPct < 0.03) {
+                            continue; // Drop awal kurang signifikan (< 3%)
+                        }
+                    }
+                }
+
+                // --- 3. FILTER KONFIRMASI VOLUME ---
+                if ($volumeFilter) {
+                    if ($isBreakout) {
+                        // Breakout butuh konfirmasi partisipasi (RVOL minimal 1.05x)
+                        if ($currRvol < 1.05) {
+                            continue;
+                        }
+                    } elseif ($isEarly) {
+                        // Early rebound butuh volume lembah 2 lebih tenang/kering dibanding lembah 1
+                        $volB1 = (float) ($slice[$b1['index']]['volume'] ?? 1);
+                        $volB2 = (float) ($slice[$b2['index']]['volume'] ?? 1);
+                        if ($volB1 > 0 && ($volB2 / $volB1) > 1.35) {
+                            continue; // Tekanan jual masih terlalu deras di lembah 2
+                        }
+                        // Wajib candle bullish atau hammer
+                        $isBullishCandle = ($currentClose >= $currentOpen) || (($currentClose - $currentLow) > ($currentHigh - $currentClose));
+                        if (!$isBullishCandle) {
+                            continue;
+                        }
+                    }
                 }
 
                 // Level Entry, Stop Loss, dan Target TP1 & TP2
                 $entryPrice = $currentClose;
-                $stopLoss = round(min($b1['price'], $b2['price']) * 0.985, 2);
+                
+                // Stop Loss:
+                // Jika Breakout: SL ketat di bawah Neckline (2%) atau bawah low breakout
+                // Jika Early: SL di bawah Low Lembah W (1.5% buffer)
+                if ($isBreakout) {
+                    $stopLoss = round(max($avgLow * 0.985, $neckPrice * 0.975), 2);
+                } else {
+                    $stopLoss = round(min($b1['price'], $b2['price']) * 0.985, 2);
+                }
+
+                // Proteksi minimum risk 0.8% dari entry
+                if (($entryPrice - $stopLoss) < ($entryPrice * 0.008)) {
+                    $stopLoss = round($entryPrice * 0.985, 2);
+                }
+
                 $tp1 = round($neckPrice + ($patternHeight * 0.50), 2);
                 $tp2 = round($neckPrice + ($patternHeight * 1.00), 2);
 
                 if ($tp1 <= $entryPrice) {
-                    $tp1 = round($entryPrice + ($patternHeight * 0.6), 2);
+                    $tp1 = round($entryPrice + ($patternHeight * 0.5), 2);
                 }
                 if ($tp2 <= $tp1) {
                     $tp2 = round($tp1 + $patternHeight, 2);
@@ -258,6 +356,7 @@ final class DoubleBottomBacktestService
                     'is_breakout' => $isBreakout,
                     'is_early' => $isEarly,
                     'risk_reward' => $rr,
+                    'rvol' => round($currRvol, 2),
                     'risk_pct' => round((($entryPrice - $stopLoss) / $entryPrice) * 100, 2),
                     'tp1_gain_pct' => round((($tp1 - $entryPrice) / $entryPrice) * 100, 2),
                     'tp2_gain_pct' => round((($tp2 - $entryPrice) / $entryPrice) * 100, 2),
@@ -271,15 +370,20 @@ final class DoubleBottomBacktestService
     }
 
     /**
-     * Evaluasi forward outcome (t+1 s/d t+20).
+     * Evaluasi forward outcome (t+1 s/d t+20) dengan trailing stop breakeven.
      */
-    private function evaluateForwardOutcome(array $candles, int $signalIdx, array $pattern, float $totalCostPct): array
-    {
+    private function evaluateForwardOutcome(
+        array $candles,
+        int $signalIdx,
+        array $pattern,
+        float $totalCostPct,
+        bool $trailingSl
+    ): array {
         $totalBars = count($candles);
         $entryPrice = $pattern['entry_price'];
-        $stopLoss = $pattern['stop_loss'];
-        $tp1 = $pattern['target_tp1'];
-        $tp2 = $pattern['target_tp2'];
+        $stopLoss   = $pattern['stop_loss'];
+        $tp1        = $pattern['target_tp1'];
+        $tp2        = $pattern['target_tp2'];
 
         $horizons = [3, 5, 10, 20];
         $forwardReturns = [];
@@ -315,36 +419,65 @@ final class DoubleBottomBacktestService
 
         for ($j = $signalIdx + 1; $j <= $maxForward; $j++) {
             $cHigh = (float) $candles[$j]['high'];
-            $cLow = (float) $candles[$j]['low'];
+            $cLow  = (float) $candles[$j]['low'];
 
             $minLowForward = min($minLowForward, $cLow);
             $maxHighForward = max($maxHighForward, $cHigh);
 
-            // Risk-first: Cek Hit SL
-            if ($cLow <= $stopLoss && !$hitSl && !$hitTp1) {
-                $hitSl = true;
-                $exitPrice = $stopLoss;
-                $exitReason = 'STOP_LOSS';
-                $exitBar = $j;
-                break;
+            // 1. Belum hit TP1: Evaluasi Stop Loss dasar
+            if (!$hitTp1) {
+                if ($cLow <= $stopLoss) {
+                    $hitSl = true;
+                    $exitPrice = $stopLoss;
+                    $exitReason = 'STOP_LOSS';
+                    $exitBar = $j;
+                    break;
+                }
+                // Cek pencapaian TP1
+                if ($cHigh >= $tp1) {
+                    $hitTp1 = true;
+                    $exitPrice = $tp1;
+                    $exitReason = 'TAKE_PROFIT_1';
+                    $exitBar = $j;
+                    if ($trailingSl) {
+                        // Kunci 50% profit & geser SL sisa posisi ke Breakeven (+ total fee)
+                        $stopLoss = round($entryPrice * (1 + ($totalCostPct / 100) + 0.002), 2);
+                    }
+                }
+            } else {
+                // 2. Sudah hit TP1: Trailing stop Breakeven melindungi sisa posisi dari kerugian
+                if ($cLow <= $stopLoss && $trailingSl) {
+                    // 50% dieksekusi di TP1, 50% di breakeven stop loss
+                    $exitPrice = round(($tp1 + $stopLoss) / 2, 2);
+                    $exitReason = 'TP1_TRAILING_BEP';
+                    $exitBar = $j;
+                    break;
+                }
+                // Cek pencapaian TP2 (Full Projection)
+                if ($cHigh >= $tp2) {
+                    $hitTp2 = true;
+                    // Rata-rata 50% di TP1 dan 50% di TP2
+                    $exitPrice = round(($tp1 + $tp2) / 2, 2);
+                    $exitReason = 'TAKE_PROFIT_2';
+                    $exitBar = $j;
+                    break;
+                }
             }
+        }
 
-            // Cek Hit TP1
-            if ($cHigh >= $tp1 && !$hitTp1) {
-                $hitTp1 = true;
-                $exitPrice = $tp1;
+        // Jika sampai 20 bar belum kena SL maupun TP2
+        if (!$hitSl && !$hitTp2 && $exitReason !== 'TP1_TRAILING_BEP') {
+            $finalClose = (float) $candles[$maxForward]['close'];
+            if ($hitTp1) {
+                // 50% di TP1, 50% di harga penutupan bar ke-20
+                $exitPrice = round(($tp1 + $finalClose) / 2, 2);
                 $exitReason = 'TAKE_PROFIT_1';
-                $exitBar = $j;
+            } else {
+                // Murni time exit pada harga aktual bar ke-20 (bukan harga 0%)
+                $exitPrice = $finalClose;
+                $exitReason = 'TIME_EXIT';
             }
-
-            // Cek Hit TP2
-            if ($cHigh >= $tp2 && !$hitTp2) {
-                $hitTp2 = true;
-                $exitPrice = $tp2;
-                $exitReason = 'TAKE_PROFIT_2';
-                $exitBar = $j;
-                break;
-            }
+            $exitBar = $maxForward;
         }
 
         $tradeGrossRet = round((($exitPrice - $entryPrice) / $entryPrice) * 100, 2);
@@ -355,19 +488,19 @@ final class DoubleBottomBacktestService
 
         return array_merge($pattern, [
             'forward_returns' => $forwardReturns,
-            'net_returns' => $netReturns,
-            'is_positive' => $isPositive,
-            'mae_pct' => $maePct,
-            'mfe_pct' => $mfePct,
-            'hit_tp1' => $hitTp1,
-            'hit_tp2' => $hitTp2,
-            'hit_sl' => $hitSl,
-            'exit_price' => $exitPrice,
-            'exit_reason' => $exitReason,
-            'holding_bars' => max(1, $exitBar - $signalIdx),
+            'net_returns'     => $netReturns,
+            'is_positive'     => $isPositive,
+            'mae_pct'         => $maePct,
+            'mfe_pct'         => $mfePct,
+            'hit_tp1'         => $hitTp1,
+            'hit_tp2'         => $hitTp2,
+            'hit_sl'          => $hitSl,
+            'exit_price'      => $exitPrice,
+            'exit_reason'     => $exitReason,
+            'holding_bars'    => max(1, $exitBar - $signalIdx),
             'trade_gross_ret' => $tradeGrossRet,
-            'trade_net_ret' => $tradeNetRet,
-            'is_winner' => ($tradeNetRet > 0),
+            'trade_net_ret'   => $tradeNetRet,
+            'is_winner'       => ($tradeNetRet > 0),
         ]);
     }
 
@@ -543,4 +676,3 @@ final class DoubleBottomBacktestService
         return $out;
     }
 }
-

@@ -34,6 +34,9 @@ $btLookback = (int) Yii::$app->request->get('btLookback', 300);
 $btTolerance = (float) Yii::$app->request->get('btTolerance', round($tolerancePercent, 1));
 $btFee = (float) Yii::$app->request->get('btFee', 0.30);
 $btSlippage = (float) Yii::$app->request->get('btSlippage', 0.10);
+$btMode = (string) ($btMode ?? Yii::$app->request->get('btMode', 'breakout'));
+$btTrendFilter = (bool) ($btTrendFilter ?? Yii::$app->request->get('btTrendFilter', 1));
+$btTrailingSl = (bool) ($btTrailingSl ?? Yii::$app->request->get('btTrailingSl', 1));
 ?>
 
 <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
@@ -128,6 +131,14 @@ $btSlippage = (float) Yii::$app->request->get('btSlippage', 0.10);
                 ], ['class' => 'form-select form-select-sm border-primary']) ?>
             </div>
             <div class="col-md-3 col-6">
+                <label class="form-label small fw-bold text-primary">Mode Eksekusi Backtest</label>
+                <?= Html::dropDownList('btMode', $btMode, [
+                    'breakout' => '🚀 Breakout Neckline A+ (Rekomendasi)',
+                    'all' => '⚡ Semua Setup (Breakout + Early)',
+                    'early' => '🎯 Hanya Early Rebound (Lembah 2)',
+                ], ['class' => 'form-select form-select-sm border-primary fw-semibold']) ?>
+            </div>
+            <div class="col-md-2 col-6">
                 <label class="form-label small fw-bold text-primary">Fee + Slippage (%)</label>
                 <div class="input-group input-group-sm">
                     <?= Html::input('number', 'btFee', $btFee, ['class' => 'form-control', 'step' => 0.05, 'placeholder' => 'Fee']) ?>
@@ -135,7 +146,7 @@ $btSlippage = (float) Yii::$app->request->get('btSlippage', 0.10);
                     <?= Html::input('number', 'btSlippage', $btSlippage, ['class' => 'form-control', 'step' => 0.05, 'placeholder' => 'Slip']) ?>
                 </div>
             </div>
-            <div class="col-md-6 col-12 text-end d-flex justify-content-end align-items-center gap-2">
+            <div class="col-md-4 col-12 text-end d-flex justify-content-end align-items-center gap-2">
                 <button type="button" id="btn-live-sync" class="btn btn-sm btn-success fw-bold d-inline-flex align-items-center gap-1 shadow-sm" data-symbol="<?= Html::encode($stock->symbol) ?>" title="Tarik data harga & volume terbaru dari Yahoo Finance">
                     <span id="btn-live-sync-icon"><?= \app\helpers\SvgHelper::icon('arrow-repeat') ?></span>
                     <span id="btn-live-sync-text">Get Live Data</span>

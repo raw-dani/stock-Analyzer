@@ -56,6 +56,10 @@ final class DoubleBottomController extends Controller
         // --- Backtesting Engine Execution ---
         $runBacktest = (bool) Yii::$app->request->get('backtest', false);
         $backtestResult = null;
+        $btMode = (string) Yii::$app->request->get('btMode', \app\services\DoubleBottomBacktestService::MODE_BREAKOUT);
+        $btTrendFilter = (bool) Yii::$app->request->get('btTrendFilter', 1);
+        $btTrailingSl = (bool) Yii::$app->request->get('btTrailingSl', 1);
+
         if ($runBacktest) {
             $btLookback = (int) Yii::$app->request->get('btLookback', 300);
             $btTolerance = (float) Yii::$app->request->get('btTolerance', round($params['tolerancePercent'], 1));
@@ -72,6 +76,9 @@ final class DoubleBottomController extends Controller
                 'necklineMinDepth' => $params['necklineMinDepth'],
                 'feePct' => $btFee,
                 'slippagePct' => $btSlippage,
+                'entryMode' => $btMode,
+                'trendFilter' => $btTrendFilter,
+                'trailingSl' => $btTrailingSl,
             ]);
         }
 
@@ -84,6 +91,9 @@ final class DoubleBottomController extends Controller
             'lookbackDays' => $params['lookback'],
             'runBacktest' => $runBacktest,
             'backtestResult' => $backtestResult,
+            'btMode' => $btMode,
+            'btTrendFilter' => $btTrendFilter,
+            'btTrailingSl' => $btTrailingSl,
         ]));
     }
 
