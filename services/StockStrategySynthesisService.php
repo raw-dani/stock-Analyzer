@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace app\services;
 
+use app\models\DailyPrice;
 use app\models\Stock;
 use Yii;
 
@@ -23,6 +24,23 @@ use Yii;
  */
 final class StockStrategySynthesisService
 {
+    /**
+     * Bobot tiap strategi untuk weighted consensus.
+     * Nilai lebih tinggi = strategi lebih diandalkan.
+     * Baseline eksperimental - perlu validasi backtest.
+     */
+    private const STRATEGY_WEIGHTS = [
+        'confluence'      => 2.0,
+        'moving_average'  => 1.5,
+        'rsi_momentum'    => 1.5,
+        'double_bottom'   => 1.5,
+        'bollinger_band'  => 1.2,
+        'candlestick'     => 1.2,
+        'fibonacci'       => 1.2,
+        'bullish_pattern' => 1.0,
+        'stochastic'      => 0.8,
+        'triple_bottom'   => 1.3,
+    ];
     /**
      * Jalankan evaluasi semua strategi atau strategi tertentu untuk 1 saham.
      *
@@ -110,9 +128,12 @@ final class StockStrategySynthesisService
         ];
 
         $results = [];
-        $buyVotes = 0;
-        $neutralVotes = 0;
-        $sellVotes = 0;
+        $weightedBuyScore  = 0.0;
+        $weightedSellScore = 0.0;
+        $totalWeight       = 0.0;
+        $buyVotes          = 0;
+        $neutralVotes      = 0;
+        $sellVotes         = 0;
 
         foreach ($strategies as $key => $meta) {
             if ($requestedStrategy !== 'all' && $requestedStrategy !== $key) {
@@ -122,32 +143,53 @@ final class StockStrategySynthesisService
             $evaluation = $this->runSingleStrategy($key, $stockId, $timeframe);
             $results[$key] = array_merge($meta, $evaluation);
 
+            $w = self::STRATEGY_WEIGHTS[$key] ?? 1.0;
+            $totalWeight += $w;
+
             if ($evaluation['action_type'] === 'BUY') {
                 $buyVotes++;
+                $weightedBuyScore += $w;
             } elseif ($evaluation['action_type'] === 'SELL') {
                 $sellVotes++;
+                $weightedSellScore += $w;
             } else {
                 $neutralVotes++;
             }
         }
 
-        // Hitung Keputusan Konsensus (Waktunya Beli atau Tidak)
-        $totalEvaluated = count($results);
-        $consensus = $this->determineConsensus($buyVotes, $sellVotes, $neutralVotes, $totalEvaluated);
+        // Hitung Keputusan Konsensus (Weighted)
+        $totalEvaluated   = count($results);
+        $weightedBuyRatio = $totalWeight > 0 ? $weightedBuyScore / $totalWeight : 0.0;
+        $weightedSellRatio= $totalWeight > 0 ? $weightedSellScore / $totalWeight : 0.0;
+
+        // Deteksi Market Regime berdasarkan breadth saham aktif
+        $marketRegime = $this->detectMarketRegime();
+
+        // Bangun Exit Signal Summary
+        $exitSignals = $this->buildExitSignalSummary($results);
+
+        $consensus = $this->determineConsensus(
+            $buyVotes, $sellVotes, $neutralVotes, $totalEvaluated,
+            $weightedBuyRatio, $weightedSellRatio, $marketRegime
+        );
 
         return [
-            'stock' => $stock,
-            'timeframe' => $timeframe,
+            'stock'              => $stock,
+            'timeframe'          => $timeframe,
             'requested_strategy' => $requestedStrategy,
-            'strategies' => $results,
-            'stats' => [
-                'total' => $totalEvaluated,
-                'buy_votes' => $buyVotes,
-                'sell_votes' => $sellVotes,
-                'neutral_votes' => $neutralVotes,
-                'buy_percentage' => $totalEvaluated > 0 ? round(($buyVotes / $totalEvaluated) * 100, 1) : 0,
+            'strategies'         => $results,
+            'market_regime'      => $marketRegime,
+            'exit_signals'       => $exitSignals,
+            'stats'              => [
+                'total'               => $totalEvaluated,
+                'buy_votes'           => $buyVotes,
+                'sell_votes'          => $sellVotes,
+                'neutral_votes'       => $neutralVotes,
+                'buy_percentage'      => $totalEvaluated > 0 ? round(($buyVotes / $totalEvaluated) * 100, 1) : 0,
+                'weighted_buy_ratio'  => round($weightedBuyRatio * 100, 1),
+                'weighted_sell_ratio' => round($weightedSellRatio * 100, 1),
             ],
-            'consensus' => $consensus,
+            'consensus'          => $consensus,
         ];
     }
 
@@ -192,7 +234,7 @@ final class StockStrategySynthesisService
                         'action' => $r['action'] ?? 'NEUTRAL',
                         'action_type' => $isBuy ? 'BUY' : ($isSell ? 'SELL' : 'WAIT'),
                         'signal_title' => $r['strategy_name'] ?? ($r['signal'] ?? 'MA Analysis'),
-                        'score' => $isBuy ? 80 : ($isSell ? 20 : 50),
+                        'score' => $r['confidence_score'] ?? ($isBuy ? 80 : ($isSell ? 20 : 50)),
                         'entry' => $r['entry_range'] ?? ('$' . $r['entry_price']),
                         'stop_loss' => '$' . number_format($r['stop_loss'], 2) . ' (-' . $r['stop_loss_pct'] . '%)',
                         'target' => '$' . number_format($r['target_1'], 2) . ' (+' . $r['target_1_pct'] . '%)',
@@ -234,7 +276,7 @@ final class StockStrategySynthesisService
                         'action' => $r['action'] ?? 'WATCH',
                         'action_type' => $isBuy ? 'BUY' : ($isSell ? 'SELL' : 'WAIT'),
                         'signal_title' => $r['strategy_name'] ?? ($r['signal'] ?? 'Bollinger Band'),
-                        'score' => $isBuy ? 75 : ($isSell ? 25 : 50),
+                        'score' => $r['confidence_score'] ?? ($isBuy ? 75 : ($isSell ? 25 : 50)),
                         'entry' => $r['entry_range'] ?? ('$' . $r['entry_price']),
                         'stop_loss' => '$' . number_format($r['stop_loss'], 2) . ' (-' . $r['stop_loss_pct'] . '%)',
                         'target' => '$' . number_format($r['target_1'], 2) . ' (+' . $r['target_1_pct'] . '%)',
@@ -300,7 +342,7 @@ final class StockStrategySynthesisService
                         'action' => $r['action'] ?? 'HOLD',
                         'action_type' => $isBuy ? 'BUY' : ($isSell ? 'SELL' : 'WAIT'),
                         'signal_title' => $r['strategy_name'] ?? ($r['signal'] ?? 'Fibonacci Retracement'),
-                        'score' => $isBuy ? 80 : 50,
+                        'score' => $r['confidence_score'] ?? ($isBuy ? 80 : 50),
                         'entry' => $r['entry_range'] ?? ('$' . $r['entry_price']),
                         'stop_loss' => '$' . number_format($r['stop_loss'], 2) . ' (-' . $r['stop_loss_pct'] . '%)',
                         'target' => '$' . number_format($r['target_1'], 2) . ' (+' . $r['target_1_pct'] . '%)',
@@ -383,7 +425,7 @@ final class StockStrategySynthesisService
             'action' => 'WAIT',
             'action_type' => 'WAIT',
             'signal_title' => 'Netral / Wait & See',
-            'score' => 30,
+            'score' => 0,
             'entry' => '-',
             'stop_loss' => '-',
             'target' => '-',
@@ -393,59 +435,185 @@ final class StockStrategySynthesisService
     }
 
     /**
-     * Hitung kesimpulan umum (Waktunya Beli atau Tidak).
+     * Hitung kesimpulan umum berdasarkan weighted score dan market regime.
      */
-    private function determineConsensus(int $buyVotes, int $sellVotes, int $neutralVotes, int $total): array
-    {
+    private function determineConsensus(
+        int $buyVotes, int $sellVotes, int $neutralVotes, int $total,
+        float $weightedBuyRatio, float $weightedSellRatio, string $marketRegime
+    ): array {
         if ($total === 0) {
             return [
-                'verdict' => 'TIDAK / WAIT',
-                'badge' => 'secondary',
-                'headline' => 'Data Belum Cukup',
-                'summary' => 'Belum ada strategi yang memberikan konfirmasi sinyal aktif untuk saham ini.',
+                'verdict'     => 'TIDAK / WAIT',
+                'badge'       => 'secondary',
+                'headline'    => 'Data Belum Cukup',
+                'summary'     => 'Belum ada strategi yang memberikan konfirmasi sinyal aktif untuk saham ini.',
                 'is_buy_time' => false,
             ];
         }
 
-        $buyRatio = $buyVotes / $total;
-        $sellRatio = $sellVotes / $total;
+        // Threshold lebih konservatif di BEAR market
+        $strongBuyThreshold = $marketRegime === 'BEAR' ? 0.70 : 0.60;
+        $buyThreshold       = $marketRegime === 'BEAR' ? 0.50 : 0.40;
+        $sellThreshold      = $marketRegime === 'BULL' ? 0.40 : 0.28;
 
-        if ($buyRatio >= 0.5 || ($buyVotes >= 4 && $buyVotes > $sellVotes * 2)) {
+        $regimeSuffix = match ($marketRegime) {
+            'BULL'  => ' (Market Bullish ✅)',
+            'BEAR'  => ' (Market Bearish ⚠️ — Threshold Lebih Ketat)',
+            default => '',
+        };
+
+        if ($weightedBuyRatio >= $strongBuyThreshold) {
             return [
-                'verdict' => 'WAKTUNYA BELI (HIGH PROBABILITY)',
-                'badge' => 'success',
-                'headline' => "Sangat Disarankan Beli ({$buyVotes} dari {$total} Strategi Mendukung Beli)",
-                'summary' => 'Mayoritas indikator teknikal, pola candlestick, dan strategi breakout memberikan konfirmasi sinyal akumulasi dan beli aktif pada harga saat ini.',
+                'verdict'     => 'WAKTUNYA BELI (HIGH PROBABILITY)',
+                'badge'       => 'success',
+                'headline'    => "Sangat Disarankan Beli ({$buyVotes} dari {$total} Strategi Mendukung Beli)" . $regimeSuffix,
+                'summary'     => 'Mayoritas indikator teknikal, pola candlestick, dan strategi breakout memberikan konfirmasi sinyal akumulasi dan beli aktif. Weighted consensus: ' . round($weightedBuyRatio * 100, 1) . '%.',
                 'is_buy_time' => true,
             ];
         }
 
-        if ($buyVotes >= 2 && $buyVotes > $sellVotes) {
+        if ($weightedBuyRatio >= $buyThreshold && $weightedBuyRatio > $weightedSellRatio) {
             return [
-                'verdict' => 'POTENSIAL BELI BERSYARAT (ACCUMULATE ON DIP)',
-                'badge' => 'primary',
-                'headline' => "Peluang Beli ({$buyVotes} Strategi Memberikan Sinyal Beli)",
-                'summary' => 'Terdapat konfirmasi beli dari beberapa strategi unggulan. Disarankan masuk bertahap (DCA/Buy on Support) dengan disiplin pasang stop loss.',
+                'verdict'     => 'POTENSIAL BELI BERSYARAT (ACCUMULATE ON DIP)',
+                'badge'       => 'primary',
+                'headline'    => "Peluang Beli ({$buyVotes} Strategi Memberikan Sinyal Beli)" . $regimeSuffix,
+                'summary'     => 'Terdapat konfirmasi beli dari beberapa strategi unggulan. Disarankan masuk bertahap (DCA/Buy on Support) dengan disiplin pasang stop loss. Weighted score: ' . round($weightedBuyRatio * 100, 1) . '%.',
                 'is_buy_time' => true,
             ];
         }
 
-        if ($sellRatio >= 0.3 || ($sellVotes >= 2 && $sellVotes >= $buyVotes)) {
+        if ($weightedSellRatio >= $sellThreshold || ($sellVotes >= 2 && $sellVotes >= $buyVotes)) {
             return [
-                'verdict' => 'JANGAN BELI / WAKTUNYA TAKE PROFIT',
-                'badge' => 'danger',
-                'headline' => "Bukan Waktu Beli ({$sellVotes} Strategi Memberikan Peringatan Jual/Overbought)",
-                'summary' => 'Harga berada pada area jenuh beli (overbought), menabrak resistance kuat, atau mengalami tekanan jual. Hindari masuk di harga saat ini.',
+                'verdict'     => 'JANGAN BELI / WAKTUNYA TAKE PROFIT',
+                'badge'       => 'danger',
+                'headline'    => "Bukan Waktu Beli ({$sellVotes} Strategi Memberikan Peringatan Jual/Overbought)" . $regimeSuffix,
+                'summary'     => 'Harga berada pada area jenuh beli (overbought), menabrak resistance kuat, atau mengalami tekanan jual. Lihat panel Exit Signal untuk detail sinyal jual aktif.',
                 'is_buy_time' => false,
             ];
         }
 
         return [
-            'verdict' => 'WAIT & OBSERVE (TUNGGU KONFIRMASI)',
-            'badge' => 'warning text-dark',
-            'headline' => 'Netral / Sedang Konsolidasi',
-            'summary' => 'Saham sedang berada di area konsolidasi dan belum ada sinyal pembalikan atau breakout yang cukup kuat. Disarankan menunggu hingga setup terpenuhi.',
+            'verdict'     => 'WAIT & OBSERVE (TUNGGU KONFIRMASI)',
+            'badge'       => 'warning text-dark',
+            'headline'    => 'Netral / Sedang Konsolidasi',
+            'summary'     => 'Saham sedang berada di area konsolidasi dan belum ada sinyal pembalikan atau breakout yang cukup kuat. Disarankan menunggu hingga setup terpenuhi.',
             'is_buy_time' => false,
+        ];
+    }
+
+    /**
+     * Deteksi market regime berdasarkan breadth: persentase saham aktif di atas SMA50.
+     * Menggunakan cache 1 jam untuk efisiensi.
+     */
+    private function detectMarketRegime(): string
+    {
+        $cacheKey = 'market_regime_breadth_v1';
+        $cached = Yii::$app->cache->get($cacheKey);
+        if ($cached !== false && is_string($cached)) {
+            return $cached;
+        }
+
+        try {
+            $stocks = Stock::find()->where(['active' => true])->all();
+            if (count($stocks) < 5) {
+                return 'NEUTRAL';
+            }
+
+            $aboveSma50   = 0;
+            $totalChecked = 0;
+
+            foreach ($stocks as $stock) {
+                // Ambil 60 candle harian terakhir
+                $candles = DailyPrice::find()
+                    ->where(['stock_id' => $stock->id])
+                    ->orderBy('date DESC')
+                    ->limit(60)
+                    ->asArray()
+                    ->all();
+
+                if (count($candles) < 50) {
+                    continue;
+                }
+
+                $closes = array_reverse(array_column($candles, 'close'));
+                $sma50  = count($closes) >= 50
+                    ? array_sum(array_slice($closes, -50)) / 50
+                    : null;
+
+                if ($sma50 !== null && (float)end($closes) > $sma50) {
+                    $aboveSma50++;
+                }
+                $totalChecked++;
+            }
+
+            if ($totalChecked === 0) {
+                return 'NEUTRAL';
+            }
+
+            $pct = $aboveSma50 / $totalChecked;
+
+            $regime = match (true) {
+                $pct >= 0.60 => 'BULL',
+                $pct <= 0.30 => 'BEAR',
+                default      => 'NEUTRAL',
+            };
+
+            Yii::$app->cache->set($cacheKey, $regime, 3600); // cache 1 jam
+            return $regime;
+        } catch (\Throwable $e) {
+            return 'NEUTRAL';
+        }
+    }
+
+    /**
+     * Agregasi sinyal JUAL aktif dari semua strategi yang sudah dievaluasi.
+     */
+    private function buildExitSignalSummary(array $results): array
+    {
+        $sellSignals = [];
+
+        foreach ($results as $key => $r) {
+            if (($r['action_type'] ?? '') !== 'SELL') {
+                continue;
+            }
+
+            $action = $r['action'] ?? 'SELL';
+            $urgency = match (true) {
+                in_array($action, ['STRONG_SELL', 'CUT_LOSS'], true) => 'URGENT',
+                in_array($action, ['SELL'], true)                    => 'HIGH',
+                in_array($action, ['TAKE_PROFIT'], true)             => 'NORMAL',
+                default                                              => 'LOW',
+            };
+
+            $sellSignals[] = [
+                'strategy'     => $r['name'] ?? $key,
+                'signal_title' => $r['signal_title'] ?? 'Exit Signal',
+                'action'       => $action,
+                'urgency'      => $urgency,
+                'stop_loss'    => $r['stop_loss'] ?? '-',
+                'score'        => $r['score'] ?? 0,
+            ];
+        }
+
+        // Urutkan: URGENT dulu, lalu HIGH, NORMAL, LOW
+        usort($sellSignals, function (array $a, array $b): int {
+            $order = ['URGENT' => 0, 'HIGH' => 1, 'NORMAL' => 2, 'LOW' => 3];
+            return ($order[$a['urgency']] ?? 9) <=> ($order[$b['urgency']] ?? 9);
+        });
+
+        $count = count($sellSignals);
+        $recommendation = match (true) {
+            $count >= 4 => 'SEGERA TAKE PROFIT / EXIT — Tekanan Jual Kuat',
+            $count >= 2 => 'PERTIMBANGKAN TAKE PROFIT — Beberapa Sinyal Jual Aktif',
+            $count === 1 => 'WASPADA — 1 Sinyal Jual Terdeteksi',
+            default      => 'TIDAK ADA SINYAL JUAL AKTIF — Pertahankan Posisi',
+        };
+
+        return [
+            'active_sell_count' => $count,
+            'signals'           => $sellSignals,
+            'recommendation'    => $recommendation,
+            'badge'             => $count >= 4 ? 'danger' : ($count >= 2 ? 'warning' : ($count === 1 ? 'info' : 'success')),
         ];
     }
 }

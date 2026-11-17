@@ -32,6 +32,8 @@ $changeIcon = $isUp ? 'arrow-up' : 'arrow-down';
 $consensus = $strategyEvaluation['consensus'] ?? null;
 $stats = $strategyEvaluation['stats'] ?? null;
 $strategies = $strategyEvaluation['strategies'] ?? [];
+$exitSignals = $strategyEvaluation['exit_signals'] ?? ['active_sell_count' => 0, 'signals' => [], 'recommendation' => '', 'badge' => 'success'];
+$marketRegime = $strategyEvaluation['market_regime'] ?? 'NEUTRAL';
 $activeStrategy = $requestedStrategy ?? 'all';
 $activeTf = (int) ($currentTimeframe ?? 24);
 
@@ -273,7 +275,7 @@ $tfList = [
                         </p>
                     </div>
                 </div>
-                <div class="d-flex align-items-center gap-2">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
                     <div class="text-center bg-white px-3 py-2 rounded-3 shadow-xs border">
                         <div class="small text-muted" style="font-size:0.75rem;">Sinyal Beli</div>
                         <div class="h4 fw-bold text-success mb-0"><?= $stats['buy_votes'] ?? 0 ?></div>
@@ -285,6 +287,26 @@ $tfList = [
                     <div class="text-center bg-white px-3 py-2 rounded-3 shadow-xs border">
                         <div class="small text-muted" style="font-size:0.75rem;">Peringatan Jual</div>
                         <div class="h4 fw-bold text-danger mb-0"><?= $stats['sell_votes'] ?? 0 ?></div>
+                    </div>
+                    <div class="text-center bg-white px-3 py-2 rounded-3 shadow-xs border">
+                        <div class="small text-muted" style="font-size:0.75rem;">Weighted Buy</div>
+                        <div class="h5 fw-bold text-success mb-0"><?= $stats['weighted_buy_ratio'] ?? 0 ?>%</div>
+                    </div>
+                    <div class="text-center bg-white px-3 py-2 rounded-3 shadow-xs border">
+                        <div class="small text-muted" style="font-size:0.75rem;">Market Regime</div>
+                        <?php
+                        $regimeBadge = match($marketRegime) {
+                            'BULL'  => 'success',
+                            'BEAR'  => 'danger',
+                            default => 'secondary',
+                        };
+                        $regimeIcon = match($marketRegime) {
+                            'BULL'  => '📈',
+                            'BEAR'  => '📉',
+                            default => '➡️',
+                        };
+                        ?>
+                        <div class="mt-1"><span class="badge bg-<?= $regimeBadge ?>"><?= $regimeIcon ?> <?= Html::encode($marketRegime) ?></span></div>
                     </div>
                 </div>
             </div>
@@ -372,6 +394,36 @@ $tfList = [
                                         <span class="badge bg-light text-dark border ms-1" style="font-size: 0.65rem;">R:R <?= Html::encode($s['rr_ratio']) ?></span>
                                     <?php endif; ?>
                                 </div>
+                                <?php
+                                // Hitung trailing stop rekomendasi jika harga sudah bergerak naik dari entry
+                                $entryRaw = str_replace(['$', ',', ' '], '', explode(' - ', $s['entry'] ?? '')[0] ?? '');
+                                $targetClean = preg_replace('/[^0-9.]/', '', explode(' ', $s['target'] ?? '')[0] ?? '');
+                                $targetNum = (float)$targetClean;
+                                $entryNum = (float)$entryRaw;
+                                $slClean = preg_replace('/[^0-9.]/', '', explode(' ', $s['stop_loss'] ?? '')[0] ?? '');
+                                $slNum = (float)$slClean;
+                                $showTrailing = false;
+                                $trailingStop = null;
+                                if ($entryNum > 0 && $targetNum > $entryNum && $currentPrice > 0) {
+                                    $progressToTp = ($currentPrice - $entryNum) / max(0.001, $targetNum - $entryNum);
+                                    if ($progressToTp >= 1.0) {
+                                        // Target 1 sudah tercapai -> geser SL ke breakeven + 0.5%
+                                        $trailingStop = round($entryNum * 1.005, 2);
+                                        $showTrailing = true;
+                                    } elseif ($progressToTp >= 0.5) {
+                                        // 50% jarak ke TP1 -> geser SL ke 25% profit
+                                        $trailingStop = round($entryNum + (($targetNum - $entryNum) * 0.25), 2);
+                                        $showTrailing = ($slNum > 0 && $trailingStop > $slNum);
+                                    }
+                                }
+                                ?>
+                                <?php if ($showTrailing && $trailingStop !== null): ?>
+                                <div class="small mt-1">
+                                    <span class="badge bg-info text-white" style="font-size: 0.65rem;" title="Geser stop loss ke level ini untuk mengunci profit karena harga sudah bergerak naik signifikan">
+                                        🛡️ Trailing SL: $<?= number_format($trailingStop, 2) ?>
+                                    </span>
+                                </div>
+                                <?php endif; ?>
                             </td>
 
                             <!-- Aksi Scan / Detail -->
@@ -390,6 +442,69 @@ $tfList = [
                 </tbody>
             </table>
         </div>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- 🚨 EXIT SIGNAL MONITOR — Agregasi Sinyal Jual & Take Profit               -->
+<!-- ========================================================================= -->
+<div class="card border-0 shadow-sm mb-4 rounded-3 border-top border-4 border-<?= $exitSignals['badge'] ?? 'success' ?>">
+    <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div class="d-flex align-items-center gap-2">
+            <?= \app\helpers\SvgHelper::icon('shield-exclamation', ['class' => 'text-' . ($exitSignals['badge'] ?? 'success') . ' fs-5']) ?>
+            <h5 class="mb-0 fw-bold text-dark">Exit Signal Monitor — <?= Html::encode($stock->symbol) ?></h5>
+            <span class="badge bg-<?= $exitSignals['badge'] ?? 'success' ?> ms-1">
+                <?= $exitSignals['active_sell_count'] ?? 0 ?> Sinyal Aktif
+            </span>
+        </div>
+        <div class="small text-muted">Agregasi sinyal jual/take profit dari seluruh 10 strategi untuk panduan exit &amp; proteksi modal.</div>
+    </div>
+    <div class="card-body p-3">
+        <!-- Rekomendasi Utama -->
+        <div class="alert alert-<?= $exitSignals['badge'] ?? 'success' ?> bg-opacity-10 border-<?= $exitSignals['badge'] ?? 'success' ?> rounded-3 py-2 px-3 mb-3 d-flex align-items-center gap-2">
+            <?= \app\helpers\SvgHelper::icon(($exitSignals['active_sell_count'] ?? 0) > 0 ? 'exclamation-triangle-fill' : 'check-circle-fill', ['class' => 'text-' . ($exitSignals['badge'] ?? 'success')]) ?>
+            <strong class="text-<?= $exitSignals['badge'] ?? 'success' ?>"><?= Html::encode($exitSignals['recommendation'] ?? 'Tidak ada sinyal jual aktif') ?></strong>
+        </div>
+
+        <?php if (!empty($exitSignals['signals'])): ?>
+        <div class="table-responsive">
+            <table class="table table-sm table-hover align-middle mb-0">
+                <thead class="table-light text-secondary small text-uppercase">
+                    <tr>
+                        <th>Strategi</th>
+                        <th>Sinyal / Pola</th>
+                        <th>Aksi</th>
+                        <th>Tingkat Urgensi</th>
+                        <th>Level Proteksi (SL)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($exitSignals['signals'] as $sig): ?>
+                    <?php
+                    $urgencyBadge = match($sig['urgency'] ?? 'LOW') {
+                        'URGENT' => 'danger',
+                        'HIGH'   => 'warning text-dark',
+                        'NORMAL' => 'info text-white',
+                        default  => 'secondary',
+                    };
+                    ?>
+                    <tr>
+                        <td class="fw-semibold small"><?= Html::encode($sig['strategy'] ?? '-') ?></td>
+                        <td class="small"><?= Html::encode($sig['signal_title'] ?? '-') ?></td>
+                        <td><span class="badge bg-danger"><?= Html::encode($sig['action'] ?? 'SELL') ?></span></td>
+                        <td><span class="badge bg-<?= $urgencyBadge ?>"><?= Html::encode($sig['urgency'] ?? 'LOW') ?></span></td>
+                        <td class="text-danger fw-semibold small font-monospace"><?= Html::encode($sig['stop_loss'] ?? '-') ?></td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+        <?php else: ?>
+        <div class="text-center py-2 text-muted small">
+            <?= \app\helpers\SvgHelper::icon('check-circle', ['class' => 'text-success me-1']) ?>
+            Tidak ada indikator atau pola yang memicu sinyal jual aktif pada saham ini. Posisi aman dipertahankan.
+        </div>
+        <?php endif; ?>
     </div>
 </div>
 

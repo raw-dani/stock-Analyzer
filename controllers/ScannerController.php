@@ -369,4 +369,55 @@ final class ScannerController extends Controller
             ],
         ]);
     }
+
+    /**
+     * Scanner sinyal jual terpadu - agregasi dari seluruh 10 strategi.
+     */
+    public function actionSellSignals(): string
+    {
+        @ini_set('max_execution_time', '180');
+        @set_time_limit(180);
+
+        $timeframe = (int) Yii::$app->request->get('timeframe', 24);
+        $minSellCount = (int) Yii::$app->request->get('min_sell', 1);
+
+        $stocks = Stock::find()->where(['active' => true])->orderBy('symbol')->all();
+
+        $synthesisService = new \app\services\StockStrategySynthesisService();
+        $results = [];
+
+        foreach ($stocks as $stock) {
+            try {
+                $eval = $synthesisService->evaluateStock($stock, 'all', ['timeframe' => $timeframe]);
+                $exitSignals = $eval['exit_signals'] ?? ['active_sell_count' => 0, 'signals' => [], 'recommendation' => '', 'badge' => 'success'];
+                $sellCount = (int) ($exitSignals['active_sell_count'] ?? 0);
+
+                if ($sellCount < $minSellCount) {
+                    continue;
+                }
+
+                $results[] = [
+                    'stock'         => $stock,
+                    'exit_signals'  => $exitSignals,
+                    'sell_count'    => $sellCount,
+                    'consensus'     => $eval['consensus'] ?? [],
+                    'stats'         => $eval['stats'] ?? [],
+                    'market_regime' => $eval['market_regime'] ?? 'NEUTRAL',
+                ];
+            } catch (\Throwable $e) {
+                // Lewati saham yang bermasalah pada kalkulasi
+                continue;
+            }
+        }
+
+        // Urutkan saham berdasarkan jumlah sinyal jual terbanyak
+        usort($results, fn($a, $b) => $b['sell_count'] <=> $a['sell_count']);
+
+        return $this->render('sell-signals', [
+            'results'      => $results,
+            'timeframe'    => $timeframe,
+            'minSellCount' => $minSellCount,
+            'totalScanned' => count($stocks),
+        ]);
+    }
 }

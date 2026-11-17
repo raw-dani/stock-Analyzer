@@ -848,11 +848,28 @@ final class DoubleBottomService
 
     /**
      * Hitung Position Sizing otomatis untuk manajemen risiko.
+     * Mengambil modal portofolio riil jika ada, atau fallback $10,000 jika portofolio kosong.
      */
     private function calculatePositionSizing(float $entryPrice, float $slTight, float $slSwing): array
     {
-        $accountCapital = 10000; // Contoh modal akun $10,000
-        $riskPct = 0.015;        // Batas risiko 1.5% = $150
+        $accountCapital = 10000.0;
+        try {
+            // Ambil total nilai portofolio aktif user saat ini
+            $positions = \app\models\PortfolioPosition::find()->all();
+            if (!empty($positions)) {
+                $totalVal = 0.0;
+                foreach ($positions as $pos) {
+                    $totalVal += (float) $pos->getTotalCost();
+                }
+                if ($totalVal >= 1000.0) {
+                    $accountCapital = round($totalVal, 2);
+                }
+            }
+        } catch (\Throwable $e) {
+            $accountCapital = 10000.0;
+        }
+
+        $riskPct = 0.015;        // Batas risiko 1.5% dari modal
         $riskAmount = $accountCapital * $riskPct;
 
         $riskTightPerShare = max($entryPrice - $slTight, 0.05);
@@ -865,7 +882,7 @@ final class DoubleBottomService
 
         return [
             'account_capital' => $accountCapital,
-            'risk_amount' => $riskAmount,
+            'risk_amount' => round($riskAmount, 2),
             'shares_tight' => max($sharesTight, 1),
             'capital_tight' => $capitalTight,
             'shares_swing' => max($sharesSwing, 1),
