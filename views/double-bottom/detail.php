@@ -14,6 +14,8 @@
 /** @var array $timeframes */
 /** @var array $filterParams */
 /** @var array $candles candle analisa: open/high/low/close/volume/date */
+/** @var bool|null $runBacktest */
+/** @var array|null $backtestResult */
 
 use yii\bootstrap5\Html;
 use yii\helpers\Url;
@@ -27,6 +29,11 @@ $this->params['breadcrumbs'][] = $stock->symbol;
 $lookbackDays = $lookbackDays ?? $lookback;
 $tolerancePercent = $tolerancePercent ?? round($tolerance * 100, 1);
 $chartId = 'db-chart';
+$runBacktest = $runBacktest ?? false;
+$btLookback = (int) Yii::$app->request->get('btLookback', 300);
+$btTolerance = (float) Yii::$app->request->get('btTolerance', round($tolerancePercent, 1));
+$btFee = (float) Yii::$app->request->get('btFee', 0.30);
+$btSlippage = (float) Yii::$app->request->get('btSlippage', 0.10);
 ?>
 
 <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
@@ -38,6 +45,10 @@ $chartId = 'db-chart';
         <span class="badge bg-light text-dark border"><?= Html::encode($stock->exchange ?? '-') ?></span>
     </div>
     <div class="d-flex align-items-center gap-2">
+        <a href="<?= Url::to(array_merge(['double-bottom/detail', 'symbol' => $stock->symbol, 'backtest' => 1], $filterParams)) ?>" class="btn <?= $runBacktest ? 'btn-primary' : 'btn-outline-primary' ?> d-inline-flex align-items-center gap-1 shadow-sm">
+            <?= \app\helpers\SvgHelper::icon('graph-up-arrow') ?>
+            <span><?= $runBacktest ? 'Mode Backtest Aktif' : 'Uji Backtest' ?></span>
+        </a>
         <?= Html::a(\app\helpers\SvgHelper::icon('arrow-left') . ' Kembali ke Scanner', array_merge(['double-bottom/index'], $filterParams), ['class' => 'btn btn-outline-secondary']) ?>
         <?= \app\widgets\BlogQuickPostWidget::widget([
             'symbol' => $stock->symbol,
@@ -62,10 +73,21 @@ $chartId = 'db-chart';
     </div>
 </div>
 
-<!-- Filter (mempertahankan state filter scanner) -->
-<div class="card mb-4 shadow-sm border-0">
-    <div class="card-header bg-light py-2">
-        <strong class="small text-secondary"><?= \app\helpers\SvgHelper::icon('sliders') ?> Parameter Deteksi Pola</strong>
+<!-- Backtesting Results Section (Jika aktif) -->
+<?php if ($runBacktest && !empty($backtestResult)): ?>
+    <?= $this->render('_backtest_section', [
+        'backtestResult' => $backtestResult,
+        'stock' => $stock,
+    ]) ?>
+<?php endif; ?>
+
+<!-- Filter (mempertahankan state filter scanner & opsi backtest) -->
+<div class="card mb-4 shadow-sm border-0" id="backtest-form-box">
+    <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center">
+        <strong class="small text-secondary"><?= \app\helpers\SvgHelper::icon('sliders') ?> Parameter Deteksi Pola &amp; Pengujian</strong>
+        <?php if ($runBacktest): ?>
+            <span class="badge bg-primary">Backtesting Mode</span>
+        <?php endif; ?>
     </div>
     <div class="card-body">
         <?= Html::beginForm(['double-bottom/detail'], 'get', ['class' => 'row g-3 align-items-end']) ?>
@@ -94,12 +116,35 @@ $chartId = 'db-chart';
                 <label class="form-label small fw-bold">Neckline min (%)</label>
                 <?= Html::input('number', 'necklineMinDepth', round($necklineMinDepth * 100, 1), ['class' => 'form-control form-control-sm', 'min' => 0, 'max' => 50, 'step' => 0.1]) ?>
             </div>
-            <div class="col-12 text-end d-flex justify-content-end align-items-center gap-2">
+
+            <!-- Opsi Backtest Bar -->
+            <div class="col-md-3 col-6">
+                <label class="form-label small fw-bold text-primary">Rentang Bar Backtest</label>
+                <?= Html::dropDownList('btLookback', $btLookback, [
+                    150 => '150 Bar Historis',
+                    300 => '300 Bar Historis (Rekomendasi)',
+                    500 => '500 Bar Historis',
+                    1000 => '1000 Bar Historis (Jangka Panjang)',
+                ], ['class' => 'form-select form-select-sm border-primary']) ?>
+            </div>
+            <div class="col-md-3 col-6">
+                <label class="form-label small fw-bold text-primary">Fee + Slippage (%)</label>
+                <div class="input-group input-group-sm">
+                    <?= Html::input('number', 'btFee', $btFee, ['class' => 'form-control', 'step' => 0.05, 'placeholder' => 'Fee']) ?>
+                    <span class="input-group-text">+</span>
+                    <?= Html::input('number', 'btSlippage', $btSlippage, ['class' => 'form-control', 'step' => 0.05, 'placeholder' => 'Slip']) ?>
+                </div>
+            </div>
+            <div class="col-md-6 col-12 text-end d-flex justify-content-end align-items-center gap-2">
                 <button type="button" id="btn-live-sync" class="btn btn-sm btn-success fw-bold d-inline-flex align-items-center gap-1 shadow-sm" data-symbol="<?= Html::encode($stock->symbol) ?>" title="Tarik data harga & volume terbaru dari Yahoo Finance">
                     <span id="btn-live-sync-icon"><?= \app\helpers\SvgHelper::icon('arrow-repeat') ?></span>
                     <span id="btn-live-sync-text">Get Live Data</span>
                 </button>
-                <?= Html::submitButton(\app\helpers\SvgHelper::icon('arrow-repeat') . ' Update Analisis', ['class' => 'btn btn-sm btn-primary px-3']) ?>
+                <?= Html::submitButton(\app\helpers\SvgHelper::icon('arrow-repeat') . ' Update Analisis', ['class' => 'btn btn-sm btn-outline-secondary px-3']) ?>
+                <button type="submit" name="backtest" value="1" class="btn btn-sm btn-primary fw-bold px-3 d-inline-flex align-items-center gap-1 shadow-sm">
+                    <?= \app\helpers\SvgHelper::icon('graph-up-arrow') ?>
+                    <span>Jalankan Backtest</span>
+                </button>
             </div>
         <?= Html::endForm() ?>
     </div>

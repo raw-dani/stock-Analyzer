@@ -52,6 +52,29 @@ final class DoubleBottomController extends Controller
         } catch (\InvalidArgumentException $e) {
             Yii::$app->session->setFlash('warning', $e->getMessage());
         }
+
+        // --- Backtesting Engine Execution ---
+        $runBacktest = (bool) Yii::$app->request->get('backtest', false);
+        $backtestResult = null;
+        if ($runBacktest) {
+            $btLookback = (int) Yii::$app->request->get('btLookback', 300);
+            $btTolerance = (float) Yii::$app->request->get('btTolerance', round($params['tolerancePercent'], 1));
+            $btFee = (float) Yii::$app->request->get('btFee', 0.30);
+            $btSlippage = (float) Yii::$app->request->get('btSlippage', 0.10);
+
+            $btService = new \app\services\DoubleBottomBacktestService();
+            $backtestResult = $btService->runStockBacktest($stock, [
+                'timeframe' => $params['timeframe'],
+                'lookbackCandles' => $btLookback,
+                'tolerancePercent' => $btTolerance,
+                'minSeparation' => $params['minSeparation'],
+                'maxSeparation' => $params['maxSeparation'],
+                'necklineMinDepth' => $params['necklineMinDepth'],
+                'feePct' => $btFee,
+                'slippagePct' => $btSlippage,
+            ]);
+        }
+
         return $this->render('detail', array_merge($params, [
             'stock' => $stock,
             'pattern' => $pattern,
@@ -59,6 +82,8 @@ final class DoubleBottomController extends Controller
             'timeframes' => DoubleBottomService::getTimeframes(),
             'filterParams' => $this->filterParams($params),
             'lookbackDays' => $params['lookback'],
+            'runBacktest' => $runBacktest,
+            'backtestResult' => $backtestResult,
         ]));
     }
 
