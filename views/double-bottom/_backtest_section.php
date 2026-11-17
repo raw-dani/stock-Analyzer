@@ -249,46 +249,59 @@ $trades = $res['recentTrades'] ?? [];
                     <table class="table table-hover align-middle mb-0 small">
                         <thead class="table-light text-muted text-uppercase">
                             <tr>
-                                <th>Tanggal Entry</th>
+                                <th class="ps-3">Tanggal Sinyal</th>
+                                <th>Setup / Pola</th>
                                 <th>Harga Entry</th>
                                 <th>Neckline</th>
                                 <th>SL</th>
                                 <th>TP1 / TP2</th>
-                                <th>Hasil Eksekusi</th>
-                                <th>Durasi Holding</th>
-                                <th>Net Return (%)</th>
-                                <th>MFE / MAE</th>
+                                <th>Hasil Selesai</th>
+                                <th>Holding</th>
+                                <th>Net Return</th>
+                                <th class="pe-3 text-end">MAE / MFE</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php foreach ($trades as $t): ?>
                                 <tr>
-                                    <td class="fw-bold"><?= Html::encode($t['entry_date']) ?></td>
-                                    <td><?= number_format($t['entry_price'], 2) ?></td>
-                                    <td><?= number_format($t['neckline'], 2) ?></td>
-                                    <td class="text-danger"><?= number_format($t['sl_price'], 2) ?></td>
-                                    <td>
-                                        <span class="text-success"><?= number_format($t['tp1_price'], 2) ?></span> /
-                                        <span class="text-primary"><?= number_format($t['tp2_price'], 2) ?></span>
-                                    </td>
-                                    <td>
-                                        <?php if ($t['outcome_status'] === 'HIT_TP2'): ?>
-                                            <span class="badge bg-primary">HIT TP2</span>
-                                        <?php elseif ($t['outcome_status'] === 'HIT_TP1'): ?>
-                                            <span class="badge bg-success">HIT TP1</span>
-                                        <?php elseif ($t['outcome_status'] === 'HIT_SL'): ?>
-                                            <span class="badge bg-danger">HIT SL</span>
-                                        <?php else: ?>
-                                            <span class="badge bg-secondary">TIME EXIT (+<?= $t['holding_bars'] ?>)</span>
+                                    <td class="ps-3 text-nowrap">
+                                        <strong><?= Html::encode($t['date'] ?? '-') ?></strong>
+                                        <?php if (!empty($t['split_type'])): ?>
+                                            <span class="badge bg-<?= $t['split_type'] === 'test' ? 'success' : 'primary' ?>-subtle text-<?= $t['split_type'] === 'test' ? 'success' : 'primary' ?> border" style="font-size:0.65rem;">
+                                                <?= strtoupper($t['split_type']) ?>
+                                            </span>
                                         <?php endif; ?>
                                     </td>
-                                    <td><?= $t['holding_bars'] ?> candle</td>
-                                    <td class="fw-bold <?= $t['net_return'] >= 0 ? 'text-success' : 'text-danger' ?>">
-                                        <?= ($t['net_return'] >= 0 ? '+' : '') . number_format($t['net_return'], 2) ?>%
+                                    <td>
+                                        <span class="badge bg-<?= $t['badge_class'] ?? 'primary' ?>">
+                                            <?= Html::encode($t['signal_name'] ?? 'Double Bottom') ?>
+                                        </span>
                                     </td>
-                                    <td class="small">
-                                        <span class="text-success">+<?= number_format($t['mfe_pct'], 1) ?>%</span> /
-                                        <span class="text-danger"><?= number_format($t['mae_pct'], 1) ?>%</span>
+                                    <td class="fw-bold"><?= number_format((float) ($t['entry_price'] ?? 0), 2) ?></td>
+                                    <td><?= number_format((float) ($t['neckline_price'] ?? 0), 2) ?></td>
+                                    <td class="text-danger"><?= number_format((float) ($t['stop_loss'] ?? 0), 2) ?></td>
+                                    <td>
+                                        <span class="text-success"><?= number_format((float) ($t['target_tp1'] ?? 0), 2) ?></span> /
+                                        <span class="text-primary"><?= number_format((float) ($t['target_tp2'] ?? 0), 2) ?></span>
+                                    </td>
+                                    <td>
+                                        <?php if (!empty($t['hit_tp2'])): ?>
+                                            <span class="badge bg-primary">HIT TP2 (+<?= number_format((float) ($t['tp2_gain_pct'] ?? 0), 1) ?>%)</span>
+                                        <?php elseif (!empty($t['hit_tp1'])): ?>
+                                            <span class="badge bg-success">HIT TP1 (+<?= number_format((float) ($t['tp1_gain_pct'] ?? 0), 1) ?>%)</span>
+                                        <?php elseif (!empty($t['hit_sl'])): ?>
+                                            <span class="badge bg-danger">HIT STOP LOSS</span>
+                                        <?php else: ?>
+                                            <span class="badge bg-secondary">TIME EXIT (20 Bar)</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td><?= $t['holding_bars'] ?? 1 ?> Bar</td>
+                                    <td class="fw-bold <?= ($t['trade_net_ret'] ?? 0) >= 0 ? 'text-success' : 'text-danger' ?>">
+                                        <?= (($t['trade_net_ret'] ?? 0) >= 0 ? '+' : '') . number_format((float) ($t['trade_net_ret'] ?? 0), 2) ?>%
+                                    </td>
+                                    <td class="pe-3 text-end text-nowrap">
+                                        <span class="text-danger small"><?= number_format((float) ($t['mae_pct'] ?? 0), 1) ?>%</span> /
+                                        <span class="text-success small">+<?= number_format((float) ($t['mfe_pct'] ?? 0), 1) ?>%</span>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
