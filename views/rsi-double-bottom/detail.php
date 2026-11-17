@@ -13,6 +13,8 @@ declare(strict_types=1);
 /** @var string $statusFilter */
 /** @var string $sortBy */
 /** @var array $timeframes */
+/** @var bool|null $runBacktest */
+/** @var array|null $backtestResult */
 
 use yii\bootstrap5\Html;
 use app\assets\ChartAsset;
@@ -21,6 +23,7 @@ ChartAsset::register($this);
 
 $statusFilter = $statusFilter ?? 'all';
 $sortBy = $sortBy ?? 'confidence';
+$runBacktest = $runBacktest ?? false;
 
 $this->title = 'RSI Strategy & Signal - ' . $stock->symbol;
 $this->params['breadcrumbs'][] = [
@@ -84,6 +87,25 @@ $ma50Series = $pattern['ma50_series'] ?? [];
             <?php endforeach; ?>
         </div>
         <?= Html::a(
+            \app\helpers\SvgHelper::icon('graph-up-arrow') . ' Uji Backtest', 
+            [
+                '/rsi-double-bottom/detail', 
+                'symbol' => $stock->symbol,
+                'timeframe' => $timeframe, 
+                'statusFilter' => $statusFilter,
+                'sortBy' => $sortBy,
+                'lookback' => $lookback, 
+                'tolerance' => $tolerance, 
+                'rsiPeriod' => $rsiPeriod, 
+                'maxRsi' => $maxRsi,
+                'backtest' => 1,
+            ], 
+            [
+                'class' => 'btn btn-sm ' . ($runBacktest ? 'btn-success fw-bold shadow-sm' : 'btn-outline-primary shadow-sm'),
+                'title' => 'Jalankan Validasi & Backtesting historis per kode saham ini',
+            ]
+        ) ?>
+        <?= Html::a(
             \app\helpers\SvgHelper::icon('arrow-left') . ' Kembali', 
             [
                 '/rsi-double-bottom/index', 
@@ -117,34 +139,55 @@ $ma50Series = $pattern['ma50_series'] ?? [];
     </div>
 </div>
 
-<!-- Parameter Tuning Form -->
-<div class="card border-0 shadow-sm mb-4">
-    <div class="card-header bg-light py-2">
-        <strong class="small text-secondary"><?= \app\helpers\SvgHelper::icon('sliders') ?> Parameter Analisis RSI</strong>
+<!-- Parameter Tuning & Backtest Form -->
+<div class="card border-0 shadow-sm mb-4" id="backtest-form-box">
+    <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center">
+        <strong class="small text-secondary"><?= \app\helpers\SvgHelper::icon('sliders') ?> Parameter Analisis &amp; Pengujian Historis</strong>
+        <span class="badge bg-light text-muted border">Saham: <?= Html::encode($stock->symbol) ?></span>
     </div>
     <div class="card-body p-3">
         <?= Html::beginForm(['/rsi-double-bottom/detail'], 'get', ['class' => 'row g-2 align-items-end']) ?>
             <?= Html::hiddenInput('symbol', $stock->symbol) ?>
             <?= Html::hiddenInput('statusFilter', $statusFilter) ?>
             <?= Html::hiddenInput('sortBy', $sortBy) ?>
-            <div class="col-md-3 col-6">
+            <div class="col-md-2 col-6">
                 <label class="form-label small fw-bold">Timeframe</label>
                 <?= Html::dropDownList('timeframe', $timeframe, $timeframes, ['class' => 'form-select form-select-sm']) ?>
             </div>
-            <div class="col-md-3 col-6">
+            <div class="col-md-2 col-6">
                 <label class="form-label small fw-bold">RSI Period</label>
                 <?= Html::input('number', 'rsiPeriod', $rsiPeriod, ['class' => 'form-control form-control-sm', 'min' => 2, 'max' => 50]) ?>
             </div>
-            <div class="col-md-3 col-6">
+            <div class="col-md-2 col-6">
                 <label class="form-label small fw-bold">Lookback (candles)</label>
                 <?= Html::input('number', 'lookback', $lookback, ['class' => 'form-control form-control-sm', 'min' => 20, 'max' => 300]) ?>
             </div>
-            <div class="col-md-3 col-12 text-end">
-                <?= Html::submitButton(\app\helpers\SvgHelper::icon('arrow-repeat') . ' Perbarui Analisis', ['class' => 'btn btn-sm btn-primary w-100']) ?>
+            <div class="col-md-3 col-6">
+                <label class="form-label small fw-bold">Histori Backtest (Bar)</label>
+                <?= Html::dropDownList('btLookback', Yii::$app->request->get('btLookback', 300), [
+                    150 => '150 Bar Terakhir',
+                    300 => '300 Bar Terakhir (Rekomendasi)',
+                    500 => '500 Bar Terakhir',
+                ], ['class' => 'form-select form-select-sm']) ?>
+            </div>
+            <div class="col-md-3 col-12 d-flex gap-2">
+                <?= Html::submitButton(\app\helpers\SvgHelper::icon('arrow-repeat') . ' Analisis', ['class' => 'btn btn-sm btn-primary flex-grow-1 shadow-sm']) ?>
+                <?= Html::submitButton(\app\helpers\SvgHelper::icon('graph-up-arrow') . ' Jalankan Backtest', [
+                    'name' => 'backtest', 
+                    'value' => '1', 
+                    'class' => 'btn btn-sm btn-success fw-bold flex-grow-1 shadow-sm'
+                ]) ?>
             </div>
         <?= Html::endForm() ?>
     </div>
 </div>
+
+<?php if ($runBacktest && !empty($backtestResult)): ?>
+    <?= $this->render('_backtest_section', [
+        'backtestResult' => $backtestResult,
+        'stock' => $stock,
+    ]) ?>
+<?php endif; ?>
 
 <?php if ($pattern === null): ?>
     <div class="alert alert-info shadow-sm py-4 text-center">

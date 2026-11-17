@@ -201,6 +201,23 @@ final class RsiDoubleBottomController extends Controller
             $pattern = $service->detectPattern($stock->id, $timeframe, $lookback, $tolerance, $rsiPeriod, $maxRsi, $minSeparation, $maxSeparation, $necklineMin, true);
         }
 
+        $runBacktest = (bool) Yii::$app->request->get('backtest', false);
+        $backtestResult = null;
+        if ($runBacktest) {
+            $btLookback = (int) Yii::$app->request->get('btLookback', 300);
+            $btFeePct = (float) Yii::$app->request->get('btFee', 0.30);
+            $btSlippage = (float) Yii::$app->request->get('btSlippage', 0.10);
+
+            $backtestService = new \app\services\RsiBacktestService();
+            $backtestResult = $backtestService->runStockBacktest($stock, [
+                'timeframe' => $timeframe,
+                'rsiPeriod' => $rsiPeriod,
+                'lookbackCandles' => $btLookback,
+                'feePct' => $btFeePct,
+                'slippagePct' => $btSlippage,
+            ]);
+        }
+
         return $this->render('detail', [
             'stock'        => $stock,
             'pattern'      => $pattern,
@@ -215,6 +232,8 @@ final class RsiDoubleBottomController extends Controller
             'maxSeparation'=> $maxSeparation,
             'necklineMin'  => $necklineMin,
             'timeframes'   => $timeframes,
+            'runBacktest'  => $runBacktest,
+            'backtestResult' => $backtestResult,
         ]);
     }
 
