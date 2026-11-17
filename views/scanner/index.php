@@ -185,11 +185,12 @@ $weeklyColumns = [
     ],
     [
         'label' => 'Aksi Pola',
-        'headerOptions' => ['class' => 'text-center', 'style' => 'width: 175px'],
+        'headerOptions' => ['class' => 'text-center', 'style' => 'width: 215px'],
         'contentOptions' => ['class' => 'text-center'],
         'value' => function ($m) {
             $sym = $m->stock->symbol;
             return '<div class="btn-group btn-group-sm" role="group">'
+                . Html::a('BT', ['/scanner/backtest', 'symbol' => $sym], ['class' => 'btn btn-success py-0 px-2 fw-bold shadow-xs', 'title' => 'Uji Backtesting Validasi Akumulasi: ' . $sym])
                 . Html::a('CF', ['/strategy-confluence/index', 'symbol' => $sym], ['class' => 'btn btn-primary py-0 px-2 fw-bold', 'title' => 'Cek Confluence Multi-Strategi'])
                 . Html::a('DB', ['/double-bottom/detail', 'symbol' => $sym], ['class' => 'btn btn-outline-primary py-0 px-2', 'title' => 'Cek Pola Double Bottom'])
                 . Html::a('TB', ['/triple-bottom/detail', 'symbol' => $sym], ['class' => 'btn btn-outline-success py-0 px-2', 'title' => 'Cek Pola Triple Bottom'])
@@ -346,11 +347,12 @@ $dailyColumns = [
     ],
     [
         'label' => 'Aksi Pola',
-        'headerOptions' => ['class' => 'text-center', 'style' => 'width: 155px'],
+        'headerOptions' => ['class' => 'text-center', 'style' => 'width: 195px'],
         'contentOptions' => ['class' => 'text-center'],
         'value' => function ($m) {
             $sym = $m->stock->symbol;
             return '<div class="btn-group btn-group-sm" role="group">'
+                . Html::a('BT', ['/scanner/backtest', 'symbol' => $sym], ['class' => 'btn btn-success py-0 px-2 fw-bold shadow-xs', 'title' => 'Uji Backtesting Validasi Akumulasi: ' . $sym])
                 . Html::a('DB', ['/double-bottom/detail', 'symbol' => $sym], ['class' => 'btn btn-outline-primary py-0 px-2', 'title' => 'Cek Pola Double Bottom'])
                 . Html::a('TB', ['/triple-bottom/detail', 'symbol' => $sym], ['class' => 'btn btn-outline-success py-0 px-2', 'title' => 'Cek Pola Triple Bottom'])
                 . Html::a('RSI', ['/rsi-double-bottom/detail', 'symbol' => $sym], ['class' => 'btn btn-outline-info py-0 px-2', 'title' => 'Cek Pola RSI Double Bottom'])
@@ -388,6 +390,11 @@ $dailyColumns = [
                         'class' => 'btn-tf btn btn-sm rounded-pill px-3 ' . ($isDaily ? 'active' : ''),
                     ]) ?>
                 </div>
+                <?= Html::a(
+                    \app\helpers\SvgHelper::icon('graph-up-arrow', ['class' => 'me-1']) . ' Validasi &amp; Backtesting',
+                    ['/scanner/backtest'],
+                    ['class' => 'btn btn-outline-success btn-sm fw-bold px-3 shadow-sm rounded-pill', 'title' => 'Uji Historis Walk-Forward Validation & Grid Parameter Akumulasi']
+                ) ?>
                 <a href="<?= Url::to(array_merge(['/scanner/run-scan'], $currentGet)) ?>" class="btn btn-warning btn-sm fw-bold px-3 shadow-sm rounded-pill">
                     <?= \app\helpers\SvgHelper::icon('arrow-clockwise') ?> <?= $isDaily ? 'Scan Harian' : 'Scan Mingguan' ?>
                 </a>

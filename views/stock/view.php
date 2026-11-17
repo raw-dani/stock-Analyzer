@@ -72,6 +72,9 @@ $tfList = [
             <span id="btn-live-sync-icon"><?= \app\helpers\SvgHelper::icon('arrow-repeat') ?></span>
             <span id="btn-live-sync-text">Get Live Data</span>
         </button>
+        <a href="<?= Url::to(['/scanner/backtest', 'symbol' => $stock->symbol]) ?>" class="btn btn-outline-success btn-sm shadow-sm fw-bold" title="Uji Empiris Historis Akumulasi (RVOL, CMF, Persistence) untuk <?= Html::encode($stock->symbol) ?>">
+            <?= \app\helpers\SvgHelper::icon('graph-up-arrow') ?> Backtest Akumulasi
+        </a>
         <a href="#strategy-synthesis-section" class="btn btn-primary btn-sm shadow-sm fw-bold">
             <?= \app\helpers\SvgHelper::icon('lightning-charge-fill') ?> Keputusan Beli (Multi-Strategi)
         </a>
