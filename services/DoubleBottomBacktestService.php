@@ -543,3 +543,4 @@ final class DoubleBottomBacktestService
         return $out;
     }
 }
+
