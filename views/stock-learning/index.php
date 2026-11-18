@@ -138,6 +138,85 @@ $viewMode = $viewMode ?? 'grouped';
         </div>
     </div>
 
+    <!-- Rekomendasi Cara Mendapatkan Hasil Paling Maksimal -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden" style="background: linear-gradient(135deg, #f8fafc 0%, #f0f7ff 100%); border: 1px solid #bae6fd !important;">
+        <div class="card-header bg-transparent py-3 border-bottom border-info border-opacity-25 d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-primary p-2 rounded-circle shadow-xs">
+                    <i class="bi bi-lightbulb-fill text-white fs-6"></i>
+                </span>
+                <div>
+                    <h6 class="fw-bold mb-0 text-dark">Rekomendasi Cara Mendapatkan Hasil Paling Maksimal</h6>
+                    <small class="text-muted">Untuk mendapatkan model dengan akurasi dan profitabilitas yang benar-benar handal:</small>
+                </div>
+            </div>
+            <button class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 shadow-xs" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOptimizationGuide" aria-expanded="true" aria-controls="collapseOptimizationGuide">
+                <i class="bi bi-chevron-down me-1"></i> Buka / Sembunyikan Panduan
+            </button>
+        </div>
+        <div class="collapse show" id="collapseOptimizationGuide">
+            <div class="card-body p-3 p-md-4">
+                <div class="row g-3">
+                    <!-- Poin 1 -->
+                    <div class="col-12 col-md-6 col-lg-3">
+                        <div class="card h-100 border-0 rounded-3 shadow-xs p-3" style="background: #ffffff; border-top: 3px solid #0284c7 !important;">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <span class="badge bg-primary bg-opacity-10 text-primary p-2 rounded-2"><i class="bi bi-calendar-check fs-6"></i></span>
+                                <h6 class="fw-bold text-dark mb-0 small">Prioritaskan Timeframe Daily (1D)</h6>
+                            </div>
+                            <ul class="text-muted small ps-3 mb-0" style="font-size: 0.81rem; line-height: 1.55;">
+                                <li class="mb-1">Data Daily memiliki <strong>500+ hari historis (2 tahun penuh)</strong> di database Anda.</li>
+                                <li>Pembelajaran di Daily jauh lebih stabil, tahan banting, dan teruji di berbagai siklus pasar (bullish, bearish, dan sideways).</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Poin 2 -->
+                    <div class="col-12 col-md-6 col-lg-3">
+                        <div class="card h-100 border-0 rounded-3 shadow-xs p-3" style="background: #ffffff; border-top: 3px solid #10b981 !important;">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <span class="badge bg-success bg-opacity-10 text-success p-2 rounded-2"><i class="bi bi-sliders fs-6"></i></span>
+                                <h6 class="fw-bold text-dark mb-0 small">Ganti Strategi Basis Sesuai Karakter Saham</h6>
+                            </div>
+                            <ul class="text-muted small ps-3 mb-0" style="font-size: 0.81rem; line-height: 1.55;">
+                                <li class="mb-1">Jika saham sering <strong>swing / mantul di area jenuh</strong>: Pilih strategi <em>Stochastic Oscillator</em> atau <em>RSI Momentum</em>.</li>
+                                <li>Jika saham <strong>tren kuat (trending)</strong>: Pilih strategi <em>Multi-Indicator Confluence</em>.</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Poin 3 -->
+                    <div class="col-12 col-md-6 col-lg-3">
+                        <div class="card h-100 border-0 rounded-3 shadow-xs p-3" style="background: #ffffff; border-top: 3px solid #f59e0b !important;">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <span class="badge bg-warning bg-opacity-10 text-warning p-2 rounded-2"><i class="bi bi-graph-up-arrow fs-6"></i></span>
+                                <h6 class="fw-bold text-dark mb-0 small">Cari Parameter Profit Factor Tinggi, Bukan Hanya Win Rate</h6>
+                            </div>
+                            <ul class="text-muted small ps-3 mb-0" style="font-size: 0.81rem; line-height: 1.55;">
+                                <li class="mb-1">Cari parameter dengan Profit Factor tinggi, bukan hanya Win Rate.</li>
+                                <li>Model dengan Win Rate 55% tetapi <strong>Profit Factor 2.50</strong> jauh lebih menguntungkan daripada Win Rate 75% tetapi sekali kalah menghabiskan semua profit.</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Poin 4 -->
+                    <div class="col-12 col-md-6 col-lg-3">
+                        <div class="card h-100 border-0 rounded-3 shadow-xs p-3" style="background: #ffffff; border-top: 3px solid #8b5cf6 !important;">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <span class="badge bg-purple bg-opacity-10 text-purple p-2 rounded-2" style="color: #8b5cf6; background: rgba(139,92,246,0.1);"><i class="bi bi-arrow-repeat fs-6"></i></span>
+                                <h6 class="fw-bold text-dark mb-0 small">Cukup Latih 2–3 Kali per Saham</h6>
+                            </div>
+                            <ul class="text-muted small ps-3 mb-0" style="font-size: 0.81rem; line-height: 1.55;">
+                                <li class="mb-1">Jalankan 1 kali dengan <strong>35 generasi</strong>. Jika ingin hasil lebih mendalam, jalankan 1 kali lagi dengan <strong>60 generasi</strong>.</li>
+                                <li>Sistem kini otomatis memilih <strong>Model Terbaik</strong> di antara percobaan-percobaan tersebut.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Table Container with Tab Switcher -->
     <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
         <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">

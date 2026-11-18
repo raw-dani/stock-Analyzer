@@ -256,7 +256,7 @@ class StockLearningController extends Controller
                 ChromosomeFactory::STRATEGY_MULTI => 'Multi-Indicator Confluence',
             ],
             'timeframes' => [
-                24 => 'Daily (1 Hari)',
+                24 => 'Daily (1D - Rekomendasi)',
                 4  => '4 Jam (4H)',
                 1  => '1 Jam (1H)',
             ],
