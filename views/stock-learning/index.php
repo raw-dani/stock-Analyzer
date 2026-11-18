@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 /** @var yii\web\View $this */
 /** @var string $viewMode */
+/** @var string $sortBy */
+/** @var string $modelMode */
 /** @var array $groupedData */
 /** @var app\models\StockLearningRun[] $runs */
 /** @var string $symbolSearch */
@@ -18,6 +20,8 @@ use yii\helpers\Url;
 $this->title = 'Stock Learning Engine — Pelatihan Pola & Strategi Adaptif';
 $this->params['breadcrumbs'][] = 'Stock Learning Engine';
 $viewMode = $viewMode ?? 'grouped';
+$sortBy = $sortBy ?? 'profit_factor';
+$modelMode = $modelMode ?? 'best_pf';
 ?>
 
 <div class="container-fluid px-0">
@@ -52,11 +56,22 @@ $viewMode = $viewMode ?? 'grouped';
             </div>
         </div>
         <div class="col-6 col-md-3">
-            <div class="card border-0 shadow-sm rounded-4 h-100" style="border-left: 4px solid #10b981 !important;">
+            <div class="card border-0 shadow-sm rounded-4 h-100" style="border-left: 4px solid #10b981 !important; background: linear-gradient(180deg, #ffffff 0%, #f0fdf4 100%);">
                 <div class="card-body p-3">
-                    <span class="small text-muted fw-bold text-uppercase d-block mb-1">Rata-rata OOS Win-Rate</span>
-                    <h3 class="fw-bold text-success mb-0 font-monospace"><?= number_format((float) $stats['avg_oos_wr'], 1) ?>%</h3>
-                    <small class="text-muted">Akurasi validasi independen</small>
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="small text-success fw-bold text-uppercase">Profit Factor Tertinggi</span>
+                        <i class="bi bi-trophy-fill text-warning"></i>
+                    </div>
+                    <h3 class="fw-bold text-success mb-0 font-monospace">
+                        <?= ($stats['max_profit_factor'] ?? 0) > 0 ? number_format((float) $stats['max_profit_factor'], 2) : '1.00' ?>
+                    </h3>
+                    <small class="text-muted">
+                        <?php if (!empty($stats['max_pf_symbol']) && $stats['max_pf_symbol'] !== '-'): ?>
+                            Saham <strong class="text-dark font-monospace"><?= Html::encode($stats['max_pf_symbol']) ?></strong> (Hasil Terbaik)
+                        <?php else: ?>
+                            Belum ada trade OOS
+                        <?php endif; ?>
+                    </small>
                 </div>
             </div>
         </div>
@@ -65,16 +80,27 @@ $viewMode = $viewMode ?? 'grouped';
                 <div class="card-body p-3">
                     <span class="small text-muted fw-bold text-uppercase d-block mb-1">Model Akurasi Tinggi (&ge; 60%)</span>
                     <h3 class="fw-bold mb-0 font-monospace" style="color: #8b5cf6;"><?= number_format($stats['high_wr_count']) ?></h3>
-                    <small class="text-muted">Kandidat strategi trading handal</small>
+                    <small class="text-muted">Rata-rata OOS WR: <?= number_format((float) $stats['avg_oos_wr'], 1) ?>%</small>
                 </div>
             </div>
         </div>
         <div class="col-6 col-md-3">
-            <div class="card border-0 shadow-sm rounded-4 h-100" style="border-left: 4px solid #f59e0b !important;">
+            <div class="card border-0 shadow-sm rounded-4 h-100" style="border-left: 4px solid #f59e0b !important; background: linear-gradient(180deg, #ffffff 0%, #fffbeb 100%);">
                 <div class="card-body p-3">
-                    <span class="small text-muted fw-bold text-uppercase d-block mb-1">Metode Optimasi</span>
-                    <h3 class="fw-bold text-warning mb-0 font-monospace" style="font-size: 1.3rem;">GA + Walk-Forward</h3>
-                    <small class="text-muted">Anti curve-fitting &amp; lookahead</small>
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="small text-warning fw-bold text-uppercase">Data Terbaru</span>
+                        <i class="bi bi-clock-history text-warning"></i>
+                    </div>
+                    <h3 class="fw-bold text-dark mb-0 font-monospace" style="font-size: 1.25rem;">
+                        <?= !empty($stats['latest_trained_at']) ? date('d M H:i', (int)$stats['latest_trained_at']) : '-' ?>
+                    </h3>
+                    <small class="text-muted">
+                        <?php if (!empty($stats['latest_symbol']) && $stats['latest_symbol'] !== '-'): ?>
+                            Saham <strong class="text-dark font-monospace"><?= Html::encode($stats['latest_symbol']) ?></strong> (Sesi Terakhir)
+                        <?php else: ?>
+                            Belum ada sesi
+                        <?php endif; ?>
+                    </small>
                 </div>
             </div>
         </div>
@@ -120,18 +146,32 @@ $viewMode = $viewMode ?? 'grouped';
             <?= Html::beginForm(['/stock-learning/index'], 'get', ['class' => 'row g-2 align-items-center']) ?>
                 <?= Html::hiddenInput('view', $viewMode) ?>
                 <div class="col-auto">
-                    <span class="small fw-bold text-muted"><i class="bi bi-funnel me-1"></i> Filter:</span>
+                    <span class="small fw-bold text-muted"><i class="bi bi-funnel me-1"></i> Filter &amp; Urutan:</span>
                 </div>
-                <div class="col-md-3 col-6">
+                <div class="col-md-2 col-6">
                     <?= Html::input('text', 'symbol', $symbolSearch, ['class' => 'form-control form-control-sm', 'placeholder' => 'Cari simbol...']) ?>
                 </div>
-                <div class="col-md-3 col-6">
+                <div class="col-md-2 col-6">
                     <?= Html::dropDownList('strategy', $strategyFilter, array_merge(['' => 'Semua Strategi'], $strategies), ['class' => 'form-select form-select-sm']) ?>
                 </div>
+                <div class="col-md-3 col-6">
+                    <?= Html::dropDownList('sort', $sortBy, [
+                        'profit_factor' => '💎 Profit Factor Tertinggi',
+                        'latest' => '🕒 Data Terbaru (Sesi Terakhir)',
+                        'win_rate' => '🎯 Best OOS Win-Rate',
+                        'symbol' => '🔤 Simbol Saham (A-Z)',
+                    ], ['class' => 'form-select form-select-sm']) ?>
+                </div>
+                <div class="col-md-3 col-6">
+                    <?= Html::dropDownList('model_mode', $modelMode, [
+                        'best_pf' => '🏆 Model PF Tertinggi',
+                        'latest' => '⚡ Model Sesi Terakhir',
+                    ], ['class' => 'form-select form-select-sm']) ?>
+                </div>
                 <div class="col-auto">
-                    <?= Html::submitButton('<i class="bi bi-filter"></i> Filter', ['class' => 'btn btn-outline-secondary btn-sm px-3']) ?>
-                    <?php if (!empty($symbolSearch) || !empty($strategyFilter)): ?>
-                        <a href="<?= Url::to(['/stock-learning/index', 'view' => $viewMode]) ?>" class="btn btn-outline-danger btn-sm ms-1">Reset</a>
+                    <?= Html::submitButton('<i class="bi bi-filter"></i> Terapkan', ['class' => 'btn btn-outline-secondary btn-sm px-3']) ?>
+                    <?php if (!empty($symbolSearch) || !empty($strategyFilter) || $sortBy !== 'profit_factor' || $modelMode !== 'best_pf'): ?>
+                        <a href="<?= Url::to(['/stock-learning/index', 'view' => $viewMode]) ?>" class="btn btn-outline-danger btn-sm ms-1" title="Reset filter &amp; urutan default">Reset</a>
                     <?php endif; ?>
                 </div>
             <?= Html::endForm() ?>
@@ -219,28 +259,61 @@ $viewMode = $viewMode ?? 'grouped';
 
     <!-- Table Container with Tab Switcher -->
     <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
-        <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-3">
             <!-- View Mode Switcher Pills -->
             <ul class="nav nav-pills card-header-pills">
                 <li class="nav-item">
                     <a class="nav-link small py-1 px-3 fw-bold <?= $viewMode === 'grouped' ? 'active' : '' ?>" 
-                       href="<?= Url::to(['/stock-learning/index', 'view' => 'grouped', 'symbol' => $symbolSearch, 'strategy' => $strategyFilter]) ?>">
+                       href="<?= Url::to(['/stock-learning/index', 'view' => 'grouped', 'sort' => $sortBy, 'model_mode' => $modelMode, 'symbol' => $symbolSearch, 'strategy' => $strategyFilter]) ?>">
                         <i class="bi bi-grid-3x3-gap-fill me-1"></i> Ringkasan per Saham (Grouped)
                     </a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link small py-1 px-3 fw-bold <?= $viewMode === 'history' ? 'active' : '' ?>" 
-                       href="<?= Url::to(['/stock-learning/index', 'view' => 'history', 'symbol' => $symbolSearch, 'strategy' => $strategyFilter]) ?>">
+                       href="<?= Url::to(['/stock-learning/index', 'view' => 'history', 'sort' => $sortBy, 'model_mode' => $modelMode, 'symbol' => $symbolSearch, 'strategy' => $strategyFilter]) ?>">
                         <i class="bi bi-list-ul me-1"></i> Seluruh Riwayat Sesi (Audit Log)
                     </a>
                 </li>
             </ul>
 
-            <span class="badge bg-secondary rounded-pill">
-                <?= $viewMode === 'grouped' ? count($groupedData) . ' Saham Unik' : count($runs) . ' Sesi Tercatat' ?>
-            </span>
+            <!-- Quick Sort Pills -->
+            <div class="d-flex align-items-center flex-wrap gap-2">
+                <span class="small text-muted fw-bold d-none d-md-inline"><i class="bi bi-sort-down me-1"></i>Urutkan:</span>
+                <div class="btn-group btn-group-sm" role="group">
+                    <a href="<?= Url::to(['/stock-learning/index', 'view' => $viewMode, 'sort' => 'profit_factor', 'model_mode' => $modelMode, 'symbol' => $symbolSearch, 'strategy' => $strategyFilter]) ?>" 
+                       class="btn btn-sm <?= $sortBy === 'profit_factor' ? 'btn-success fw-bold text-white shadow-xs' : 'btn-outline-secondary' ?>">
+                        <i class="bi bi-trophy-fill text-warning me-1"></i> PF Tertinggi
+                    </a>
+                    <a href="<?= Url::to(['/stock-learning/index', 'view' => $viewMode, 'sort' => 'latest', 'model_mode' => $modelMode, 'symbol' => $symbolSearch, 'strategy' => $strategyFilter]) ?>" 
+                       class="btn btn-sm <?= $sortBy === 'latest' ? 'btn-warning fw-bold text-dark shadow-xs' : 'btn-outline-secondary' ?>">
+                        <i class="bi bi-clock-history me-1"></i> Data Terbaru
+                    </a>
+                    <a href="<?= Url::to(['/stock-learning/index', 'view' => $viewMode, 'sort' => 'win_rate', 'model_mode' => $modelMode, 'symbol' => $symbolSearch, 'strategy' => $strategyFilter]) ?>" 
+                       class="btn btn-sm <?= $sortBy === 'win_rate' ? 'btn-primary fw-bold text-white shadow-xs' : 'btn-outline-secondary' ?>">
+                        <i class="bi bi-bullseye me-1"></i> Win Rate
+                    </a>
+                </div>
+
+                <span class="badge bg-secondary rounded-pill ms-1">
+                    <?= $viewMode === 'grouped' ? count($groupedData) . ' Saham Unik' : count($runs) . ' Sesi Tercatat' ?>
+                </span>
+            </div>
         </div>
         <div class="card-body p-0">
+            <?php
+            // Helper function untuk generate link sorting header kolom
+            $makeSortUrl = function(string $col) use ($viewMode, $symbolSearch, $strategyFilter, $modelMode): string {
+                return Url::to([
+                    '/stock-learning/index',
+                    'view' => $viewMode,
+                    'sort' => $col,
+                    'model_mode' => $modelMode,
+                    'symbol' => $symbolSearch,
+                    'strategy' => $strategyFilter,
+                ]);
+            };
+            ?>
+
             <?php if ($viewMode === 'grouped'): ?>
                 <!-- TAMPILAN 1: GROUPED PER KODE SAHAM (1 Baris per Saham) -->
                 <?php if (empty($groupedData)): ?>
@@ -254,15 +327,43 @@ $viewMode = $viewMode ?? 'grouped';
                         <table class="table table-hover align-middle mb-0">
                             <thead class="table-light small text-uppercase text-secondary">
                                 <tr>
-                                    <th>Saham</th>
+                                    <th>
+                                        <a href="<?= $makeSortUrl('symbol') ?>" class="text-decoration-none text-secondary d-inline-flex align-items-center gap-1">
+                                            Saham
+                                            <?php if ($sortBy === 'symbol'): ?>
+                                                <i class="bi bi-arrow-down-short text-primary fs-6"></i>
+                                            <?php endif; ?>
+                                        </a>
+                                    </th>
                                     <th class="text-center">Total Latihan</th>
-                                    <th>Model Terbaik</th>
+                                    <th>Model Terpilih</th>
                                     <th>Timeframe</th>
-                                    <th class="text-center">Best OOS Win-Rate</th>
+                                    <th class="text-center">
+                                        <a href="<?= $makeSortUrl('win_rate') ?>" class="text-decoration-none <?= $sortBy === 'win_rate' ? 'text-primary fw-bold' : 'text-secondary' ?> d-inline-flex align-items-center gap-1">
+                                            Best OOS Win-Rate
+                                            <?php if ($sortBy === 'win_rate'): ?>
+                                                <i class="bi bi-arrow-down-short text-primary fs-6"></i>
+                                            <?php endif; ?>
+                                        </a>
+                                    </th>
                                     <th class="text-center">In-Sample WR</th>
-                                    <th class="text-center">Profit Factor</th>
+                                    <th class="text-center bg-success bg-opacity-10">
+                                        <a href="<?= $makeSortUrl('profit_factor') ?>" class="text-decoration-none <?= $sortBy === 'profit_factor' ? 'text-success fw-bold' : 'text-secondary' ?> d-inline-flex align-items-center gap-1">
+                                            <i class="bi bi-trophy-fill text-warning me-1"></i>Profit Factor
+                                            <?php if ($sortBy === 'profit_factor'): ?>
+                                                <i class="bi bi-arrow-down-short text-success fs-6"></i>
+                                            <?php endif; ?>
+                                        </a>
+                                    </th>
                                     <th class="text-center">Max Drawdown</th>
-                                    <th>Latihan Terakhir</th>
+                                    <th>
+                                        <a href="<?= $makeSortUrl('latest') ?>" class="text-decoration-none <?= $sortBy === 'latest' ? 'text-warning fw-bold' : 'text-secondary' ?> d-inline-flex align-items-center gap-1">
+                                            Latihan Terakhir
+                                            <?php if ($sortBy === 'latest'): ?>
+                                                <i class="bi bi-arrow-down-short text-warning fs-6"></i>
+                                            <?php endif; ?>
+                                        </a>
+                                    </th>
                                     <th class="text-end">Aksi</th>
                                 </tr>
                             </thead>
@@ -272,6 +373,8 @@ $viewMode = $viewMode ?? 'grouped';
                                     $best = $row['best_run'];
                                     $oosWr = (float) ($best->oos_win_rate ?? 0);
                                     $oosBadgeClass = ($oosWr >= 65.0) ? 'text-success fw-bold' : (($oosWr >= 50.0) ? 'text-primary' : 'text-danger');
+                                    $pf = (float) ($best->profit_factor ?? 0);
+                                    $isRecent = (time() - $row['latest_created_at']) < 86400;
                                     ?>
                                     <tr>
                                         <td>
@@ -302,7 +405,7 @@ $viewMode = $viewMode ?? 'grouped';
                                                 <span class="fs-6 <?= $oosBadgeClass ?>">
                                                     <?= number_format((float) $best->oos_win_rate, 1) ?>%
                                                 </span>
-                                            <?php elseif ($best->oos_win_rate !== null && (float)$best->oos_win_rate == 0.0 && (float)$best->profit_factor > 0 && (float)$best->profit_factor != 1.0): ?>
+                                            <?php elseif ($best->oos_win_rate !== null && (float)$best->oos_win_rate == 0.0 && $pf > 0 && $pf != 1.0): ?>
                                                 <span class="text-danger fs-6">0.0%</span>
                                             <?php else: ?>
                                                 <span class="badge bg-light text-muted border" style="font-size:0.68rem;" title="Tidak ada sinyal entry pada periode validasi Out-of-Sample">0 Trade (OOS)</span>
@@ -311,17 +414,40 @@ $viewMode = $viewMode ?? 'grouped';
                                         <td class="text-center font-monospace text-muted small">
                                             <?= $best->is_win_rate !== null ? number_format((float) $best->is_win_rate, 1) . '%' : '-' ?>
                                         </td>
-                                        <td class="text-center font-monospace small">
-                                            <?= ($best->profit_factor !== null && (float)$best->profit_factor > 0) ? number_format((float) $best->profit_factor, 2) : '1.00' ?>
+                                        <td class="text-center font-monospace">
+                                            <?php if ($pf >= 1.50): ?>
+                                                <span class="badge bg-success text-white px-2 py-1 shadow-xs fw-bold font-monospace">
+                                                    <i class="bi bi-trophy-fill text-warning me-1"></i><?= number_format($pf, 2) ?>
+                                                </span>
+                                            <?php elseif ($pf >= 1.10): ?>
+                                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2 py-1 fw-bold font-monospace">
+                                                    <?= number_format($pf, 2) ?>
+                                                </span>
+                                            <?php elseif ($pf >= 1.00): ?>
+                                                <span class="text-secondary fw-semibold font-monospace small">
+                                                    <?= number_format($pf, 2) ?>
+                                                </span>
+                                            <?php else: ?>
+                                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1 font-monospace">
+                                                    <?= number_format($pf, 2) ?>
+                                                </span>
+                                            <?php endif; ?>
                                         </td>
                                         <td class="text-center font-monospace text-danger small">
                                             <?= ($best->max_drawdown !== null && (float)$best->max_drawdown > 0) ? '-' . number_format((float) $best->max_drawdown, 1) . '%' : '0.0%' ?>
                                         </td>
-                                        <td class="small text-muted font-monospace">
-                                            <?= date('d M Y H:i', $row['latest_created_at']) ?>
+                                        <td>
+                                            <div class="small font-monospace text-dark">
+                                                <?= date('d M Y H:i', $row['latest_created_at']) ?>
+                                            </div>
+                                            <?php if ($isRecent): ?>
+                                                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25" style="font-size: 0.65rem;">
+                                                    <i class="bi bi-lightning-fill me-1"></i>Hari ini
+                                                </span>
+                                            <?php endif; ?>
                                         </td>
                                         <td class="text-end">
-                                            <a href="<?= Url::to(['/stock-learning/detail', 'symbol' => $row['symbol']]) ?>" class="btn btn-sm btn-primary shadow-xs fw-semibold">
+                                            <a href="<?= Url::to(['/stock-learning/detail', 'symbol' => $row['symbol'], 'run_id' => $row['best_run']->id]) ?>" class="btn btn-sm btn-primary shadow-xs fw-semibold">
                                                 <i class="bi bi-eye-fill me-1"></i> Buka Model
                                             </a>
                                         </td>
@@ -343,13 +469,41 @@ $viewMode = $viewMode ?? 'grouped';
                         <table class="table table-hover align-middle mb-0">
                             <thead class="table-light small text-uppercase text-secondary">
                                 <tr>
-                                    <th># ID</th>
-                                    <th>Saham</th>
+                                    <th>
+                                        <a href="<?= $makeSortUrl('latest') ?>" class="text-decoration-none <?= $sortBy === 'latest' ? 'text-warning fw-bold' : 'text-secondary' ?> d-inline-flex align-items-center gap-1">
+                                            # ID / Waktu
+                                            <?php if ($sortBy === 'latest'): ?>
+                                                <i class="bi bi-arrow-down-short text-warning fs-6"></i>
+                                            <?php endif; ?>
+                                        </a>
+                                    </th>
+                                    <th>
+                                        <a href="<?= $makeSortUrl('symbol') ?>" class="text-decoration-none text-secondary d-inline-flex align-items-center gap-1">
+                                            Saham
+                                            <?php if ($sortBy === 'symbol'): ?>
+                                                <i class="bi bi-arrow-down-short text-primary fs-6"></i>
+                                            <?php endif; ?>
+                                        </a>
+                                    </th>
                                     <th>Strategi Basis</th>
                                     <th>Timeframe</th>
-                                    <th class="text-center">OOS Win-Rate</th>
+                                    <th class="text-center">
+                                        <a href="<?= $makeSortUrl('win_rate') ?>" class="text-decoration-none <?= $sortBy === 'win_rate' ? 'text-primary fw-bold' : 'text-secondary' ?> d-inline-flex align-items-center gap-1">
+                                            OOS Win-Rate
+                                            <?php if ($sortBy === 'win_rate'): ?>
+                                                <i class="bi bi-arrow-down-short text-primary fs-6"></i>
+                                            <?php endif; ?>
+                                        </a>
+                                    </th>
                                     <th class="text-center">In-Sample WR</th>
-                                    <th class="text-center">Profit Factor</th>
+                                    <th class="text-center bg-success bg-opacity-10">
+                                        <a href="<?= $makeSortUrl('profit_factor') ?>" class="text-decoration-none <?= $sortBy === 'profit_factor' ? 'text-success fw-bold' : 'text-secondary' ?> d-inline-flex align-items-center gap-1">
+                                            <i class="bi bi-trophy-fill text-warning me-1"></i>Profit Factor
+                                            <?php if ($sortBy === 'profit_factor'): ?>
+                                                <i class="bi bi-arrow-down-short text-success fs-6"></i>
+                                            <?php endif; ?>
+                                        </a>
+                                    </th>
                                     <th class="text-center">Max DD</th>
                                     <th class="text-center">Total Trade</th>
                                     <th class="text-center">Status</th>
@@ -367,16 +521,19 @@ $viewMode = $viewMode ?? 'grouped';
                                     };
                                     $oosWr = (float) ($r->oos_win_rate ?? 0);
                                     $oosBadgeClass = ($oosWr >= 65.0) ? 'text-success fw-bold' : (($oosWr >= 50.0) ? 'text-primary' : 'text-danger');
+                                    $rPf = (float) ($r->profit_factor ?? 0);
                                     ?>
                                     <tr>
-                                        <td class="text-muted small font-monospace">#<?= $r->id ?></td>
+                                        <td>
+                                            <span class="text-muted small font-monospace d-block">#<?= $r->id ?></span>
+                                            <small class="text-muted font-monospace" style="font-size:0.75rem;">
+                                                <?= date('d M Y H:i', $r->created_at) ?>
+                                            </small>
+                                        </td>
                                         <td>
                                             <div class="fw-bold text-dark font-monospace fs-6">
                                                 <?= Html::encode($r->symbol) ?>
                                             </div>
-                                            <small class="text-muted" style="font-size:0.75rem;">
-                                                <?= date('d M Y H:i:s', $r->created_at) ?>
-                                            </small>
                                         </td>
                                         <td>
                                             <span class="badge bg-light text-dark border">
@@ -393,7 +550,7 @@ $viewMode = $viewMode ?? 'grouped';
                                                 <span class="fs-6 <?= $oosBadgeClass ?>">
                                                     <?= number_format((float) $r->oos_win_rate, 1) ?>%
                                                 </span>
-                                            <?php elseif ($r->oos_win_rate !== null && (float)$r->oos_win_rate == 0.0 && (float)$r->profit_factor > 0 && (float)$r->profit_factor != 1.0): ?>
+                                            <?php elseif ($r->oos_win_rate !== null && (float)$r->oos_win_rate == 0.0 && $rPf > 0 && $rPf != 1.0): ?>
                                                 <span class="text-danger fs-6">0.0%</span>
                                             <?php else: ?>
                                                 <span class="badge bg-light text-muted border" style="font-size:0.68rem;" title="Tidak ada sinyal entry pada periode validasi Out-of-Sample">0 Trade (OOS)</span>
@@ -402,8 +559,24 @@ $viewMode = $viewMode ?? 'grouped';
                                         <td class="text-center font-monospace text-muted small">
                                             <?= $r->is_win_rate !== null ? number_format((float) $r->is_win_rate, 1) . '%' : '-' ?>
                                         </td>
-                                        <td class="text-center font-monospace small">
-                                            <?= ($r->profit_factor !== null && (float)$r->profit_factor > 0) ? number_format((float) $r->profit_factor, 2) : '1.00' ?>
+                                        <td class="text-center font-monospace">
+                                            <?php if ($rPf >= 1.50): ?>
+                                                <span class="badge bg-success text-white px-2 py-1 shadow-xs fw-bold font-monospace">
+                                                    <i class="bi bi-trophy-fill text-warning me-1"></i><?= number_format($rPf, 2) ?>
+                                                </span>
+                                            <?php elseif ($rPf >= 1.10): ?>
+                                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2 py-1 fw-bold font-monospace">
+                                                    <?= number_format($rPf, 2) ?>
+                                                </span>
+                                            <?php elseif ($rPf >= 1.00): ?>
+                                                <span class="text-secondary fw-semibold font-monospace small">
+                                                    <?= number_format($rPf, 2) ?>
+                                                </span>
+                                            <?php else: ?>
+                                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1 font-monospace">
+                                                    <?= number_format($rPf, 2) ?>
+                                                </span>
+                                            <?php endif; ?>
                                         </td>
                                         <td class="text-center font-monospace text-danger small">
                                             <?= ($r->max_drawdown !== null && (float)$r->max_drawdown > 0) ? '-' . number_format((float) $r->max_drawdown, 1) . '%' : '0.0%' ?>

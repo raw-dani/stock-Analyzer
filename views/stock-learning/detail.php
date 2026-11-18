@@ -44,14 +44,19 @@ foreach ($generations as $g) {
     <!-- Header Section -->
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
         <div>
-            <div class="d-flex align-items-center gap-2">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
                 <span class="fs-4 text-primary"><i class="bi bi-cpu"></i></span>
                 <h1 class="h3 mb-0 fw-bold text-dark font-monospace"><?= Html::encode($stock->symbol) ?></h1>
                 <span class="badge bg-light text-dark border px-2 py-1"><?= Html::encode($stock->name ?? '') ?></span>
-                <?php if ($latestRun && $latestRun->status === 'completed'): ?>
-                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1">
-                        <i class="bi bi-check-circle-fill me-1"></i>Model Terlatih (<?= $latestRun->generation_max ?> Gen)
+                <?php if ($latestRun): ?>
+                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2 py-1 font-monospace">
+                        <i class="bi bi-hash"></i>Sesi #<?= $latestRun->id ?>
                     </span>
+                    <?php if ($latestRun->status === 'completed'): ?>
+                        <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1">
+                            <i class="bi bi-check-circle-fill me-1"></i>Model Terlatih (<?= $latestRun->generation_max ?> Gen)
+                        </span>
+                    <?php endif; ?>
                 <?php endif; ?>
             </div>
             <p class="text-muted small mb-0 mt-1">

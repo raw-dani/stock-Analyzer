@@ -28,11 +28,13 @@ class StockLearningController extends Controller
     {
         $request = Yii::$app->request;
         $viewMode = $request->get('view', 'grouped'); // 'grouped' (default) atau 'history'
+        $sortBy = trim((string) $request->get('sort', 'profit_factor')); // 'profit_factor' (default), 'latest', 'win_rate', 'symbol'
+        $modelMode = trim((string) $request->get('model_mode', 'best_pf')); // 'best_pf' (default) atau 'latest'
         $symbolSearch = trim((string) $request->get('symbol', ''));
         $strategyFilter = trim((string) $request->get('strategy', ''));
         $statusFilter = trim((string) $request->get('status', ''));
 
-        // 1. Data Mode Grouped (1 Baris per Kode Saham — Menampilkan Model Terbaik)
+        // 1. Data Mode Grouped (1 Baris per Kode Saham — Menampilkan Model Terbaik / Terbaru)
         $groupedData = [];
         $symbolsQuery = StockLearningRun::find()
             ->select(['symbol', 'stock_id'])
@@ -48,7 +50,7 @@ class StockLearningController extends Controller
             $sym = $ds['symbol'];
             $stockId = (int) $ds['stock_id'];
 
-            // Query run terbaik untuk simbol ini (prioritas: completed dengan best_fitness tertinggi)
+            // Query run terbaik untuk simbol ini
             $bestRunQuery = StockLearningRun::find()
                 ->where(['symbol' => $sym, 'status' => StockLearningRun::STATUS_COMPLETED]);
 
@@ -56,7 +58,18 @@ class StockLearningController extends Controller
                 $bestRunQuery->andWhere(['strategy_type' => $strategyFilter]);
             }
 
-            $bestRun = $bestRunQuery->orderBy(['best_fitness' => SORT_DESC, 'id' => SORT_DESC])->one();
+            // Jika mode model adalah 'latest', ambil model completed terbaru
+            if ($modelMode === 'latest') {
+                $bestRun = (clone $bestRunQuery)->orderBy(['id' => SORT_DESC])->one();
+            } else {
+                // Default 'best_pf': Prioritaskan model dengan Profit Factor tertinggi, lalu OOS Win Rate tertinggi
+                $bestRun = (clone $bestRunQuery)->orderBy([
+                    'profit_factor' => SORT_DESC,
+                    'oos_win_rate' => SORT_DESC,
+                    'best_fitness' => SORT_DESC,
+                    'id' => SORT_DESC,
+                ])->one();
+            }
 
             // Fallback jika belum ada yang completed atau filter tertentu
             if (!$bestRun) {
@@ -89,18 +102,43 @@ class StockLearningController extends Controller
             ];
         }
 
-        // Urutkan groupedData: Saham dengan OOS Win Rate terbaik di atas
-        usort($groupedData, function ($a, $b) {
-            $wrA = (float) ($a['best_run']->oos_win_rate ?? 0);
-            $wrB = (float) ($b['best_run']->oos_win_rate ?? 0);
-            if ($wrA !== $wrB) {
-                return $wrB <=> $wrA;
+        // Urutkan groupedData sesuai opsi sorting yang dipilih user
+        usort($groupedData, function ($a, $b) use ($sortBy) {
+            if ($sortBy === 'latest') {
+                // Saham yang baru saja dilatih berada di posisi paling atas
+                return $b['latest_created_at'] <=> $a['latest_created_at'];
+            } elseif ($sortBy === 'win_rate') {
+                $wrA = (float) ($a['best_run']->oos_win_rate ?? 0);
+                $wrB = (float) ($b['best_run']->oos_win_rate ?? 0);
+                if ($wrA !== $wrB) {
+                    return $wrB <=> $wrA;
+                }
+                $pfA = (float) ($a['best_run']->profit_factor ?? 0);
+                $pfB = (float) ($b['best_run']->profit_factor ?? 0);
+                if ($pfA !== $pfB) {
+                    return $pfB <=> $pfA;
+                }
+                return $b['latest_created_at'] <=> $a['latest_created_at'];
+            } elseif ($sortBy === 'symbol') {
+                return strcmp($a['symbol'], $b['symbol']);
+            } else {
+                // Default: 'profit_factor' (Saham dengan Profit Factor tertinggi di paling atas)
+                $pfA = (float) ($a['best_run']->profit_factor ?? 0);
+                $pfB = (float) ($b['best_run']->profit_factor ?? 0);
+                if ($pfA !== $pfB) {
+                    return $pfB <=> $pfA;
+                }
+                $wrA = (float) ($a['best_run']->oos_win_rate ?? 0);
+                $wrB = (float) ($b['best_run']->oos_win_rate ?? 0);
+                if ($wrA !== $wrB) {
+                    return $wrB <=> $wrA;
+                }
+                return $b['latest_created_at'] <=> $a['latest_created_at'];
             }
-            return $b['latest_created_at'] <=> $a['latest_created_at'];
         });
 
         // 2. Data Mode History (Audit Trail Log Seluruh Percobaan)
-        $historyQuery = StockLearningRun::find()->orderBy(['id' => SORT_DESC]);
+        $historyQuery = StockLearningRun::find();
         if (!empty($symbolSearch)) {
             $historyQuery->andWhere(['like', 'symbol', strtoupper($symbolSearch)]);
         }
@@ -110,7 +148,17 @@ class StockLearningController extends Controller
         if (!empty($statusFilter)) {
             $historyQuery->andWhere(['status' => $statusFilter]);
         }
-        $historyRuns = $historyQuery->limit(60)->all();
+
+        if ($sortBy === 'profit_factor') {
+            $historyQuery->orderBy(['profit_factor' => SORT_DESC, 'id' => SORT_DESC]);
+        } elseif ($sortBy === 'win_rate') {
+            $historyQuery->orderBy(['oos_win_rate' => SORT_DESC, 'profit_factor' => SORT_DESC, 'id' => SORT_DESC]);
+        } else {
+            // Default latest ID
+            $historyQuery->orderBy(['id' => SORT_DESC]);
+        }
+
+        $historyRuns = $historyQuery->limit(80)->all();
 
         // Hitung statistik agregat (hanya yang memiliki transaksi trade)
         $totalTrained = StockLearningRun::find()->where(['status' => StockLearningRun::STATUS_COMPLETED])->count();
@@ -125,8 +173,24 @@ class StockLearningController extends Controller
             ->andWhere(['>', 'total_trades', 0])
             ->count();
 
+        // Cari Profit Factor tertinggi di seluruh database
+        $maxPfRun = StockLearningRun::find()
+            ->where(['status' => StockLearningRun::STATUS_COMPLETED])
+            ->andWhere(['>', 'total_trades', 0])
+            ->orderBy(['profit_factor' => SORT_DESC, 'id' => SORT_DESC])
+            ->one();
+        $maxProfitFactor = $maxPfRun ? (float) $maxPfRun->profit_factor : 0.0;
+        $maxPfSymbol = $maxPfRun ? $maxPfRun->symbol : '-';
+
+        // Cari sesi latihan terbaru di seluruh database
+        $latestRunOverall = StockLearningRun::find()->orderBy(['id' => SORT_DESC])->one();
+        $latestTrainedAt = $latestRunOverall ? $latestRunOverall->created_at : null;
+        $latestSymbol = $latestRunOverall ? $latestRunOverall->symbol : '-';
+
         return $this->render('index', [
             'viewMode' => $viewMode,
+            'sortBy' => $sortBy,
+            'modelMode' => $modelMode,
             'groupedData' => $groupedData,
             'runs' => $historyRuns,
             'symbolSearch' => $symbolSearch,
@@ -137,6 +201,10 @@ class StockLearningController extends Controller
                 'total_unique_stocks' => (int) $totalUniqueStocks,
                 'avg_oos_wr' => round((float) $avgOosWr, 1),
                 'high_wr_count' => (int) $highWrCount,
+                'max_profit_factor' => round($maxProfitFactor, 2),
+                'max_pf_symbol' => $maxPfSymbol,
+                'latest_trained_at' => $latestTrainedAt,
+                'latest_symbol' => $latestSymbol,
             ],
             'strategies' => [
                 ChromosomeFactory::STRATEGY_STOCHASTIC => 'Stochastic Oscillator',
@@ -149,7 +217,7 @@ class StockLearningController extends Controller
     /**
      * Halaman Detail Pembelajaran per Kode Saham.
      */
-    public function actionDetail(?string $symbol = null): string
+    public function actionDetail(?string $symbol = null): Response|string
     {
         $request = Yii::$app->request;
         $symbol = $symbol ?? $request->get('symbol');
@@ -168,17 +236,30 @@ class StockLearningController extends Controller
         if ($runIdParam > 0) {
             $latestRun = StockLearningRun::findOne(['id' => $runIdParam, 'stock_id' => $stock->id]);
         } else {
-            // Prioritas: model terbaik yang completed, fallback ke run terbaru
+            // Prioritas: model terbaik yang completed (profit factor & wr tertinggi)
             $latestRun = StockLearningRun::find()
                 ->where(['stock_id' => $stock->id, 'status' => StockLearningRun::STATUS_COMPLETED])
-                ->orderBy(['best_fitness' => SORT_DESC, 'id' => SORT_DESC])
+                ->andWhere(['>', 'total_trades', 0])
+                ->orderBy(['profit_factor' => SORT_DESC, 'oos_win_rate' => SORT_DESC, 'id' => SORT_DESC])
                 ->one();
+
+            if (!$latestRun) {
+                $latestRun = StockLearningRun::find()
+                    ->where(['stock_id' => $stock->id, 'status' => StockLearningRun::STATUS_COMPLETED])
+                    ->orderBy(['best_fitness' => SORT_DESC, 'id' => SORT_DESC])
+                    ->one();
+            }
 
             if (!$latestRun) {
                 $latestRun = StockLearningRun::find()
                     ->where(['stock_id' => $stock->id])
                     ->orderBy(['id' => SORT_DESC])
                     ->one();
+            }
+
+            // Jika ada run dan URL belum menyertakan run_id, redirect agar URL selalu eksplisit & jelas
+            if ($latestRun !== null) {
+                return $this->redirect(['detail', 'symbol' => $symbol, 'run_id' => (int) $latestRun->id]);
             }
         }
 
@@ -314,12 +395,12 @@ class StockLearningController extends Controller
             $wrText = ($oosTotal > 0)
                 ? "Out-of-Sample Win Rate: {$result['oos_win_rate']}% ({$oosWins} Menang / {$oosTotal} Trade)"
                 : "In-Sample Win Rate: {$result['is_win_rate']}% (Periode OOS minim sinyal)";
-            Yii::$app->session->setFlash('success', "Proses pembelajaran {$symbol} berhasil! {$wrText}.");
+            Yii::$app->session->setFlash('success', "Proses pembelajaran {$symbol} (Sesi #{$run->id}) berhasil! {$wrText}.");
         } else {
             Yii::$app->session->setFlash('warning', "Pembelajaran {$symbol}: " . ($result['message'] ?? 'Data historis terbatas.'));
         }
 
-        return $this->redirect(['detail', 'symbol' => $symbol]);
+        return $this->redirect(['detail', 'symbol' => $symbol, 'run_id' => (int) $run->id]);
     }
 
     /**
