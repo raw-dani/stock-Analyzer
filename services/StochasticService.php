@@ -93,6 +93,7 @@ final class StochasticService
      */
     public function scanAll(array $options = []): array
     {
+        @ini_set('memory_limit', '512M');
         @ini_set('max_execution_time', '300');
         @set_time_limit(300);
         $strategy     = $options['strategy'] ?? 'all';
@@ -960,17 +961,18 @@ final class StochasticService
                 ->where(['stock_id' => $stockId])
                 ->orderBy(['date' => SORT_DESC])
                 ->limit(max($lookback, 180))
+                ->asArray()
                 ->all();
 
             $out = [];
             foreach (array_reverse($prices) as $p) {
                 $out[] = [
-                    'open' => (float) $p->open,
-                    'high' => (float) $p->high,
-                    'low' => (float) $p->low,
-                    'close' => (float) $p->close,
-                    'volume' => (int) $p->volume,
-                    'date' => $p->date,
+                    'open' => (float) $p['open'],
+                    'high' => (float) $p['high'],
+                    'low' => (float) $p['low'],
+                    'close' => (float) $p['close'],
+                    'volume' => (int) $p['volume'],
+                    'date' => $p['date'],
                 ];
             }
             return [$out, false];
@@ -981,18 +983,19 @@ final class StochasticService
                 ->where(['stock_id' => $stockId, 'timeframe' => IntradayPrice::TF_1H])
                 ->orderBy(['datetime' => SORT_DESC])
                 ->limit(max($lookback * 4, 160))
+                ->asArray()
                 ->all();
 
             if (count($rows) >= 20) {
                 $base = [];
                 foreach (array_reverse($rows) as $p) {
                     $base[] = [
-                        'open' => (float) $p->open,
-                        'high' => (float) $p->high,
-                        'low' => (float) $p->low,
-                        'close' => (float) $p->close,
-                        'volume' => (int) $p->volume,
-                        'date' => $p->datetime,
+                        'open' => (float) $p['open'],
+                        'high' => (float) $p['high'],
+                        'low' => (float) $p['low'],
+                        'close' => (float) $p['close'],
+                        'volume' => (int) $p['volume'],
+                        'date' => $p['datetime'],
                     ];
                 }
                 $per = match ($timeframe) {
