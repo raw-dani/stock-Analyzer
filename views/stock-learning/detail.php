@@ -10,6 +10,7 @@ declare(strict_types=1);
 /** @var array $simulatedTrades */
 /** @var array $strategies */
 /** @var array $timeframes */
+/** @var app\models\StockLearningRun[] $allRunsForStock */
 
 use app\assets\ChartAsset;
 use yii\bootstrap5\Html;
@@ -344,6 +345,76 @@ foreach ($generations as $g) {
                 <?= Html::endForm() ?>
             </div>
         </div>
+
+        <!-- Tabel Riwayat Semua Sesi Latihan Saham Ini -->
+        <?php if (!empty($allRunsForStock) && count($allRunsForStock) > 1): ?>
+            <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
+                <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-collection-play text-primary"></i>
+                        <h6 class="fw-bold mb-0 text-dark">Riwayat Seluruh Sesi Pembelajaran <?= Html::encode($stock->symbol) ?></h6>
+                    </div>
+                    <span class="badge bg-secondary rounded-pill"><?= count($allRunsForStock) ?> Sesi Tercatat</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light small text-uppercase text-secondary">
+                                <tr>
+                                    <th># ID</th>
+                                    <th>Waktu Latihan</th>
+                                    <th>Strategi</th>
+                                    <th>Timeframe</th>
+                                    <th class="text-center">Generasi</th>
+                                    <th class="text-center">OOS Win-Rate</th>
+                                    <th class="text-center">In-Sample WR</th>
+                                    <th class="text-center">Profit Factor</th>
+                                    <th class="text-center">Max DD</th>
+                                    <th class="text-center">Status</th>
+                                    <th class="text-end">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($allRunsForStock as $r): ?>
+                                    <?php
+                                    $isCurrent = ($latestRun && $latestRun->id === $r->id);
+                                    $rowClass = $isCurrent ? 'table-primary table-opacity-10' : '';
+                                    ?>
+                                    <tr class="<?= $rowClass ?>">
+                                        <td class="font-monospace small text-muted">
+                                            #<?= $r->id ?>
+                                            <?php if ($isCurrent): ?>
+                                                <span class="badge bg-primary ms-1" style="font-size:0.6rem;">AKTIF</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td class="small font-monospace"><?= date('d M Y H:i:s', $r->created_at) ?></td>
+                                        <td><span class="badge bg-light text-dark border"><?= Html::encode($strategies[$r->strategy_type] ?? $r->strategy_type) ?></span></td>
+                                        <td><span class="badge bg-light text-secondary border"><?= match((int)$r->timeframe) { 1 => '1 Jam (1H)', 4 => '4 Jam (4H)', default => 'Daily (1D)' } ?></span></td>
+                                        <td class="text-center small font-monospace"><?= $r->generation_max ?> gen</td>
+                                        <td class="text-center font-monospace fw-bold <?= ((float)$r->oos_win_rate >= 60.0 ? 'text-success' : 'text-danger') ?>">
+                                            <?= $r->oos_win_rate !== null ? number_format((float)$r->oos_win_rate, 1) . '%' : '-' ?>
+                                        </td>
+                                        <td class="text-center font-monospace text-muted small"><?= $r->is_win_rate !== null ? number_format((float)$r->is_win_rate, 1) . '%' : '-' ?></td>
+                                        <td class="text-center font-monospace small"><?= ($r->profit_factor !== null && (float)$r->profit_factor > 0) ? number_format((float)$r->profit_factor, 2) : '1.00' ?></td>
+                                        <td class="text-center font-monospace text-danger small"><?= ($r->max_drawdown !== null && (float)$r->max_drawdown > 0) ? '-' . number_format((float)$r->max_drawdown, 1) . '%' : '0.0%' ?></td>
+                                        <td class="text-center"><span class="badge bg-success" style="font-size:0.65rem;"><?= strtoupper($r->status) ?></span></td>
+                                        <td class="text-end">
+                                            <?php if (!$isCurrent): ?>
+                                                <a href="<?= Url::to(['/stock-learning/detail', 'symbol' => $stock->symbol, 'run_id' => $r->id]) ?>" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size:0.75rem;">
+                                                    Buka Sesi Ini
+                                                </a>
+                                            <?php else: ?>
+                                                <span class="text-muted small">Sedang Dibuka</span>
+                                            <?php endif; ?>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
     <?php endif; ?>
 </div>
 

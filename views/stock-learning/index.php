@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 /** @var yii\web\View $this */
+/** @var string $viewMode */
+/** @var array $groupedData */
 /** @var app\models\StockLearningRun[] $runs */
 /** @var string $symbolSearch */
 /** @var string $strategyFilter */
@@ -15,6 +17,7 @@ use yii\helpers\Url;
 
 $this->title = 'Stock Learning Engine — Pelatihan Pola & Strategi Adaptif';
 $this->params['breadcrumbs'][] = 'Stock Learning Engine';
+$viewMode = $viewMode ?? 'grouped';
 ?>
 
 <div class="container-fluid px-0">
@@ -39,36 +42,45 @@ $this->params['breadcrumbs'][] = 'Stock Learning Engine';
 
     <!-- KPI Summary Cards -->
     <div class="row g-3 mb-4">
-        <div class="col-12 col-md-4">
+        <div class="col-6 col-md-3">
             <div class="card border-0 shadow-sm rounded-4 h-100" style="border-left: 4px solid #0284c7 !important;">
                 <div class="card-body p-3">
-                    <span class="small text-muted fw-bold text-uppercase d-block mb-1">Total Model Dilatih</span>
-                    <h3 class="fw-bold text-dark mb-0 font-monospace"><?= number_format($stats['total_trained']) ?></h3>
-                    <small class="text-secondary">Sesi pembelajaran selesai</small>
+                    <span class="small text-muted fw-bold text-uppercase d-block mb-1">Total Saham Terlatih</span>
+                    <h3 class="fw-bold text-dark mb-0 font-monospace"><?= number_format($stats['total_unique_stocks'] ?? count($groupedData)) ?></h3>
+                    <small class="text-secondary"><?= number_format($stats['total_trained']) ?> total sesi simulasi</small>
                 </div>
             </div>
         </div>
-        <div class="col-12 col-md-4">
+        <div class="col-6 col-md-3">
             <div class="card border-0 shadow-sm rounded-4 h-100" style="border-left: 4px solid #10b981 !important;">
                 <div class="card-body p-3">
                     <span class="small text-muted fw-bold text-uppercase d-block mb-1">Rata-rata OOS Win-Rate</span>
                     <h3 class="fw-bold text-success mb-0 font-monospace"><?= number_format((float) $stats['avg_oos_wr'], 1) ?>%</h3>
-                    <small class="text-muted">Validasi data belum pernah dilihat (Out-of-Sample)</small>
+                    <small class="text-muted">Akurasi validasi independen</small>
                 </div>
             </div>
         </div>
-        <div class="col-12 col-md-4">
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100" style="border-left: 4px solid #8b5cf6 !important;">
+                <div class="card-body p-3">
+                    <span class="small text-muted fw-bold text-uppercase d-block mb-1">Model Akurasi Tinggi (&ge; 60%)</span>
+                    <h3 class="fw-bold mb-0 font-monospace" style="color: #8b5cf6;"><?= number_format($stats['high_wr_count']) ?></h3>
+                    <small class="text-muted">Kandidat strategi trading handal</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
             <div class="card border-0 shadow-sm rounded-4 h-100" style="border-left: 4px solid #f59e0b !important;">
                 <div class="card-body p-3">
-                    <span class="small text-muted fw-bold text-uppercase d-block mb-1">Model Akurasi Tinggi (&ge; 65%)</span>
-                    <h3 class="fw-bold text-warning mb-0 font-monospace"><?= number_format($stats['high_wr_count']) ?></h3>
-                    <small class="text-muted">Kandidat strategi trading handal</small>
+                    <span class="small text-muted fw-bold text-uppercase d-block mb-1">Metode Optimasi</span>
+                    <h3 class="fw-bold text-warning mb-0 font-monospace" style="font-size: 1.3rem;">GA + Walk-Forward</h3>
+                    <small class="text-muted">Anti curve-fitting &amp; lookahead</small>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Quick Train & Filter Card -->
+    <!-- Quick Train Card -->
     <div class="card border-0 shadow-sm rounded-4 mb-4">
         <div class="card-header bg-white py-3 border-bottom">
             <div class="d-flex align-items-center gap-2">
@@ -91,7 +103,7 @@ $this->params['breadcrumbs'][] = 'Stock Learning Engine';
                 </div>
                 <div class="col-md-2 col-6">
                     <label class="form-label small fw-bold text-muted">Timeframe</label>
-                    <?= Html::dropDownList('timeframe', 24, [24 => 'Daily (1D)', 4 => '4 Jam (4H)', 1 => '1 Jam (1H)'], ['class' => 'form-select form-select-sm']) ?>
+                    <?= Html::dropDownList('timeframe', 24, [24 => 'Daily (1D - Rekomendasi)', 4 => '4 Jam (4H)', 1 => '1 Jam (1H)'], ['class' => 'form-select form-select-sm']) ?>
                 </div>
                 <div class="col-md-2 col-6">
                     <label class="form-label small fw-bold text-muted">Jumlah Generasi</label>
@@ -106,8 +118,9 @@ $this->params['breadcrumbs'][] = 'Stock Learning Engine';
 
             <!-- Filter Table List -->
             <?= Html::beginForm(['/stock-learning/index'], 'get', ['class' => 'row g-2 align-items-center']) ?>
+                <?= Html::hiddenInput('view', $viewMode) ?>
                 <div class="col-auto">
-                    <span class="small fw-bold text-muted"><i class="bi bi-funnel me-1"></i> Filter Histori:</span>
+                    <span class="small fw-bold text-muted"><i class="bi bi-funnel me-1"></i> Filter:</span>
                 </div>
                 <div class="col-md-3 col-6">
                     <?= Html::input('text', 'symbol', $symbolSearch, ['class' => 'form-control form-control-sm', 'placeholder' => 'Cari simbol...']) ?>
@@ -118,112 +131,219 @@ $this->params['breadcrumbs'][] = 'Stock Learning Engine';
                 <div class="col-auto">
                     <?= Html::submitButton('<i class="bi bi-filter"></i> Filter', ['class' => 'btn btn-outline-secondary btn-sm px-3']) ?>
                     <?php if (!empty($symbolSearch) || !empty($strategyFilter)): ?>
-                        <a href="<?= Url::to(['/stock-learning/index']) ?>" class="btn btn-outline-danger btn-sm ms-1">Reset</a>
+                        <a href="<?= Url::to(['/stock-learning/index', 'view' => $viewMode]) ?>" class="btn btn-outline-danger btn-sm ms-1">Reset</a>
                     <?php endif; ?>
                 </div>
             <?= Html::endForm() ?>
         </div>
     </div>
 
-    <!-- Runs Table List -->
-    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
-        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
-            <h6 class="fw-bold mb-0 text-dark">
-                <i class="bi bi-journal-text text-primary me-2"></i>Daftar Hasil Pembelajaran Parameter
-            </h6>
-            <span class="badge bg-secondary rounded-pill"><?= count($runs) ?> Sesi Ditemukan</span>
+    <!-- Table Container with Tab Switcher -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+        <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <!-- View Mode Switcher Pills -->
+            <ul class="nav nav-pills card-header-pills">
+                <li class="nav-item">
+                    <a class="nav-link small py-1 px-3 fw-bold <?= $viewMode === 'grouped' ? 'active' : '' ?>" 
+                       href="<?= Url::to(['/stock-learning/index', 'view' => 'grouped', 'symbol' => $symbolSearch, 'strategy' => $strategyFilter]) ?>">
+                        <i class="bi bi-grid-3x3-gap-fill me-1"></i> Ringkasan per Saham (Grouped)
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link small py-1 px-3 fw-bold <?= $viewMode === 'history' ? 'active' : '' ?>" 
+                       href="<?= Url::to(['/stock-learning/index', 'view' => 'history', 'symbol' => $symbolSearch, 'strategy' => $strategyFilter]) ?>">
+                        <i class="bi bi-list-ul me-1"></i> Seluruh Riwayat Sesi (Audit Log)
+                    </a>
+                </li>
+            </ul>
+
+            <span class="badge bg-secondary rounded-pill">
+                <?= $viewMode === 'grouped' ? count($groupedData) . ' Saham Unik' : count($runs) . ' Sesi Tercatat' ?>
+            </span>
         </div>
         <div class="card-body p-0">
-            <?php if (empty($runs)): ?>
-                <div class="text-center py-5 text-muted">
-                    <i class="bi bi-cpu fs-1 text-secondary opacity-50 mb-2 d-block"></i>
-                    <h6 class="fw-bold">Belum Ada Sesi Pembelajaran</h6>
-                    <p class="small text-muted mb-0">Masukkan kode saham pada form di atas untuk memulai simulasi optimasi.</p>
-                </div>
-            <?php else: ?>
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="table-light small text-uppercase text-secondary">
-                            <tr>
-                                <th>Saham</th>
-                                <th>Strategi Basis</th>
-                                <th>Timeframe</th>
-                                <th class="text-center">OOS Win-Rate</th>
-                                <th class="text-center">In-Sample WR</th>
-                                <th class="text-center">Profit Factor</th>
-                                <th class="text-center">Max DD</th>
-                                <th class="text-center">Total Trade</th>
-                                <th class="text-center">Status</th>
-                                <th class="text-end">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($runs as $r): ?>
-                                <?php
-                                $statusBadge = match ($r->status) {
-                                    'completed' => 'bg-success',
-                                    'running' => 'bg-warning text-dark',
-                                    'failed' => 'bg-danger',
-                                    default => 'bg-secondary',
-                                };
-                                $oosWr = (float) ($r->oos_win_rate ?? 0);
-                                $oosBadgeClass = ($oosWr >= 70.0) ? 'text-success fw-bold' : (($oosWr >= 55.0) ? 'text-primary' : 'text-danger');
-                                ?>
+            <?php if ($viewMode === 'grouped'): ?>
+                <!-- TAMPILAN 1: GROUPED PER KODE SAHAM (1 Baris per Saham) -->
+                <?php if (empty($groupedData)): ?>
+                    <div class="text-center py-5 text-muted">
+                        <i class="bi bi-cpu fs-1 text-secondary opacity-50 mb-2 d-block"></i>
+                        <h6 class="fw-bold">Belum Ada Model Pembelajaran</h6>
+                        <p class="small text-muted mb-0">Latih saham pertama Anda menggunakan form di atas.</p>
+                    </div>
+                <?php else: ?>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light small text-uppercase text-secondary">
                                 <tr>
-                                    <td>
-                                        <div class="fw-bold text-dark font-monospace fs-6">
-                                            <?= Html::encode($r->symbol) ?>
-                                        </div>
-                                        <small class="text-muted" style="font-size:0.75rem;">
-                                            <?= date('d M Y H:i', $r->created_at) ?>
-                                        </small>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-light text-dark border">
-                                            <?= Html::encode($strategies[$r->strategy_type] ?? $r->strategy_type) ?>
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-light text-secondary border">
-                                            <?= match ((int)$r->timeframe) { 1 => '1 Jam (1H)', 4 => '4 Jam (4H)', default => 'Daily (1D)' } ?>
-                                        </span>
-                                    </td>
-                                    <td class="text-center">
-                                        <?php if ($r->oos_win_rate !== null && (int)$r->total_trades > 0): ?>
-                                            <span class="font-monospace fs-6 <?= $oosBadgeClass ?>">
-                                                <?= number_format((float) $r->oos_win_rate, 1) ?>%
-                                            </span>
-                                        <?php else: ?>
-                                            <span class="badge bg-light text-muted border" style="font-size:0.68rem;">0 Trade</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td class="text-center font-monospace text-muted small">
-                                        <?= $r->is_win_rate !== null ? number_format((float) $r->is_win_rate, 1) . '%' : '-' ?>
-                                    </td>
-                                    <td class="text-center font-monospace small">
-                                        <?= ($r->profit_factor !== null && (float)$r->profit_factor > 0) ? number_format((float) $r->profit_factor, 2) : '1.00' ?>
-                                    </td>
-                                    <td class="text-center font-monospace text-danger small">
-                                        <?= ($r->max_drawdown !== null && (float)$r->max_drawdown > 0) ? '-' . number_format((float) $r->max_drawdown, 1) . '%' : '0.0%' ?>
-                                    </td>
-                                    <td class="text-center font-monospace small text-muted">
-                                        <?= $r->total_trades ?? 0 ?> trade
-                                    </td>
-                                    <td class="text-center">
-                                        <span class="badge <?= $statusBadge ?> px-2 py-1 text-uppercase" style="font-size:0.68rem;">
-                                            <?= Html::encode($r->status) ?>
-                                        </span>
-                                    </td>
-                                    <td class="text-end">
-                                        <a href="<?= Url::to(['/stock-learning/detail', 'symbol' => $r->symbol]) ?>" class="btn btn-sm btn-outline-primary shadow-xs">
-                                            <i class="bi bi-eye"></i> Detail &amp; Sinyal
-                                        </a>
-                                    </td>
+                                    <th>Saham</th>
+                                    <th class="text-center">Total Latihan</th>
+                                    <th>Model Terbaik</th>
+                                    <th>Timeframe</th>
+                                    <th class="text-center">Best OOS Win-Rate</th>
+                                    <th class="text-center">In-Sample WR</th>
+                                    <th class="text-center">Profit Factor</th>
+                                    <th class="text-center">Max Drawdown</th>
+                                    <th>Latihan Terakhir</th>
+                                    <th class="text-end">Aksi</th>
                                 </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($groupedData as $row): ?>
+                                    <?php
+                                    $best = $row['best_run'];
+                                    $oosWr = (float) ($best->oos_win_rate ?? 0);
+                                    $oosBadgeClass = ($oosWr >= 65.0) ? 'text-success fw-bold' : (($oosWr >= 50.0) ? 'text-primary' : 'text-danger');
+                                    ?>
+                                    <tr>
+                                        <td>
+                                            <div class="fw-bold text-dark font-monospace fs-6">
+                                                <?= Html::encode($row['symbol']) ?>
+                                            </div>
+                                            <div class="text-muted small text-truncate" style="max-width: 180px;">
+                                                <?= Html::encode($row['stock_name']) ?>
+                                            </div>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-pill px-3 py-1 font-monospace">
+                                                <i class="bi bi-arrow-repeat me-1"></i><?= $row['total_sessions'] ?> Sesi
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-light text-dark border">
+                                                <?= Html::encode($strategies[$best->strategy_type] ?? $best->strategy_type) ?>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-light text-secondary border">
+                                                <?= match ((int)$best->timeframe) { 1 => '1 Jam (1H)', 4 => '4 Jam (4H)', default => 'Daily (1D)' } ?>
+                                            </span>
+                                        </td>
+                                        <td class="text-center">
+                                            <?php if ($best->oos_win_rate !== null && (int)$best->total_trades > 0): ?>
+                                                <span class="font-monospace fs-6 <?= $oosBadgeClass ?>">
+                                                    <?= number_format((float) $best->oos_win_rate, 1) ?>%
+                                                </span>
+                                            <?php else: ?>
+                                                <span class="badge bg-light text-muted border" style="font-size:0.68rem;">0 Trade</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td class="text-center font-monospace text-muted small">
+                                            <?= $best->is_win_rate !== null ? number_format((float) $best->is_win_rate, 1) . '%' : '-' ?>
+                                        </td>
+                                        <td class="text-center font-monospace small">
+                                            <?= ($best->profit_factor !== null && (float)$best->profit_factor > 0) ? number_format((float) $best->profit_factor, 2) : '1.00' ?>
+                                        </td>
+                                        <td class="text-center font-monospace text-danger small">
+                                            <?= ($best->max_drawdown !== null && (float)$best->max_drawdown > 0) ? '-' . number_format((float) $best->max_drawdown, 1) . '%' : '0.0%' ?>
+                                        </td>
+                                        <td class="small text-muted font-monospace">
+                                            <?= date('d M Y H:i', $row['latest_created_at']) ?>
+                                        </td>
+                                        <td class="text-end">
+                                            <a href="<?= Url::to(['/stock-learning/detail', 'symbol' => $row['symbol']]) ?>" class="btn btn-sm btn-primary shadow-xs fw-semibold">
+                                                <i class="bi bi-eye-fill me-1"></i> Buka Model
+                                            </a>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                <?php endif; ?>
+            <?php else: ?>
+                <!-- TAMPILAN 2: AUDIT LOG SELURUH RIWAYAT SESI -->
+                <?php if (empty($runs)): ?>
+                    <div class="text-center py-5 text-muted">
+                        <i class="bi bi-clock-history fs-1 text-secondary opacity-50 mb-2 d-block"></i>
+                        <h6 class="fw-bold">Belum Ada Sesi Pembelajaran</h6>
+                    </div>
+                <?php else: ?>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light small text-uppercase text-secondary">
+                                <tr>
+                                    <th># ID</th>
+                                    <th>Saham</th>
+                                    <th>Strategi Basis</th>
+                                    <th>Timeframe</th>
+                                    <th class="text-center">OOS Win-Rate</th>
+                                    <th class="text-center">In-Sample WR</th>
+                                    <th class="text-center">Profit Factor</th>
+                                    <th class="text-center">Max DD</th>
+                                    <th class="text-center">Total Trade</th>
+                                    <th class="text-center">Status</th>
+                                    <th class="text-end">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($runs as $r): ?>
+                                    <?php
+                                    $statusBadge = match ($r->status) {
+                                        'completed' => 'bg-success',
+                                        'running' => 'bg-warning text-dark',
+                                        'failed' => 'bg-danger',
+                                        default => 'bg-secondary',
+                                    };
+                                    $oosWr = (float) ($r->oos_win_rate ?? 0);
+                                    $oosBadgeClass = ($oosWr >= 65.0) ? 'text-success fw-bold' : (($oosWr >= 50.0) ? 'text-primary' : 'text-danger');
+                                    ?>
+                                    <tr>
+                                        <td class="text-muted small font-monospace">#<?= $r->id ?></td>
+                                        <td>
+                                            <div class="fw-bold text-dark font-monospace fs-6">
+                                                <?= Html::encode($r->symbol) ?>
+                                            </div>
+                                            <small class="text-muted" style="font-size:0.75rem;">
+                                                <?= date('d M Y H:i:s', $r->created_at) ?>
+                                            </small>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-light text-dark border">
+                                                <?= Html::encode($strategies[$r->strategy_type] ?? $r->strategy_type) ?>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-light text-secondary border">
+                                                <?= match ((int)$r->timeframe) { 1 => '1 Jam (1H)', 4 => '4 Jam (4H)', default => 'Daily (1D)' } ?>
+                                            </span>
+                                        </td>
+                                        <td class="text-center">
+                                            <?php if ($r->oos_win_rate !== null && (int)$r->total_trades > 0): ?>
+                                                <span class="font-monospace fs-6 <?= $oosBadgeClass ?>">
+                                                    <?= number_format((float) $r->oos_win_rate, 1) ?>%
+                                                </span>
+                                            <?php else: ?>
+                                                <span class="badge bg-light text-muted border" style="font-size:0.68rem;">0 Trade</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td class="text-center font-monospace text-muted small">
+                                            <?= $r->is_win_rate !== null ? number_format((float) $r->is_win_rate, 1) . '%' : '-' ?>
+                                        </td>
+                                        <td class="text-center font-monospace small">
+                                            <?= ($r->profit_factor !== null && (float)$r->profit_factor > 0) ? number_format((float) $r->profit_factor, 2) : '1.00' ?>
+                                        </td>
+                                        <td class="text-center font-monospace text-danger small">
+                                            <?= ($r->max_drawdown !== null && (float)$r->max_drawdown > 0) ? '-' . number_format((float) $r->max_drawdown, 1) . '%' : '0.0%' ?>
+                                        </td>
+                                        <td class="text-center font-monospace small text-muted">
+                                            <?= $r->total_trades ?? 0 ?> trade
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge <?= $statusBadge ?> px-2 py-1 text-uppercase" style="font-size:0.68rem;">
+                                                <?= Html::encode($r->status) ?>
+                                            </span>
+                                        </td>
+                                        <td class="text-end">
+                                            <a href="<?= Url::to(['/stock-learning/detail', 'symbol' => $r->symbol, 'run_id' => $r->id]) ?>" class="btn btn-sm btn-outline-primary shadow-xs">
+                                                <i class="bi bi-eye"></i> Detail
+                                            </a>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                <?php endif; ?>
             <?php endif; ?>
         </div>
     </div>

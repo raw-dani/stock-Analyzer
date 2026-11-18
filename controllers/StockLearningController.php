@@ -22,48 +22,119 @@ use yii\web\Response;
 class StockLearningController extends Controller
 {
     /**
-     * Halaman Utama: Daftar riwayat pembelajaran seluruh saham.
+     * Halaman Utama: Daftar riwayat pembelajaran seluruh saham (Mendukung Grouped per Saham & All History).
      */
     public function actionIndex(): string
     {
         $request = Yii::$app->request;
+        $viewMode = $request->get('view', 'grouped'); // 'grouped' (default) atau 'history'
         $symbolSearch = trim((string) $request->get('symbol', ''));
         $strategyFilter = trim((string) $request->get('strategy', ''));
         $statusFilter = trim((string) $request->get('status', ''));
 
-        $query = StockLearningRun::find()->orderBy(['id' => SORT_DESC]);
+        // 1. Data Mode Grouped (1 Baris per Kode Saham — Menampilkan Model Terbaik)
+        $groupedData = [];
+        $symbolsQuery = StockLearningRun::find()
+            ->select(['symbol', 'stock_id'])
+            ->distinct();
 
         if (!empty($symbolSearch)) {
-            $query->andWhere(['like', 'symbol', strtoupper($symbolSearch)]);
-        }
-        if (!empty($strategyFilter)) {
-            $query->andWhere(['strategy_type' => $strategyFilter]);
-        }
-        if (!empty($statusFilter)) {
-            $query->andWhere(['status' => $statusFilter]);
+            $symbolsQuery->andWhere(['like', 'symbol', strtoupper($symbolSearch)]);
         }
 
-        $runs = $query->limit(50)->all();
+        $distinctStocks = $symbolsQuery->asArray()->all();
+
+        foreach ($distinctStocks as $ds) {
+            $sym = $ds['symbol'];
+            $stockId = (int) $ds['stock_id'];
+
+            // Query run terbaik untuk simbol ini (prioritas: completed dengan best_fitness tertinggi)
+            $bestRunQuery = StockLearningRun::find()
+                ->where(['symbol' => $sym, 'status' => StockLearningRun::STATUS_COMPLETED]);
+
+            if (!empty($strategyFilter)) {
+                $bestRunQuery->andWhere(['strategy_type' => $strategyFilter]);
+            }
+
+            $bestRun = $bestRunQuery->orderBy(['best_fitness' => SORT_DESC, 'id' => SORT_DESC])->one();
+
+            // Fallback jika belum ada yang completed atau filter tertentu
+            if (!$bestRun) {
+                $fallbackQuery = StockLearningRun::find()->where(['symbol' => $sym]);
+                if (!empty($strategyFilter)) {
+                    $fallbackQuery->andWhere(['strategy_type' => $strategyFilter]);
+                }
+                if (!empty($statusFilter)) {
+                    $fallbackQuery->andWhere(['status' => $statusFilter]);
+                }
+                $bestRun = $fallbackQuery->orderBy(['id' => SORT_DESC])->one();
+            }
+
+            if (!$bestRun) {
+                continue;
+            }
+
+            $totalSessions = StockLearningRun::find()->where(['symbol' => $sym])->count();
+            $latestRun = StockLearningRun::find()->where(['symbol' => $sym])->orderBy(['id' => SORT_DESC])->one();
+            $stock = Stock::findOne($stockId);
+
+            $groupedData[] = [
+                'symbol' => $sym,
+                'stock' => $stock,
+                'stock_name' => $stock ? $stock->name : '',
+                'best_run' => $bestRun,
+                'latest_run' => $latestRun,
+                'total_sessions' => (int) $totalSessions,
+                'latest_created_at' => (int) ($latestRun ? $latestRun->created_at : $bestRun->created_at),
+            ];
+        }
+
+        // Urutkan groupedData: Saham dengan OOS Win Rate terbaik di atas
+        usort($groupedData, function ($a, $b) {
+            $wrA = (float) ($a['best_run']->oos_win_rate ?? 0);
+            $wrB = (float) ($b['best_run']->oos_win_rate ?? 0);
+            if ($wrA !== $wrB) {
+                return $wrB <=> $wrA;
+            }
+            return $b['latest_created_at'] <=> $a['latest_created_at'];
+        });
+
+        // 2. Data Mode History (Audit Trail Log Seluruh Percobaan)
+        $historyQuery = StockLearningRun::find()->orderBy(['id' => SORT_DESC]);
+        if (!empty($symbolSearch)) {
+            $historyQuery->andWhere(['like', 'symbol', strtoupper($symbolSearch)]);
+        }
+        if (!empty($strategyFilter)) {
+            $historyQuery->andWhere(['strategy_type' => $strategyFilter]);
+        }
+        if (!empty($statusFilter)) {
+            $historyQuery->andWhere(['status' => $statusFilter]);
+        }
+        $historyRuns = $historyQuery->limit(60)->all();
 
         // Hitung statistik agregat (hanya yang memiliki transaksi trade)
         $totalTrained = StockLearningRun::find()->where(['status' => StockLearningRun::STATUS_COMPLETED])->count();
+        $totalUniqueStocks = StockLearningRun::find()->select('symbol')->distinct()->count();
         $avgOosWr = StockLearningRun::find()
             ->where(['status' => StockLearningRun::STATUS_COMPLETED])
             ->andWhere(['>', 'total_trades', 0])
             ->average('oos_win_rate') ?: 0;
         $highWrCount = StockLearningRun::find()
             ->where(['status' => StockLearningRun::STATUS_COMPLETED])
-            ->andWhere(['>=', 'oos_win_rate', 65.0])
+            ->andWhere(['>=', 'oos_win_rate', 60.0])
             ->andWhere(['>', 'total_trades', 0])
             ->count();
 
         return $this->render('index', [
-            'runs' => $runs,
+            'viewMode' => $viewMode,
+            'groupedData' => $groupedData,
+            'runs' => $historyRuns,
             'symbolSearch' => $symbolSearch,
             'strategyFilter' => $strategyFilter,
             'statusFilter' => $statusFilter,
             'stats' => [
                 'total_trained' => (int) $totalTrained,
+                'total_unique_stocks' => (int) $totalUniqueStocks,
                 'avg_oos_wr' => round((float) $avgOosWr, 1),
                 'high_wr_count' => (int) $highWrCount,
             ],
@@ -80,7 +151,8 @@ class StockLearningController extends Controller
      */
     public function actionDetail(?string $symbol = null): string
     {
-        $symbol = $symbol ?? Yii::$app->request->get('symbol');
+        $request = Yii::$app->request;
+        $symbol = $symbol ?? $request->get('symbol');
         if (empty($symbol)) {
             return $this->redirect(['index']);
         }
@@ -91,11 +163,31 @@ class StockLearningController extends Controller
             throw new NotFoundHttpException("Saham {$symbol} tidak ditemukan di database.");
         }
 
-        // Ambil run terbaru untuk saham ini
-        $latestRun = StockLearningRun::find()
+        // Ambil run spesifik jika run_id diminta, atau run terbaik/terbaru untuk saham ini
+        $runIdParam = (int) $request->get('run_id', 0);
+        if ($runIdParam > 0) {
+            $latestRun = StockLearningRun::findOne(['id' => $runIdParam, 'stock_id' => $stock->id]);
+        } else {
+            // Prioritas: model terbaik yang completed, fallback ke run terbaru
+            $latestRun = StockLearningRun::find()
+                ->where(['stock_id' => $stock->id, 'status' => StockLearningRun::STATUS_COMPLETED])
+                ->orderBy(['best_fitness' => SORT_DESC, 'id' => SORT_DESC])
+                ->one();
+
+            if (!$latestRun) {
+                $latestRun = StockLearningRun::find()
+                    ->where(['stock_id' => $stock->id])
+                    ->orderBy(['id' => SORT_DESC])
+                    ->one();
+            }
+        }
+
+        // Ambil seluruh riwayat run untuk saham ini
+        $allRunsForStock = StockLearningRun::find()
             ->where(['stock_id' => $stock->id])
             ->orderBy(['id' => SORT_DESC])
-            ->one();
+            ->limit(20)
+            ->all();
 
         $generations = [];
         $currentSignal = null;
@@ -157,6 +249,7 @@ class StockLearningController extends Controller
             'generations' => $generations,
             'currentSignal' => $currentSignal,
             'simulatedTrades' => $simulatedTrades,
+            'allRunsForStock' => $allRunsForStock,
             'strategies' => [
                 ChromosomeFactory::STRATEGY_STOCHASTIC => 'Stochastic Oscillator',
                 ChromosomeFactory::STRATEGY_RSI => 'RSI Momentum & Reversal',
