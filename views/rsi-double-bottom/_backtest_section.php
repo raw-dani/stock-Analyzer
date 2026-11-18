@@ -36,7 +36,16 @@ $trades = $res['recentTrades'] ?? [];
         </div>
         <div class="d-flex align-items-center gap-2">
             <span class="badge bg-light text-secondary border px-2 py-1">
-                Fee + Slippage: <?= number_format($p['totalCostPct'], 2) ?>%
+                Fee + Slip: <?= number_format($p['totalCostPct'], 2) ?>%
+            </span>
+            <?php if (!empty($p['trendFilter'])): ?>
+                <span class="badge bg-success-subtle text-success border px-2 py-1">Trend Guard ON</span>
+            <?php endif; ?>
+            <?php if (!empty($p['candleConfirmation'])): ?>
+                <span class="badge bg-primary-subtle text-primary border px-2 py-1">Bullish Bar ON</span>
+            <?php endif; ?>
+            <span class="badge bg-info-subtle text-dark border px-2 py-1">
+                TP: <?= ucfirst($p['tpModel'] ?? 'adaptive') ?>
             </span>
             <a href="#backtest-form-box" class="btn btn-sm btn-outline-primary">
                 <?= \app\helpers\SvgHelper::icon('sliders') ?> Ganti Parameter

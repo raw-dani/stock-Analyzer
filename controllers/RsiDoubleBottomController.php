@@ -207,6 +207,9 @@ final class RsiDoubleBottomController extends Controller
             $btLookback = (int) Yii::$app->request->get('btLookback', 300);
             $btFeePct = (float) Yii::$app->request->get('btFee', 0.30);
             $btSlippage = (float) Yii::$app->request->get('btSlippage', 0.10);
+            $btTrendFilter = (bool) Yii::$app->request->get('btTrendFilter', 1);
+            $btCandleConfirm = (bool) Yii::$app->request->get('btCandleConfirm', 1);
+            $btTpModel = (string) Yii::$app->request->get('btTpModel', $timeframe === self::TIMEFRAME_1D ? 'standard' : 'adaptive');
 
             $backtestService = new \app\services\RsiBacktestService();
             $backtestResult = $backtestService->runStockBacktest($stock, [
@@ -215,6 +218,9 @@ final class RsiDoubleBottomController extends Controller
                 'lookbackCandles' => $btLookback,
                 'feePct' => $btFeePct,
                 'slippagePct' => $btSlippage,
+                'trendFilter' => $btTrendFilter,
+                'candleConfirmation' => $btCandleConfirm,
+                'tpModel' => $btTpModel,
             ]);
         }
 

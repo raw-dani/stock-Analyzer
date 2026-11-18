@@ -55,6 +55,9 @@ final class RsiBacktestService
         $slippagePct = (float) ($options['slippagePct'] ?? 0.10); // 0.10% slippage
         $totalCostPct = $feePct + $slippagePct;
         $splitRatio = (float) ($options['splitRatio'] ?? 0.70); // 70% In-Sample, 30% Out-of-Sample
+        $trendFilter = (bool) ($options['trendFilter'] ?? false);
+        $candleConfirmation = (bool) ($options['candleConfirmation'] ?? false);
+        $tpModel = (string) ($options['tpModel'] ?? ($timeframe === self::TIMEFRAME_1D ? 'standard' : 'adaptive'));
 
         // 1. Ambil Candle Berurutan Kronologis (ASC)
         $candles = $this->loadAscCandles((int) $stock->id, $timeframe, $lookbackCandles);
@@ -83,13 +86,13 @@ final class RsiBacktestService
             $sliceCandles = array_slice($candles, 0, $i + 1);
             $sliceRsi = array_slice($rsiSeries, 0, $i + 1);
 
-            $signal = $this->evaluateBarSignal($sliceCandles, $sliceRsi, $i, $rsiPeriod);
+            $signal = $this->evaluateBarSignal($sliceCandles, $sliceRsi, $i, $rsiPeriod, $trendFilter, $candleConfirmation, $tpModel);
             if ($signal === null) {
                 continue;
             }
 
-            // Evaluasi Forward Outcome (t+1 s/d t+20)
-            $evaluated = $this->evaluateForwardOutcome($candles, $i, $signal, $totalCostPct);
+            // Evaluasi Forward Outcome (t+1 s/d t+20) dengan trailing BEP saat TP1 tercapai
+            $evaluated = $this->evaluateForwardOutcome($candles, $i, $signal, $totalCostPct, $tpModel);
             $evaluated['split_type'] = ($i < $splitIndex) ? 'train' : 'test';
             $allSignals[] = $evaluated;
 
@@ -118,6 +121,9 @@ final class RsiBacktestService
                 'feePct' => $feePct,
                 'slippagePct' => $slippagePct,
                 'totalCostPct' => $totalCostPct,
+                'trendFilter' => $trendFilter,
+                'candleConfirmation' => $candleConfirmation,
+                'tpModel' => $tpModel,
                 'trainRange' => [
                     'start' => $candles[$startBar]['date'] ?? '',
                     'end' => $candles[min($splitIndex - 1, $totalBars - 1)]['date'] ?? '',
@@ -139,8 +145,15 @@ final class RsiBacktestService
     /**
      * Evaluasi ada/tidaknya sinyal Beli RSI pada bar ke-i (tanpa melihat masa depan).
      */
-    private function evaluateBarSignal(array $candles, array $rsi, int $idx, int $period): ?array
-    {
+    private function evaluateBarSignal(
+        array $candles,
+        array $rsi,
+        int $idx,
+        int $period,
+        bool $trendFilter = false,
+        bool $candleConfirmation = false,
+        string $tpModel = 'adaptive'
+    ): ?array {
         $curCandle = $candles[$idx];
         $prevCandle = $candles[$idx - 1] ?? null;
         $prev2Candle = $candles[$idx - 2] ?? null;
@@ -154,8 +167,29 @@ final class RsiBacktestService
         }
 
         $close = (float) $curCandle['close'];
+        $open = (float) $curCandle['open'];
         $low = (float) $curCandle['low'];
         $high = (float) $curCandle['high'];
+
+        // --- FILTER 1: Trend Protection Filter ---
+        if ($trendFilter && $idx >= 30) {
+            $recentCloses = array_map(fn ($c) => (float) $c['close'], array_slice($candles, $idx - 29, 30));
+            $sma30 = array_sum($recentCloses) / 30;
+            // Jika harga sedang free-fall di bawah 92% SMA30 dan di bawah bar sebelumnya, tolak knife-catching
+            if ($close < ($sma30 * 0.92) && $close < (float) $prevCandle['close']) {
+                return null;
+            }
+        }
+
+        // --- FILTER 2: Bullish Reversal Confirmation ---
+        if ($candleConfirmation) {
+            // Candle harus bullish (close >= open) ATAU close melompat di atas close bar sebelumnya
+            $isBullishBody = ($close >= $open);
+            $isReclaimPrev = ($close > (float) $prevCandle['close']);
+            if (!$isBullishBody && !$isReclaimPrev) {
+                return null; // Abaikan candle merah yang terus ambles
+            }
+        }
 
         $signalType = null;
         $signalName = null;
@@ -194,15 +228,25 @@ final class RsiBacktestService
             return null;
         }
 
-        // Tentukan Target TP1 (1.8R), TP2 (3.0R) dan SL (di bawah swing low terdekat)
+        // Tentukan Target TP1, TP2 dan SL (di bawah swing low terdekat)
         $windowLow = (float) $curCandle['low'];
         for ($k = max(0, $idx - 10); $k <= $idx; $k++) {
             $windowLow = min($windowLow, (float) $candles[$k]['low']);
         }
         $stopLoss = round(min($windowLow * 0.985, $close * 0.965), 2);
         $risk = max(0.01, $close - $stopLoss);
-        $tp1 = round($close + ($risk * 1.8), 2);
-        $tp2 = round($close + ($risk * 3.0), 2);
+
+        if ($tpModel === 'adaptive') {
+            // Adaptive TP untuk Swing & Intraday:
+            // TP1 = 1.2R (area realistis tercapai untuk mengamankan 50% cuan)
+            // TP2 = 2.5R (target ekstensi lanjutan)
+            $tp1 = round($close + ($risk * 1.2), 2);
+            $tp2 = round($close + ($risk * 2.5), 2);
+        } else {
+            // Standard / Long-term Model
+            $tp1 = round($close + ($risk * 1.8), 2);
+            $tp2 = round($close + ($risk * 3.0), 2);
+        }
 
         return [
             'index' => $idx,
@@ -224,8 +268,13 @@ final class RsiBacktestService
     /**
      * Evaluasi performa masa depan (forward outcome) t+1 s/d t+20.
      */
-    private function evaluateForwardOutcome(array $candles, int $signalIdx, array $signal, float $totalCostPct): array
-    {
+    private function evaluateForwardOutcome(
+        array $candles,
+        int $signalIdx,
+        array $signal,
+        float $totalCostPct,
+        string $tpModel = 'adaptive'
+    ): array {
         $totalBars = count($candles);
         $entryPrice = $signal['entry_price'];
         $stopLoss = $signal['stop_loss'];
@@ -271,11 +320,14 @@ final class RsiBacktestService
             $minLowForward = min($minLowForward, $cLow);
             $maxHighForward = max($maxHighForward, $cHigh);
 
-            // Cek Hit SL terlebih dahulu (Conservative risk-first)
-            if ($cLow <= $stopLoss && !$hitSl && !$hitTp1) {
+            // Trailing Break-Even Rule: Jika TP1 sudah kena di mode adaptive, SL digeser ke Entry Price (BEP)
+            $activeSl = ($hitTp1 && $tpModel === 'adaptive') ? $entryPrice : $stopLoss;
+
+            // Cek Hit SL
+            if ($cLow <= $activeSl && !$hitSl) {
                 $hitSl = true;
-                $exitPrice = $stopLoss;
-                $exitReason = 'STOP_LOSS';
+                $exitPrice = $activeSl;
+                $exitReason = ($activeSl === $entryPrice) ? 'BREAK_EVEN' : 'STOP_LOSS';
                 $exitBar = $j;
                 break;
             }
@@ -286,6 +338,9 @@ final class RsiBacktestService
                 $exitPrice = $tp1;
                 $exitReason = 'TAKE_PROFIT_1';
                 $exitBar = $j;
+                if ($tpModel === 'adaptive') {
+                    // Di model adaptive, setelah TP1 kita geser SL ke BEP dan biarkan 50% posisi mengincar TP2
+                }
             }
 
             // Cek Hit TP2

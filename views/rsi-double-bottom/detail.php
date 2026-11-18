@@ -162,15 +162,46 @@ $ma50Series = $pattern['ma50_series'] ?? [];
                 <label class="form-label small fw-bold">Lookback (candles)</label>
                 <?= Html::input('number', 'lookback', $lookback, ['class' => 'form-control form-control-sm', 'min' => 20, 'max' => 300]) ?>
             </div>
-            <div class="col-md-3 col-6">
-                <label class="form-label small fw-bold">Histori Backtest (Bar)</label>
+            <div class="col-md-2 col-6">
+                <label class="form-label small fw-bold">Histori Backtest</label>
                 <?= Html::dropDownList('btLookback', Yii::$app->request->get('btLookback', 300), [
-                    150 => '150 Bar Terakhir',
-                    300 => '300 Bar Terakhir (Rekomendasi)',
-                    500 => '500 Bar Terakhir',
+                    150 => '150 Bar',
+                    300 => '300 Bar (Rekomendasi)',
+                    500 => '500 Bar',
                 ], ['class' => 'form-select form-select-sm']) ?>
             </div>
-            <div class="col-md-3 col-12 d-flex gap-2">
+            <div class="col-md-2 col-6">
+                <label class="form-label small fw-bold">Target Profit Model</label>
+                <?= Html::dropDownList('btTpModel', Yii::$app->request->get('btTpModel', $timeframe === 24 ? 'standard' : 'adaptive'), [
+                    'adaptive' => 'Adaptive (1.2R + BEP)',
+                    'standard' => 'Standard (1.8R)',
+                ], ['class' => 'form-select form-select-sm']) ?>
+            </div>
+            <div class="col-md-2 col-6">
+                <label class="form-label small fw-bold">Filter Proteksi</label>
+                <div class="form-check form-switch pt-1">
+                    <?= Html::checkbox('btTrendFilter', (bool) Yii::$app->request->get('btTrendFilter', 1), [
+                        'class' => 'form-check-input',
+                        'id' => 'btTrendFilterCheck',
+                        'value' => '1',
+                        'uncheck' => '0',
+                    ]) ?>
+                    <label class="form-check-label small" for="btTrendFilterCheck">Trend Guard</label>
+                </div>
+            </div>
+            <div class="col-md-2 col-6">
+                <label class="form-label small fw-bold">Konfirmasi Candle</label>
+                <div class="form-check form-switch pt-1">
+                    <?= Html::checkbox('btCandleConfirm', (bool) Yii::$app->request->get('btCandleConfirm', 1), [
+                        'class' => 'form-check-input',
+                        'id' => 'btCandleConfirmCheck',
+                        'value' => '1',
+                        'uncheck' => '0',
+                    ]) ?>
+                    <label class="form-check-label small" for="btCandleConfirmCheck">Bullish Bar</label>
+                </div>
+            </div>
+            <div class="col-md-4 col-12 d-flex gap-2">
                 <?= Html::submitButton(\app\helpers\SvgHelper::icon('arrow-repeat') . ' Analisis', ['class' => 'btn btn-sm btn-primary flex-grow-1 shadow-sm']) ?>
                 <?= Html::submitButton(\app\helpers\SvgHelper::icon('graph-up-arrow') . ' Jalankan Backtest', [
                     'name' => 'backtest', 
