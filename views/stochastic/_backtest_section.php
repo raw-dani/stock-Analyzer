@@ -323,3 +323,4 @@ $trades = $res['recentTrades'] ?? [];
         <?php endif; ?>
     </div>
 </div>
+

@@ -554,3 +554,4 @@ final class StochasticBacktestService
         return $out;
     }
 }
+
