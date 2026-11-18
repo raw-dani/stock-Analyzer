@@ -375,11 +375,34 @@ final class ScannerController extends Controller
      */
     public function actionSellSignals(): string
     {
-        @ini_set('max_execution_time', '180');
-        @set_time_limit(180);
+        @ini_set('memory_limit', '512M');
+        @ini_set('max_execution_time', '300');
+        @set_time_limit(300);
 
         $timeframe = (int) Yii::$app->request->get('timeframe', 24);
         $minSellCount = (int) Yii::$app->request->get('min_sell', 1);
+
+        // Smart Version Caching untuk scanner sinyal jual
+        $cache = Yii::$app->cache;
+        $dataVersion = \app\services\ScannerCacheService::getDataVersion($timeframe);
+        $cacheKey = 'sell_signals_' . md5(json_encode([
+            'ver' => $dataVersion,
+            'tf' => $timeframe,
+            'min' => $minSellCount,
+        ]));
+
+        if ($cache && !Yii::$app->request->get('nocache')) {
+            $cached = $cache->get($cacheKey);
+            if (is_array($cached)) {
+                return $this->render('sell-signals', [
+                    'results'      => $cached['results'],
+                    'timeframe'    => $timeframe,
+                    'minSellCount' => $minSellCount,
+                    'totalScanned' => $cached['totalScanned'],
+                    'fromCache'    => true,
+                ]);
+            }
+        }
 
         $stocks = Stock::find()->where(['active' => true])->orderBy('symbol')->all();
 
@@ -413,11 +436,21 @@ final class ScannerController extends Controller
         // Urutkan saham berdasarkan jumlah sinyal jual terbanyak
         usort($results, fn($a, $b) => $b['sell_count'] <=> $a['sell_count']);
 
+        $totalScanned = count($stocks);
+
+        if ($cache) {
+            $cache->set($cacheKey, [
+                'results' => $results,
+                'totalScanned' => $totalScanned,
+            ], \app\services\ScannerCacheService::DEFAULT_TTL);
+        }
+
         return $this->render('sell-signals', [
             'results'      => $results,
             'timeframe'    => $timeframe,
             'minSellCount' => $minSellCount,
-            'totalScanned' => count($stocks),
+            'totalScanned' => $totalScanned,
+            'fromCache'    => false,
         ]);
     }
 }
