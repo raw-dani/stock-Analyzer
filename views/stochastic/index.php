@@ -169,6 +169,12 @@ $badgeAction = [
             ) ?>
 
             <?= Html::a(
+                \app\helpers\SvgHelper::icon('lightning-charge-fill') . ' ⚡ Quick +3% (' . ($stats['quick_3pct_count'] ?? 0) . ')',
+                $filterWith(['strategy' => 'quick_3pct', 'timeframe' => 1]),
+                ['class' => 'preset-pill btn btn-sm rounded-pill px-3 py-1 ' . (($params['strategy'] ?? '') === 'quick_3pct' ? 'active btn-warning text-dark border-warning shadow-sm fw-bold' : 'btn-outline-warning text-dark border')]
+            ) ?>
+
+            <?= Html::a(
                 \app\helpers\SvgHelper::icon('check-circle-fill') . ' Semua Sinyal Beli',
                 $filterWith(['strategy' => 'buy_all']),
                 ['class' => 'preset-pill btn btn-sm rounded-pill px-3 py-1 ' . (($params['strategy'] ?? '') === 'buy_all' ? 'active btn-primary text-white border-primary shadow-sm' : 'btn-light text-secondary border')]
@@ -353,6 +359,11 @@ $badgeAction = [
                             <!-- Setup & Sinyal -->
                             <td>
                                 <div class="d-flex align-items-center gap-1 flex-wrap">
+                                    <?php if (!empty($r['is_quick_rebound'])): ?>
+                                        <span class="badge bg-warning text-dark border border-warning shadow-sm" style="font-size:0.75rem;" title="Quick Rebound Candidate (TF 1H): Skor <?= $r['quick_rebound_score'] ?? 0 ?>%">
+                                            <?= \app\helpers\SvgHelper::icon('lightning-charge-fill') ?> QUICK +3% (Skor <?= $r['quick_rebound_score'] ?? 0 ?>%)
+                                        </span>
+                                    <?php endif; ?>
                                     <span class="badge bg-<?= Html::encode($r['strategy_badge']) ?>-subtle text-<?= Html::encode($r['strategy_badge']) ?>-emphasis border border-<?= Html::encode($r['strategy_badge']) ?>-subtle fw-semibold" style="font-size:0.75rem;">
                                         <?= Html::encode($r['strategy_name']) ?>
                                     </span>

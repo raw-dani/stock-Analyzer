@@ -70,6 +70,7 @@ final class StochasticService
     {
         return [
             'all' => 'Semua Saham & Kondisi',
+            'quick_3pct' => '⚡ Quick +3% Rebound (TF 1H)',
             'buy_all' => 'Semua Sinyal Beli (Buy Signals)',
             'shakeout_low' => '🛡️ Shakeout Low (False Breakdown & Reclaim)',
             'golden_cross_oversold' => '🚀 Golden Cross di Oversold (< 20)',
@@ -265,6 +266,17 @@ final class StochasticService
         // ATR 14
         $atr = $this->calculateAtr($candles, 14);
 
+        // Fitur Khusus Timeframe 1H: Quick Rebound (+3% Target Cepat)
+        $is1H = ($timeframe === self::TIMEFRAME_1H);
+        $atrPct = $currClose > 0 ? round(($atr / $currClose) * 100, 2) : 0.0;
+        $quickTargetPrice = round($currClose * 1.03, 2);
+        $quickTightSl = round($currClose * 0.988, 2); // SL ketat -1.2%
+
+        // Cari swing high resistance 20 bar terakhir
+        $highSlice20 = array_map(fn ($c) => (float) $c['high'], array_slice($candles, -20));
+        $swingHigh20 = !empty($highSlice20) ? max($highSlice20) : $currClose * 1.05;
+        $roomToResistancePct = $currClose > 0 ? round((($swingHigh20 - $currClose) / $currClose) * 100, 2) : 0.0;
+
         // Deteksi Divergence
         $divergence = $this->detectDivergence($closes, $kSeries, 30);
 
@@ -293,6 +305,27 @@ final class StochasticService
             $signalData['signal'],
             $shakeoutData
         );
+
+        // Evaluasi kelayakan Quick Rebound (+3% Cepat) di TF 1H
+        $isQuickBullish = in_array($signalData['action'], [self::ACTION_STRONG_BUY, self::ACTION_BUY], true)
+            || !empty($shakeoutData['detected'])
+            || $divergence['type'] === 'BULLISH_REGULAR'
+            || ($currK <= 30.0 && $currK > $prevK);
+
+        $isQuickRebound = false;
+        $quickReboundScore = 0;
+        if ($is1H && $isQuickBullish) {
+            $score = 60;
+            if ($roomToResistancePct >= 3.0) $score += 15;
+            if ($rvol >= 1.2) $score += 10;
+            if ($currClose >= $currOpen) $score += 10;
+            if (!empty($shakeoutData['detected']) || $divergence['type'] === 'BULLISH_REGULAR') $score += 10;
+            $quickReboundScore = min(99, $score);
+
+            if ($quickReboundScore >= 75 && $roomToResistancePct >= 2.5) {
+                $isQuickRebound = true;
+            }
+        }
 
         // Potong array seri untuk chart sesuai lookback agar visual rapi
         $chartCandles = array_slice($candles, -$lookback);
@@ -339,6 +372,14 @@ final class StochasticService
             'dates' => $chartDates,
             'k_series' => $chartK,
             'd_series' => $chartD,
+
+            // Fitur Khusus TF 1H Quick Rebound (+3% Cepat)
+            'is_quick_rebound' => $isQuickRebound,
+            'quick_rebound_score' => $quickReboundScore,
+            'quick_target_price' => $quickTargetPrice,
+            'quick_tight_sl' => $quickTightSl,
+            'room_to_resistance_pct' => $roomToResistancePct,
+            'atr_pct' => $atrPct,
         ];
     }
 
@@ -868,6 +909,7 @@ final class StochasticService
     private function matchesStrategyFilter(array $analysis, string $strategy): bool
     {
         return match ($strategy) {
+            'quick_3pct' => !empty($analysis['is_quick_rebound']),
             'buy_all' => in_array($analysis['action'], [self::ACTION_BUY, self::ACTION_STRONG_BUY], true),
             'shakeout_low' => ($analysis['signal'] === self::SIGNAL_SHAKEOUT_LOW || (!empty($analysis['shakeout_low']['detected']))),
             'golden_cross_oversold' => $analysis['signal'] === self::SIGNAL_GOLDEN_CROSS_OVERSOLD,

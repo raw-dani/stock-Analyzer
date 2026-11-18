@@ -62,6 +62,7 @@ final class StochasticController extends Controller
         $sort = $params['sort'];
         usort($results, function ($a, $b) use ($sort) {
             return match ($sort) {
+                'quick_score' => ($b['quick_rebound_score'] ?? 0) <=> ($a['quick_rebound_score'] ?? 0),
                 'rr_desc' => ($b['risk_reward_ratio'] ?? 0) <=> ($a['risk_reward_ratio'] ?? 0),
                 'k_asc' => ($a['curr_k'] ?? 0) <=> ($b['curr_k'] ?? 0),
                 'k_desc' => ($b['curr_k'] ?? 0) <=> ($a['curr_k'] ?? 0),
@@ -76,6 +77,7 @@ final class StochasticController extends Controller
         // Hitung statistik ringkasan
         $stats = [
             'total_scanned' => count($results),
+            'quick_3pct_count' => 0,
             'shakeout_low_count' => 0,
             'golden_cross_oversold' => 0,
             'bullish_divergence' => 0,
@@ -86,6 +88,9 @@ final class StochasticController extends Controller
         ];
 
         foreach ($results as $r) {
+            if (!empty($r['is_quick_rebound'])) {
+                $stats['quick_3pct_count']++;
+            }
             if (in_array($r['action'], [StochasticService::ACTION_STRONG_BUY, StochasticService::ACTION_BUY], true)) {
                 $stats['total_buy']++;
             }
@@ -248,11 +253,39 @@ final class StochasticController extends Controller
             throw new NotFoundHttpException("Data historis tidak mencukupi untuk menganalisis {$symbol}.");
         }
 
+        // Backtesting Engine Execution
+        $runBacktest = (bool) $request->get('backtest', false);
+        $backtestResult = null;
+        if ($runBacktest) {
+            $btLookback = (int) $request->get('btLookback', 300);
+            $btFeePct = (float) $request->get('btFee', 0.30);
+            $btSlippage = (float) $request->get('btSlippage', 0.10);
+            $btTrendFilter = (bool) $request->get('btTrendFilter', 1);
+            $btCandleConfirm = (bool) $request->get('btCandleConfirm', 1);
+            $btTpModel = (string) $request->get('btTpModel', $params['timeframe'] === StochasticService::TIMEFRAME_1D ? 'standard' : 'adaptive');
+
+            $backtestService = new \app\services\StochasticBacktestService();
+            $backtestResult = $backtestService->runStockBacktest($stock, [
+                'timeframe' => $params['timeframe'],
+                'periodK' => $params['periodK'],
+                'smoothK' => $params['smoothK'],
+                'periodD' => $params['periodD'],
+                'lookbackCandles' => $btLookback,
+                'feePct' => $btFeePct,
+                'slippagePct' => $btSlippage,
+                'trendFilter' => $btTrendFilter,
+                'candleConfirmation' => $btCandleConfirm,
+                'tpModel' => $btTpModel,
+            ]);
+        }
+
         return $this->render('detail', [
             'stock' => $stock,
             'analysis' => $analysis,
             'params' => $params,
             'timeframes' => StochasticService::getTimeframes(),
+            'runBacktest' => $runBacktest,
+            'backtestResult' => $backtestResult,
         ]);
     }
 }

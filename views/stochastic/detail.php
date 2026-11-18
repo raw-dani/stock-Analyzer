@@ -7,6 +7,8 @@ declare(strict_types=1);
 /** @var array $analysis */
 /** @var array $params */
 /** @var array $timeframes */
+/** @var bool|null $runBacktest */
+/** @var array|null $backtestResult */
 
 use app\assets\ChartAsset;
 use app\services\StochasticService;
@@ -21,6 +23,7 @@ $this->params['breadcrumbs'][] = $stock->symbol;
 
 $currentTimeframe = (int) ($params['timeframe'] ?? StochasticService::TIMEFRAME_1D);
 $action = $analysis['action'];
+$runBacktest = $runBacktest ?? false;
 $actionBadgeColor = match ($action) {
     StochasticService::ACTION_STRONG_BUY, StochasticService::ACTION_BUY => 'success',
     StochasticService::ACTION_TAKE_PROFIT => 'warning text-dark',
@@ -129,6 +132,20 @@ $chartId = 'stochastic-echarts-container';
         </div>
 
         <?= Html::a(
+            \app\helpers\SvgHelper::icon('graph-up-arrow') . ' Uji Backtest',
+            [
+                '/stochastic/detail',
+                'symbol' => $stock->symbol,
+                'timeframe' => $currentTimeframe,
+                'backtest' => 1,
+            ],
+            [
+                'class' => 'btn btn-sm ' . ($runBacktest ? 'btn-success fw-bold shadow-sm' : 'btn-outline-primary shadow-sm'),
+                'title' => 'Jalankan Validasi & Backtesting historis Stochastic per kode saham ini',
+            ]
+        ) ?>
+
+        <?= Html::a(
             \app\helpers\SvgHelper::icon('arrow-left') . ' Kembali ke Scanner',
             ['/stochastic/index', 'timeframe' => $currentTimeframe],
             ['class' => 'btn btn-sm btn-outline-secondary shadow-sm']
@@ -155,8 +172,120 @@ $chartId = 'stochastic-echarts-container';
     </div>
 </div>
 
+<!-- Backtesting Section (Jika Diaktifkan) -->
+<?php if ($runBacktest && !empty($backtestResult)): ?>
+    <?= $this->render('_backtest_section', [
+        'backtestResult' => $backtestResult,
+        'stock' => $stock,
+    ]) ?>
+<?php endif; ?>
+
+<!-- Parameter Tuning & Backtest Form -->
+<div class="card border-0 shadow-sm mb-4" id="backtest-form-box">
+    <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center">
+        <strong class="small text-secondary"><?= \app\helpers\SvgHelper::icon('sliders') ?> Parameter Analisis &amp; Pengujian Historis</strong>
+        <span class="badge bg-light text-muted border">Saham: <?= Html::encode($stock->symbol) ?></span>
+    </div>
+    <div class="card-body p-3">
+        <?= Html::beginForm(['/stochastic/detail'], 'get', ['class' => 'row g-2 align-items-end']) ?>
+            <?= Html::hiddenInput('symbol', $stock->symbol) ?>
+            <div class="col-md-2 col-6">
+                <label class="form-label small fw-bold">Timeframe</label>
+                <?= Html::dropDownList('timeframe', $currentTimeframe, $timeframes, ['class' => 'form-select form-select-sm']) ?>
+            </div>
+            <div class="col-md-2 col-6">
+                <label class="form-label small fw-bold">Period %K, Smooth, %D</label>
+                <div class="input-group input-group-sm">
+                    <?= Html::input('number', 'periodK', $params['periodK'] ?? 14, ['class' => 'form-control', 'min' => 2, 'max' => 50, 'placeholder' => 'K']) ?>
+                    <?= Html::input('number', 'smoothK', $params['smoothK'] ?? 3, ['class' => 'form-control', 'min' => 1, 'max' => 10, 'placeholder' => 'SK']) ?>
+                    <?= Html::input('number', 'periodD', $params['periodD'] ?? 3, ['class' => 'form-control', 'min' => 1, 'max' => 10, 'placeholder' => 'D']) ?>
+                </div>
+            </div>
+            <div class="col-md-2 col-6">
+                <label class="form-label small fw-bold">Histori Backtest</label>
+                <?= Html::dropDownList('btLookback', Yii::$app->request->get('btLookback', 300), [
+                    150 => '150 Bar',
+                    300 => '300 Bar (Rekomendasi)',
+                    500 => '500 Bar',
+                ], ['class' => 'form-select form-select-sm']) ?>
+            </div>
+            <div class="col-md-2 col-6">
+                <label class="form-label small fw-bold">Target Profit Model</label>
+                <?= Html::dropDownList('btTpModel', Yii::$app->request->get('btTpModel', $currentTimeframe === 24 ? 'standard' : 'adaptive'), [
+                    'adaptive' => 'Adaptive (1.2R + BEP)',
+                    'standard' => 'Standard (1.6R)',
+                ], ['class' => 'form-select form-select-sm']) ?>
+            </div>
+            <div class="col-md-2 col-6">
+                <label class="form-label small fw-bold">Filter Proteksi</label>
+                <div class="form-check form-switch pt-1">
+                    <?= Html::checkbox('btTrendFilter', (bool) Yii::$app->request->get('btTrendFilter', 1), [
+                        'class' => 'form-check-input',
+                        'id' => 'btTrendFilterCheck',
+                        'value' => '1',
+                        'uncheck' => '0',
+                    ]) ?>
+                    <label class="form-check-label small" for="btTrendFilterCheck">Trend Guard</label>
+                </div>
+            </div>
+            <div class="col-md-2 col-6">
+                <label class="form-label small fw-bold">Konfirmasi Candle</label>
+                <div class="form-check form-switch pt-1">
+                    <?= Html::checkbox('btCandleConfirm', (bool) Yii::$app->request->get('btCandleConfirm', 1), [
+                        'class' => 'form-check-input',
+                        'id' => 'btCandleConfirmCheck',
+                        'value' => '1',
+                        'uncheck' => '0',
+                    ]) ?>
+                    <label class="form-check-label small" for="btCandleConfirmCheck">Bullish Bar</label>
+                </div>
+            </div>
+            <div class="col-12 text-end d-flex justify-content-end gap-2 mt-3">
+                <?= Html::submitButton(\app\helpers\SvgHelper::icon('arrow-repeat') . ' Update Analisis', ['class' => 'btn btn-sm btn-outline-secondary px-3 shadow-sm']) ?>
+                <?= Html::submitButton(\app\helpers\SvgHelper::icon('graph-up-arrow') . ' Jalankan Backtest', [
+                    'name' => 'backtest',
+                    'value' => '1',
+                    'class' => 'btn btn-sm btn-success fw-bold px-3 shadow-sm'
+                ]) ?>
+            </div>
+        <?= Html::endForm() ?>
+    </div>
+</div>
+
 <!-- Highlight Cards: Entry, Stop Loss, Target TP1, Target TP2, R:R -->
 <div class="row g-3 mb-4">
+    <!-- Quick +3% Rebound Card jika terdeteksi di TF 1H -->
+    <?php if (!empty($analysis['is_quick_rebound'])): ?>
+        <div class="col-12">
+            <div class="card border-0 shadow-sm rounded-3 bg-warning bg-opacity-10 border border-warning">
+                <div class="card-body p-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="fs-4 text-warning"><?= \app\helpers\SvgHelper::icon('lightning-charge-fill') ?></span>
+                        <div>
+                            <div class="fw-bold text-dark fs-6">
+                                Terdeteksi Kandidat Quick +3% Rebound (TF 1H)!
+                                <span class="badge bg-warning text-dark border border-warning ms-1">Skor: <?= $analysis['quick_rebound_score'] ?? 0 ?>%</span>
+                            </div>
+                            <small class="text-muted">
+                                Setup pantulan kilat: ATR 1H <strong><?= $analysis['atr_pct'] ?>%</strong> &bull; Ruang ke resistance terdekat: <strong>+<?= $analysis['room_to_resistance_pct'] ?>%</strong>
+                            </small>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-3">
+                        <div>
+                            <span class="small text-muted d-block text-end">Quick Target (+3.0%)</span>
+                            <span class="fw-bold text-success font-monospace fs-5">$<?= number_format((float)($analysis['quick_target_price'] ?? 0), 2) ?></span>
+                        </div>
+                        <div>
+                            <span class="small text-muted d-block text-end">Cut Loss Ketat (-1.2%)</span>
+                            <span class="fw-bold text-danger font-monospace fs-5">$<?= number_format((float)($analysis['quick_tight_sl'] ?? 0), 2) ?></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
+
     <!-- Area Beli (Entry) Card -->
     <div class="col-6 col-md-4 col-lg">
         <div class="card border-0 shadow-sm h-100 rounded-3" style="border-left: 4px solid var(--brand-primary) !important;">
