@@ -221,11 +221,15 @@ foreach ($generations as $g) {
                 <div class="card border-0 shadow-sm rounded-4 h-100" style="border-left: 4px solid #10b981 !important;">
                     <div class="card-body p-3">
                         <span class="small text-muted fw-bold text-uppercase d-block mb-1">Out-of-Sample Win-Rate</span>
-                        <h3 class="fw-bold text-success mb-0 font-monospace">
-                            <?php if ($latestRun->oos_win_rate !== null && $latestRun->total_trades > 0): ?>
-                                <?= number_format((float) $latestRun->oos_win_rate, 1) ?>%
+                        <h3 class="fw-bold mb-0 font-monospace">
+                            <?php if ($latestRun->oos_win_rate !== null && (float)$latestRun->oos_win_rate > 0): ?>
+                                <span class="<?= (float)$latestRun->oos_win_rate >= 60.0 ? 'text-success' : 'text-primary' ?>">
+                                    <?= number_format((float) $latestRun->oos_win_rate, 1) ?>%
+                                </span>
+                            <?php elseif ($latestRun->oos_win_rate !== null && (float)$latestRun->oos_win_rate == 0.0 && (float)$latestRun->profit_factor > 0 && (float)$latestRun->profit_factor != 1.0): ?>
+                                <span class="text-danger">0.0%</span>
                             <?php else: ?>
-                                <span class="fs-6 text-muted">0 Trade (Periode OOS Singkat)</span>
+                                <span class="fs-6 text-muted">0 Trade di OOS</span>
                             <?php endif; ?>
                         </h3>
                         <small class="text-muted">Akurasi validasi independen</small>
@@ -537,8 +541,16 @@ foreach ($generations as $g) {
                                         <td><span class="badge bg-light text-dark border"><?= Html::encode($strategies[$r->strategy_type] ?? $r->strategy_type) ?></span></td>
                                         <td><span class="badge bg-light text-secondary border"><?= match((int)$r->timeframe) { 1 => '1 Jam (1H)', 4 => '4 Jam (4H)', default => 'Daily (1D)' } ?></span></td>
                                         <td class="text-center small font-monospace"><?= $r->generation_max ?> gen</td>
-                                        <td class="text-center font-monospace fw-bold <?= ((float)$r->oos_win_rate >= 60.0 ? 'text-success' : 'text-danger') ?>">
-                                            <?= $r->oos_win_rate !== null ? number_format((float)$r->oos_win_rate, 1) . '%' : '-' ?>
+                                        <td class="text-center font-monospace">
+                                            <?php if ($r->oos_win_rate !== null && (float)$r->oos_win_rate > 0): ?>
+                                                <span class="fw-bold <?= ((float)$r->oos_win_rate >= 60.0 ? 'text-success' : 'text-primary') ?>">
+                                                    <?= number_format((float)$r->oos_win_rate, 1) ?>%
+                                                </span>
+                                            <?php elseif ($r->oos_win_rate !== null && (float)$r->oos_win_rate == 0.0 && (float)$r->profit_factor > 0 && (float)$r->profit_factor != 1.0): ?>
+                                                <span class="text-danger fw-bold">0.0%</span>
+                                            <?php else: ?>
+                                                <span class="badge bg-light text-muted border" style="font-size:0.68rem;" title="Tidak ada sinyal entry pada periode validasi Out-of-Sample">0 Trade (OOS)</span>
+                                            <?php endif; ?>
                                         </td>
                                         <td class="text-center font-monospace text-muted small"><?= $r->is_win_rate !== null ? number_format((float)$r->is_win_rate, 1) . '%' : '-' ?></td>
                                         <td class="text-center font-monospace small"><?= ($r->profit_factor !== null && (float)$r->profit_factor > 0) ? number_format((float)$r->profit_factor, 2) : '1.00' ?></td>

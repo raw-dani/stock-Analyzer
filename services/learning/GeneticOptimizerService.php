@@ -204,6 +204,9 @@ final class GeneticOptimizerService
             'trades' => array_merge($bestInSampleMetrics['trades'] ?? [], $oosMetrics['trades'] ?? []),
         ];
 
+        $oosTradeCount = count($oosMetrics['trades'] ?? []);
+        $isTradeCount = count($bestInSampleMetrics['trades'] ?? []);
+
         // Update record StockLearningRun jika ada runId
         if ($runId !== null) {
             $run = StockLearningRun::findOne($runId);
@@ -211,13 +214,25 @@ final class GeneticOptimizerService
                 $run->status = StockLearningRun::STATUS_COMPLETED;
                 $run->best_params = json_encode($bestChromosome);
                 $run->best_fitness = $bestFitness;
-                $run->best_win_rate = (float) ($oosMetrics['win_rate'] ?? $bestInSampleMetrics['win_rate'] ?? 0.0);
+
+                // Jika OOS memiliki transaksi (>0 trade), gunakan metrik validasi independen OOS
+                // Jika OOS tidak memiliki transaksi (0 trade), set oos_win_rate = null (bukan 0.0%) agar tidak menyesatkan
+                if ($oosTradeCount > 0) {
+                    $run->oos_win_rate = (float) $oosMetrics['win_rate'];
+                    $run->best_win_rate = (float) $oosMetrics['win_rate'];
+                    $run->profit_factor = (float) $oosMetrics['profit_factor'];
+                    $run->max_drawdown = (float) $oosMetrics['max_drawdown'];
+                    $run->sharpe_ratio = (float) $oosMetrics['sharpe_ratio'];
+                } else {
+                    $run->oos_win_rate = null;
+                    $run->best_win_rate = (float) ($bestInSampleMetrics['win_rate'] ?? 0.0);
+                    $run->profit_factor = (float) ($bestInSampleMetrics['profit_factor'] ?? 1.0);
+                    $run->max_drawdown = (float) ($bestInSampleMetrics['max_drawdown'] ?? 0.0);
+                    $run->sharpe_ratio = (float) ($bestInSampleMetrics['sharpe_ratio'] ?? 0.0);
+                }
+
                 $run->is_win_rate = (float) ($bestInSampleMetrics['win_rate'] ?? 0.0);
-                $run->oos_win_rate = (float) ($oosMetrics['win_rate'] ?? 0.0);
-                $run->total_trades = (int) (($bestInSampleMetrics['total_trades'] ?? 0) + ($oosMetrics['total_trades'] ?? 0));
-                $run->profit_factor = (float) ($oosMetrics['profit_factor'] ?? $bestInSampleMetrics['profit_factor'] ?? 1.0);
-                $run->max_drawdown = (float) ($oosMetrics['max_drawdown'] ?? $bestInSampleMetrics['max_drawdown'] ?? 0.0);
-                $run->sharpe_ratio = (float) ($oosMetrics['sharpe_ratio'] ?? $bestInSampleMetrics['sharpe_ratio'] ?? 0.0);
+                $run->total_trades = $isTradeCount + $oosTradeCount;
                 $run->total_evals = $totalEvals;
                 $run->runtime_seconds = $runtime;
                 $run->save(false);

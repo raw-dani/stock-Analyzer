@@ -297,13 +297,15 @@ $viewMode = $viewMode ?? 'grouped';
                                                 <?= match ((int)$best->timeframe) { 1 => '1 Jam (1H)', 4 => '4 Jam (4H)', default => 'Daily (1D)' } ?>
                                             </span>
                                         </td>
-                                        <td class="text-center">
-                                            <?php if ($best->oos_win_rate !== null && (int)$best->total_trades > 0): ?>
-                                                <span class="font-monospace fs-6 <?= $oosBadgeClass ?>">
+                                        <td class="text-center font-monospace">
+                                            <?php if ($best->oos_win_rate !== null && (float)$best->oos_win_rate > 0): ?>
+                                                <span class="fs-6 <?= $oosBadgeClass ?>">
                                                     <?= number_format((float) $best->oos_win_rate, 1) ?>%
                                                 </span>
+                                            <?php elseif ($best->oos_win_rate !== null && (float)$best->oos_win_rate == 0.0 && (float)$best->profit_factor > 0 && (float)$best->profit_factor != 1.0): ?>
+                                                <span class="text-danger fs-6">0.0%</span>
                                             <?php else: ?>
-                                                <span class="badge bg-light text-muted border" style="font-size:0.68rem;">0 Trade</span>
+                                                <span class="badge bg-light text-muted border" style="font-size:0.68rem;" title="Tidak ada sinyal entry pada periode validasi Out-of-Sample">0 Trade (OOS)</span>
                                             <?php endif; ?>
                                         </td>
                                         <td class="text-center font-monospace text-muted small">
@@ -386,13 +388,15 @@ $viewMode = $viewMode ?? 'grouped';
                                                 <?= match ((int)$r->timeframe) { 1 => '1 Jam (1H)', 4 => '4 Jam (4H)', default => 'Daily (1D)' } ?>
                                             </span>
                                         </td>
-                                        <td class="text-center">
-                                            <?php if ($r->oos_win_rate !== null && (int)$r->total_trades > 0): ?>
-                                                <span class="font-monospace fs-6 <?= $oosBadgeClass ?>">
+                                        <td class="text-center font-monospace">
+                                            <?php if ($r->oos_win_rate !== null && (float)$r->oos_win_rate > 0): ?>
+                                                <span class="fs-6 <?= $oosBadgeClass ?>">
                                                     <?= number_format((float) $r->oos_win_rate, 1) ?>%
                                                 </span>
+                                            <?php elseif ($r->oos_win_rate !== null && (float)$r->oos_win_rate == 0.0 && (float)$r->profit_factor > 0 && (float)$r->profit_factor != 1.0): ?>
+                                                <span class="text-danger fs-6">0.0%</span>
                                             <?php else: ?>
-                                                <span class="badge bg-light text-muted border" style="font-size:0.68rem;">0 Trade</span>
+                                                <span class="badge bg-light text-muted border" style="font-size:0.68rem;" title="Tidak ada sinyal entry pada periode validasi Out-of-Sample">0 Trade (OOS)</span>
                                             <?php endif; ?>
                                         </td>
                                         <td class="text-center font-monospace text-muted small">

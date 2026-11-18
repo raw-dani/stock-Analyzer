@@ -103,8 +103,16 @@ final class FitnessEvaluatorService
                     continue;
                 }
 
-                // Oversold Bounce: RSI sebelumnya <= oversold, sekarang memotong ke atas
-                $rsiTrigger = ($rsi[$i - 1] <= $oversold && $rsi[$i] > $rsi[$i - 1]);
+                // Sinyal 1 - Reversal: Memantul dari area oversold
+                $reversalTrigger = ($rsi[$i - 1] <= $oversold && $rsi[$i] > $rsi[$i - 1]);
+
+                // Sinyal 2 - Momentum Pullback: Memantul di zona support saat tren naik
+                $momentumTrigger = ($rsi[$i - 1] <= ($oversold + 12.0) && $rsi[$i] > $rsi[$i - 1] && isset($maTrend[$i]) && $closes[$i] >= $maTrend[$i]);
+
+                // Sinyal 3 - Centerline Breakout: RSI menembus ke atas level 50 saat tren naik
+                $centerlineTrigger = ($rsi[$i - 1] <= 50.0 && $rsi[$i] > 50.0 && $rsi[$i] <= 60.0 && isset($maTrend[$i]) && $closes[$i] >= $maTrend[$i]);
+
+                $rsiTrigger = $reversalTrigger || $momentumTrigger || $centerlineTrigger;
 
                 // Trend filter: Harga saat ini di atas MA Trend
                 $trendOk = !$trendFilterActive || (isset($maTrend[$i]) && $closes[$i] >= $maTrend[$i]);

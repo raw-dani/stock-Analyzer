@@ -522,11 +522,11 @@ $dailyAdvRatio = $totalDaily > 0 ? round(($gainersCount / $totalDaily) * 100, 1)
                         <td>
                             <span class="badge bg-light text-secondary border"><?= $tfLabel ?></span>
                         </td>
-                        <td class="text-center">
-                            <?php if ($model->oos_win_rate !== null && (int)$model->total_trades > 0): ?>
-                                <span class="font-monospace fs-6 <?= $wrBadgeClass ?>"><?= number_format($oosWr, 1) ?>%</span>
+                        <td class="text-center font-monospace">
+                            <?php if ($model->oos_win_rate !== null && (float)$model->oos_win_rate > 0): ?>
+                                <span class="fs-6 <?= $wrBadgeClass ?>"><?= number_format($oosWr, 1) ?>%</span>
                             <?php else: ?>
-                                <span class="badge bg-light text-muted border" style="font-size:0.7rem;">0 Trade</span>
+                                <span class="badge bg-light text-muted border" style="font-size:0.7rem;">0 Trade (OOS)</span>
                             <?php endif; ?>
                         </td>
                         <td class="text-center font-monospace text-muted small">
