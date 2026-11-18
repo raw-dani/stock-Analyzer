@@ -12,6 +12,7 @@
 /** @var array $dailyStats */
 /** @var array $portfolioData */
 /** @var array $confluencePicks */
+/** @var app\models\StockLearningRun[] $topAiModels */
 /** @var int $totalTrackedStocks */
 /** @var app\models\Stock[]|null $availableStocks */
 
@@ -48,13 +49,16 @@ $dailyAdvRatio = $totalDaily > 0 ? round(($gainersCount / $totalDaily) * 100, 1)
                     </div>
                 </div>
                 <div class="d-flex gap-2 flex-wrap">
+                    <a href="<?= Url::to(['/stock-learning/index']) ?>" class="btn btn-primary btn-sm px-3 shadow-sm fw-bold rounded-pill">
+                        <i class="bi bi-cpu me-1"></i> AI Learning Engine
+                    </a>
                     <a href="<?= Url::to(['/strategy-confluence/index']) ?>" class="btn btn-outline-primary btn-sm px-3 shadow-sm fw-semibold rounded-pill">
                         <?= \app\helpers\SvgHelper::icon('bullseye', ['class' => 'me-1']) ?> Confluence PRO
                     </a>
                     <a href="<?= Url::to(['/portfolio/index']) ?>" class="btn btn-success btn-sm px-3 shadow-sm fw-bold rounded-pill">
                         <?= \app\helpers\SvgHelper::icon('briefcase-fill', ['class' => 'me-1']) ?> Portofolio
                     </a>
-                    <a href="<?= Url::to(['/scanner/index']) ?>" class="btn btn-primary btn-sm px-3 shadow-sm fw-semibold rounded-pill">
+                    <a href="<?= Url::to(['/scanner/index']) ?>" class="btn btn-outline-secondary btn-sm px-3 shadow-sm fw-semibold rounded-pill">
                         <?= \app\helpers\SvgHelper::icon('search', ['class' => 'me-1']) ?> Volume Scanner
                     </a>
                 </div>
@@ -108,7 +112,7 @@ $dailyAdvRatio = $totalDaily > 0 ? round(($gainersCount / $totalDaily) * 100, 1)
                     </div>
                     <h5 class="fw-bold mb-1 text-dark">Cari Kode Saham &amp; Cek "Waktunya Beli atau Tidak"</h5>
                     <p class="small text-muted mb-0">
-                        Masukkan simbol saham untuk melihat sintesis gabungan: Confluence, Moving Average, RSI, Bollinger Bands, Stochastic, Fibonacci, Pola Reversal, serta jalankan scanner instan.
+                        Masukkan simbol saham untuk melihat sintesis gabungan: AI Learning Engine, Confluence, Moving Average, RSI, Bollinger Bands, Stochastic, Fibonacci, Pola Reversal, serta jalankan scanner instan.
                     </p>
                 </div>
                 <div class="col-lg-7">
@@ -142,6 +146,9 @@ $dailyAdvRatio = $totalDaily > 0 ? round(($gainersCount / $totalDaily) * 100, 1)
                                 <?= $popSymbol ?>
                             </a>
                         <?php endforeach; ?>
+                        <a href="<?= Url::to(['/stock-learning/index']) ?>" class="badge bg-primary bg-opacity-10 text-primary text-decoration-none border border-primary border-opacity-25 px-2 py-1 small ms-auto">
+                            <i class="bi bi-cpu me-1"></i>Buka AI Learning Engine &raquo;
+                        </a>
                     </div>
                 </div>
             </div>
@@ -150,42 +157,65 @@ $dailyAdvRatio = $totalDaily > 0 ? round(($gainersCount / $totalDaily) * 100, 1)
 
     <!-- Quick Navigation Hub to All Available Features in the App -->
     <div class="row g-2 mb-4">
-        <div class="col-6 col-md-4 col-xl-2">
+        <!-- 1. AI Learning Engine -->
+        <div class="col-6 col-md-3 col-xl-3">
+            <a href="<?= Url::to(['/stock-learning/index']) ?>" class="card text-decoration-none border-0 shadow-sm bg-white h-100 hover-card p-3 text-center rounded-3 position-relative" style="border-top: 3px solid #0284c7 !important;">
+                <span class="position-absolute top-0 end-0 badge bg-primary text-white m-2" style="font-size: 0.65rem;">AI OPTIMIZER</span>
+                <div class="text-primary mb-1" style="font-size: 1.4rem;"><i class="bi bi-cpu"></i></div>
+                <div class="fw-bold text-dark small">AI Learning Engine</div>
+                <div class="text-muted" style="font-size: 0.72rem;">Algoritma Genetika & WFO</div>
+            </a>
+        </div>
+        <!-- 2. Portofolio & DCA -->
+        <div class="col-6 col-md-3 col-xl-3">
             <a href="<?= Url::to(['/portfolio/index']) ?>" class="card text-decoration-none border-0 shadow-sm bg-white h-100 hover-card p-3 text-center rounded-3">
                 <div class="text-success mb-1" style="font-size: 1.4rem;"><?= \app\helpers\SvgHelper::icon('wallet2') ?></div>
                 <div class="fw-bold text-dark small">Portofolio & DCA</div>
                 <div class="text-muted" style="font-size: 0.72rem;">Target Profit & Avg Down</div>
             </a>
         </div>
-        <div class="col-6 col-md-4 col-xl-2">
+        <!-- 3. Confluence PRO -->
+        <div class="col-6 col-md-3 col-xl-3">
             <a href="<?= Url::to(['/strategy-confluence/index']) ?>" class="card text-decoration-none border-0 shadow-sm bg-white h-100 hover-card p-3 text-center rounded-3">
                 <div class="text-primary mb-1" style="font-size: 1.4rem;"><?= \app\helpers\SvgHelper::icon('diagram-3-fill') ?></div>
                 <div class="fw-bold text-dark small">Confluence PRO</div>
                 <div class="text-muted" style="font-size: 0.72rem;">MA + RSI + MACD + Fibo</div>
             </a>
         </div>
-        <div class="col-6 col-md-4 col-xl-2">
+        <!-- 4. Stochastic Rebound -->
+        <div class="col-6 col-md-3 col-xl-3">
+            <a href="<?= Url::to(['/stochastic/index']) ?>" class="card text-decoration-none border-0 shadow-sm bg-white h-100 hover-card p-3 text-center rounded-3">
+                <div class="text-info mb-1" style="font-size: 1.4rem;"><i class="bi bi-lightning-charge-fill"></i></div>
+                <div class="fw-bold text-dark small">Stochastic Strategy</div>
+                <div class="text-muted" style="font-size: 0.72rem;">Quick +3% Rebound</div>
+            </a>
+        </div>
+        <!-- 5. Double Bottom -->
+        <div class="col-6 col-md-3 col-xl-3">
             <a href="<?= Url::to(['/double-bottom/index']) ?>" class="card text-decoration-none border-0 shadow-sm bg-white h-100 hover-card p-3 text-center rounded-3">
                 <div class="text-cyan mb-1" style="font-size: 1.4rem;"><?= \app\helpers\SvgHelper::icon('graph-down') ?></div>
                 <div class="fw-bold text-dark small">Double Bottom</div>
                 <div class="text-muted" style="font-size: 0.72rem;">W-Formation Reversal</div>
             </a>
         </div>
-        <div class="col-6 col-md-4 col-xl-2">
+        <!-- 6. Triple Bottom -->
+        <div class="col-6 col-md-3 col-xl-3">
             <a href="<?= Url::to(['/triple-bottom/index']) ?>" class="card text-decoration-none border-0 shadow-sm bg-white h-100 hover-card p-3 text-center rounded-3">
                 <div class="text-warning mb-1" style="font-size: 1.4rem;"><?= \app\helpers\SvgHelper::icon('water') ?></div>
                 <div class="fw-bold text-dark small">Triple Bottom</div>
                 <div class="text-muted" style="font-size: 0.72rem;">Kuat Menahan Support</div>
             </a>
         </div>
-        <div class="col-6 col-md-4 col-xl-2">
+        <!-- 7. RSI & Momentum -->
+        <div class="col-6 col-md-3 col-xl-3">
             <a href="<?= Url::to(['/rsi-double-bottom/index']) ?>" class="card text-decoration-none border-0 shadow-sm bg-white h-100 hover-card p-3 text-center rounded-3">
                 <div class="text-danger mb-1" style="font-size: 1.4rem;"><?= \app\helpers\SvgHelper::icon('activity') ?></div>
                 <div class="fw-bold text-dark small">RSI & Momentum</div>
                 <div class="text-muted" style="font-size: 0.72rem;">Oversold & Divergensi</div>
             </a>
         </div>
-        <div class="col-6 col-md-4 col-xl-2">
+        <!-- 8. Candlestick Scanner -->
+        <div class="col-6 col-md-3 col-xl-3">
             <a href="<?= Url::to(['/candlestick/index']) ?>" class="card text-decoration-none border-0 shadow-sm bg-white h-100 hover-card p-3 text-center rounded-3">
                 <div class="text-secondary mb-1" style="font-size: 1.4rem;"><?= \app\helpers\SvgHelper::icon('bar-chart-steps') ?></div>
                 <div class="fw-bold text-dark small">Candlestick Scanner</div>
@@ -426,6 +456,97 @@ $dailyAdvRatio = $totalDaily > 0 ? round(($gainersCount / $totalDaily) * 100, 1)
                     </tbody>
                 </table>
             </div>
+        </div>
+    </div>
+    <?php endif; ?>
+
+    <!-- 🤖 AI Learning Engine — Model Adaptif Terlatih Paling Handal -->
+    <?php if (!empty($topAiModels)): ?>
+    <div class="table-card-unified mb-4 border-0 shadow-sm rounded-4 overflow-hidden" style="border-left: 4px solid #0284c7 !important;">
+        <div class="table-card-header d-flex flex-wrap justify-content-between align-items-center gap-2 bg-white py-3 px-3 border-bottom">
+            <div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-primary bg-opacity-10 text-primary p-2 rounded-2"><i class="bi bi-cpu fs-6"></i></span>
+                    <h5 class="fw-bold mb-0 text-dark">
+                        Model Trading Adaptif AI (Stock Learning Engine)
+                    </h5>
+                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25">AI Genetic Optimizer</span>
+                </div>
+                <span class="text-muted small ms-1">Hasil optimasi algoritma genetika dengan validasi independen Walk-Forward (Anti-Overfitting)</span>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="<?= Url::to(['/stock-learning/index']) ?>" class="btn btn-outline-primary btn-sm px-3 fw-bold rounded-pill shadow-xs">
+                    Buka Stock Learning Engine &raquo;
+                </a>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light small text-muted text-uppercase">
+                    <tr>
+                        <th class="ps-3">Saham</th>
+                        <th>Strategi Basis</th>
+                        <th>Timeframe</th>
+                        <th class="text-center">Out-of-Sample Win Rate</th>
+                        <th class="text-center">In-Sample WR</th>
+                        <th class="text-center">Profit Factor</th>
+                        <th class="text-center">Maks Drawdown</th>
+                        <th class="text-end pe-3">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($topAiModels as $model): ?>
+                    <?php 
+                        $oosWr = (float)($model->oos_win_rate ?? 0);
+                        $wrBadgeClass = ($oosWr >= 60.0) ? 'text-success fw-bold' : (($oosWr >= 50.0) ? 'text-primary' : 'text-danger');
+                        $stratLabel = match($model->strategy_type) {
+                            'stochastic' => 'Stochastic Oscillator',
+                            'rsi_momentum' => 'RSI Momentum',
+                            'multi_indicator' => 'Multi-Indicator Confluence',
+                            default => $model->strategy_type,
+                        };
+                        $tfLabel = match((int)$model->timeframe) {
+                            1 => '1 Jam (1H)',
+                            4 => '4 Jam (4H)',
+                            default => 'Daily (1D)',
+                        };
+                    ?>
+                    <tr>
+                        <td class="ps-3">
+                            <div class="fw-bold text-dark font-monospace fs-6"><?= Html::encode($model->symbol) ?></div>
+                            <div class="text-muted small text-truncate" style="max-width: 180px;"><?= Html::encode($model->stock->name ?? '') ?></div>
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-dark border"><?= Html::encode($stratLabel) ?></span>
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-secondary border"><?= $tfLabel ?></span>
+                        </td>
+                        <td class="text-center">
+                            <?php if ($model->oos_win_rate !== null && (int)$model->total_trades > 0): ?>
+                                <span class="font-monospace fs-6 <?= $wrBadgeClass ?>"><?= number_format($oosWr, 1) ?>%</span>
+                            <?php else: ?>
+                                <span class="badge bg-light text-muted border" style="font-size:0.7rem;">0 Trade</span>
+                            <?php endif; ?>
+                        </td>
+                        <td class="text-center font-monospace text-muted small">
+                            <?= $model->is_win_rate !== null ? number_format((float)$model->is_win_rate, 1) . '%' : '-' ?>
+                        </td>
+                        <td class="text-center font-monospace small">
+                            <?= ($model->profit_factor !== null && (float)$model->profit_factor > 0) ? number_format((float)$model->profit_factor, 2) : '1.00' ?>
+                        </td>
+                        <td class="text-center font-monospace text-danger small">
+                            <?= ($model->max_drawdown !== null && (float)$model->max_drawdown > 0) ? '-' . number_format((float)$model->max_drawdown, 1) . '%' : '0.0%' ?>
+                        </td>
+                        <td class="text-end pe-3">
+                            <a href="<?= Url::to(['/stock-learning/detail', 'symbol' => $model->symbol]) ?>" class="btn btn-primary btn-sm px-3 shadow-xs fw-semibold">
+                                <i class="bi bi-eye-fill me-1"></i> Buka Model
+                            </a>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
         </div>
     </div>
     <?php endif; ?>

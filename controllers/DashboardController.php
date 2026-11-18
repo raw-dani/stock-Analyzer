@@ -8,6 +8,7 @@ use app\models\DailyPrice;
 use app\models\PortfolioPosition;
 use app\models\Signal;
 use app\models\Stock;
+use app\models\StockLearningRun;
 use app\models\WeeklyAnalysis;
 use app\services\MultiIndicatorStrategyService;
 use Yii;
@@ -110,7 +111,16 @@ final class DashboardController extends Controller
         }
         $data['confluencePicks'] = $confluencePicks;
 
-        // 5. Daftar seluruh saham aktif untuk fitur pencarian & autocomplete instan
+        // 5. Model AI Stock Learning Terbaik (Top Adaptive Models)
+        $learningKey = 'dashboard-top-ai-models-v1';
+        $topAiModels = $cache->get($learningKey);
+        if ($topAiModels === false) {
+            $topAiModels = $this->buildTopAiModels();
+            $cache->set($learningKey, $topAiModels, 300); // 5 menit
+        }
+        $data['topAiModels'] = $topAiModels;
+
+        // 6. Daftar seluruh saham aktif untuk fitur pencarian & autocomplete instan
         $data['availableStocks'] = Stock::find()
             ->select(['id', 'symbol', 'name', 'exchange', 'sector'])
             ->where(['active' => true])
@@ -118,6 +128,57 @@ final class DashboardController extends Controller
             ->all();
 
         return $this->render('index', $data);
+    }
+
+    /**
+     * Ambil model pembelajaran adaptif terbaik dari Stock Learning Engine (Algoritma Genetika).
+     *
+     * @return StockLearningRun[]
+     */
+    private function buildTopAiModels(): array
+    {
+        try {
+            if (Yii::$app->db->getTableSchema('{{%stock_learning_run}}') === null) {
+                return [];
+            }
+
+            $distinctSymbols = StockLearningRun::find()
+                ->select('symbol')
+                ->where(['status' => StockLearningRun::STATUS_COMPLETED])
+                ->distinct()
+                ->column();
+
+            if (empty($distinctSymbols)) {
+                return [];
+            }
+
+            $bestModels = [];
+            foreach ($distinctSymbols as $sym) {
+                $bestRun = StockLearningRun::find()
+                    ->where(['symbol' => $sym, 'status' => StockLearningRun::STATUS_COMPLETED])
+                    ->with('stock')
+                    ->orderBy(['oos_win_rate' => SORT_DESC, 'best_fitness' => SORT_DESC, 'id' => SORT_DESC])
+                    ->one();
+
+                if ($bestRun !== null) {
+                    $bestModels[] = $bestRun;
+                }
+            }
+
+            usort($bestModels, function ($a, $b) {
+                $wrA = (float) ($a->oos_win_rate ?? 0);
+                $wrB = (float) ($b->oos_win_rate ?? 0);
+                if ($wrA !== $wrB) {
+                    return $wrB <=> $wrA;
+                }
+                return ((float)($b->profit_factor ?? 0)) <=> ((float)($a->profit_factor ?? 0));
+            });
+
+            return array_slice($bestModels, 0, 5);
+        } catch (\Throwable $e) {
+            Yii::warning('Failed to fetch top AI models for dashboard: ' . $e->getMessage());
+            return [];
+        }
     }
 
     private function buildAggregate(): array
