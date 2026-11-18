@@ -231,9 +231,13 @@ final class StochasticController extends Controller
     /**
      * Halaman Detail & Interactive Chart Stochastic Trading Plan.
      */
-    public function actionDetail(string $symbol): string
+    public function actionDetail(?string $symbol = null): string
     {
-        $symbol = strtoupper(trim($symbol));
+        $symbol = $symbol ?? Yii::$app->request->get('symbol');
+        if (empty($symbol)) {
+            throw new NotFoundHttpException("Parameter symbol saham diperlukan.");
+        }
+        $symbol = strtoupper(trim((string) $symbol));
         $stock = Stock::findOne(['symbol' => $symbol]);
         if ($stock === null) {
             throw new NotFoundHttpException("Saham {$symbol} tidak ditemukan di database.");
