@@ -45,12 +45,16 @@ class StockLearningController extends Controller
 
         $runs = $query->limit(50)->all();
 
-        // Hitung statistik agregat
+        // Hitung statistik agregat (hanya yang memiliki transaksi trade)
         $totalTrained = StockLearningRun::find()->where(['status' => StockLearningRun::STATUS_COMPLETED])->count();
-        $avgOosWr = StockLearningRun::find()->where(['status' => StockLearningRun::STATUS_COMPLETED])->average('oos_win_rate') ?: 0;
+        $avgOosWr = StockLearningRun::find()
+            ->where(['status' => StockLearningRun::STATUS_COMPLETED])
+            ->andWhere(['>', 'total_trades', 0])
+            ->average('oos_win_rate') ?: 0;
         $highWrCount = StockLearningRun::find()
             ->where(['status' => StockLearningRun::STATUS_COMPLETED])
             ->andWhere(['>=', 'oos_win_rate', 65.0])
+            ->andWhere(['>', 'total_trades', 0])
             ->count();
 
         return $this->render('index', [
@@ -95,6 +99,7 @@ class StockLearningController extends Controller
 
         $generations = [];
         $currentSignal = null;
+        $simulatedTrades = [];
 
         if ($latestRun !== null && $latestRun->status === StockLearningRun::STATUS_COMPLETED) {
             $generations = StockLearningGeneration::find()
@@ -103,19 +108,37 @@ class StockLearningController extends Controller
                 ->asArray()
                 ->all();
 
-            // Hitung sinyal harga terkini menggunakan parameter optimal
+            // Hitung sinyal harga terkini & simulasi trade menggunakan parameter optimal
             $params = $latestRun->getDecodedParams();
             if (!empty($params)) {
                 $validator = new WalkForwardValidator();
-                $candles = $validator->loadAscCandles((int) $stock->id, (int) $latestRun->timeframe, 100);
+                $candles = $validator->loadAscCandles((int) $stock->id, (int) $latestRun->timeframe, 500);
                 if (!empty($candles)) {
+                    $evaluator = new \app\services\learning\FitnessEvaluatorService();
+                    $n = count($candles);
+                    $splitIndex = (int) floor($n * 0.70);
+
+                    // Ambil trade lengkap (In-Sample & Out-of-Sample)
+                    $isRes = $evaluator->evaluate($params, $candles, (string) $latestRun->strategy_type, 0, $splitIndex, 'IN_SAMPLE');
+                    $oosRes = $evaluator->evaluate($params, $candles, (string) $latestRun->strategy_type, $splitIndex, $n, 'OUT_OF_SAMPLE');
+
+                    $simulatedTrades = array_merge($isRes['trades'] ?? [], $oosRes['trades'] ?? []);
+                    // Urutkan trade dari yang paling baru ke lama
+                    usort($simulatedTrades, fn($a, $b) => ($b['entry_bar'] ?? 0) <=> ($a['entry_bar'] ?? 0));
+
                     $lastCandle = end($candles);
                     $currentPrice = (float) $lastCandle['close'];
                     $tpPct = (float) ($params['tp_target_pct'] ?? 4.0);
                     $slPct = (float) ($params['sl_pct'] ?? 2.0);
 
+                    $buySignals = $evaluator->generateBuySignals($params, $candles, (string) $latestRun->strategy_type);
+                    $isSignalActive = !empty($buySignals[$n - 1]) || !empty($buySignals[$n - 2]);
+
                     $currentSignal = [
-                        'action' => 'BUY_READY',
+                        'action' => $isSignalActive ? 'BUY_ACTIVE' : 'WAIT',
+                        'is_active' => $isSignalActive,
+                        'title' => $isSignalActive ? 'Sinyal Beli Aktif Sekarang! (Entry Terkonfirmasi)' : 'Status Saat Ini: Menunggu Sinyal Terbentuk (WAIT)',
+                        'badge_class' => $isSignalActive ? 'success' : 'warning text-dark',
                         'current_price' => $currentPrice,
                         'target_price' => round($currentPrice * (1.0 + ($tpPct / 100.0)), 2),
                         'target_pct' => $tpPct,
@@ -133,6 +156,7 @@ class StockLearningController extends Controller
             'latestRun' => $latestRun,
             'generations' => $generations,
             'currentSignal' => $currentSignal,
+            'simulatedTrades' => $simulatedTrades,
             'strategies' => [
                 ChromosomeFactory::STRATEGY_STOCHASTIC => 'Stochastic Oscillator',
                 ChromosomeFactory::STRATEGY_RSI => 'RSI Momentum & Reversal',
@@ -192,7 +216,12 @@ class StockLearningController extends Controller
         ]);
 
         if ($result['success']) {
-            Yii::$app->session->setFlash('success', "Proses pembelajaran {$symbol} berhasil! Out-of-Sample Win Rate: {$result['oos_win_rate']}%.");
+            $oosTotal = (int) ($result['oos_metrics']['total_trades'] ?? 0);
+            $oosWins = (int) ($result['oos_metrics']['wins'] ?? 0);
+            $wrText = ($oosTotal > 0)
+                ? "Out-of-Sample Win Rate: {$result['oos_win_rate']}% ({$oosWins} Menang / {$oosTotal} Trade)"
+                : "In-Sample Win Rate: {$result['is_win_rate']}% (Periode OOS minim sinyal)";
+            Yii::$app->session->setFlash('success', "Proses pembelajaran {$symbol} berhasil! {$wrText}.");
         } else {
             Yii::$app->session->setFlash('warning', "Pembelajaran {$symbol}: " . ($result['message'] ?? 'Data historis terbatas.'));
         }

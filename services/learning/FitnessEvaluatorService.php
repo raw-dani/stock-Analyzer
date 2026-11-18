@@ -23,11 +23,14 @@ final class FitnessEvaluatorService
     private const TRANSACTION_COST_PCT = 0.40; // 0.30% fee beli/jual + 0.10% slippage
 
     /**
-     * Evaluasi satu kromosom pada dataset lilin.
+     * Evaluasi satu kromosom pada dataset lilin dengan rentang indeks tertentu (Continuous Warmup Masking).
      *
      * @param array<string, mixed> $chromosome
-     * @param array<int, array<string, mixed>> $candles Lilin urut ASC
+     * @param array<int, array<string, mixed>> $candles Seluruh lilin urut ASC
      * @param string $strategy
+     * @param int $startBarIndex Indeks bar awal untuk mengizinkan entry trade
+     * @param int $endBarIndex Indeks bar akhir untuk mengizinkan entry trade
+     * @param string $segmentLabel Label segmen ('ALL', 'IN_SAMPLE', 'OUT_OF_SAMPLE')
      * @return array{
      *     fitness: float,
      *     win_rate: float,
@@ -37,21 +40,28 @@ final class FitnessEvaluatorService
      *     profit_factor: float,
      *     max_drawdown: float,
      *     sharpe_ratio: float,
-     *     net_return_pct: float
+     *     net_return_pct: float,
+     *     trades: array<int, array<string, mixed>>
      * }
      */
-    public function evaluate(array $chromosome, array $candles, string $strategy): array
-    {
+    public function evaluate(
+        array $chromosome,
+        array $candles,
+        string $strategy,
+        int $startBarIndex = 0,
+        int $endBarIndex = PHP_INT_MAX,
+        string $segmentLabel = 'ALL'
+    ): array {
         $n = count($candles);
-        if ($n < 30) {
+        if ($n < 20) {
             return $this->emptyResult();
         }
 
-        // 1. Ekstrak sinyal beli berdasarkan kromosom strategi
+        // 1. Ekstrak sinyal beli pada seluruh lilin kontinu (warmup penuh)
         $buySignals = $this->generateBuySignals($chromosome, $candles, $strategy);
 
-        // 2. Simulasikan perdagangan (Trade Execution)
-        $trades = $this->simulateTrades($buySignals, $candles, $chromosome);
+        // 2. Simulasikan perdagangan dengan pembatasan jendela entry
+        $trades = $this->simulateTrades($buySignals, $candles, $chromosome, $startBarIndex, $endBarIndex, $segmentLabel);
 
         if (empty($trades)) {
             return $this->emptyResult();
@@ -69,31 +79,35 @@ final class FitnessEvaluatorService
      * @param string $strategy
      * @return array<int, bool> index lilin => true jika sinyal BUY terpicu
      */
-    private function generateBuySignals(array $params, array $candles, string $strategy): array
+    public function generateBuySignals(array $params, array $candles, string $strategy): array
     {
         $n = count($candles);
         $signals = array_fill(0, $n, false);
+        if ($n < 5) {
+            return $signals;
+        }
         $closes = array_column($candles, 'close');
 
-        // Prekalkulasi Trend Filter (MA 50)
+        // Prekalkulasi Trend Filter (MA 50 atau adaptif jika candle < 70)
         $trendFilterActive = !empty($params['trend_filter']);
-        $ma50 = $trendFilterActive ? $this->calculateSma($closes, 50) : [];
+        $trendPeriod = min(50, max(10, (int) floor($n * 0.35)));
+        $maTrend = $trendFilterActive ? $this->calculateSma($closes, $trendPeriod) : [];
 
         if ($strategy === ChromosomeFactory::STRATEGY_RSI) {
-            $period = (int) ($params['rsi_period'] ?? 14);
+            $period = min((int) ($params['rsi_period'] ?? 14), max(5, (int) floor($n * 0.25)));
             $oversold = (float) ($params['oversold'] ?? 30.0);
             $rsi = RsiService::calculate($closes, $period);
 
-            for ($i = $period + 2; $i < $n - 1; $i++) {
+            for ($i = $period + 2; $i < $n; $i++) {
                 if ($rsi[$i] === null || $rsi[$i - 1] === null) {
                     continue;
                 }
 
-                // Oversold Bounce: RSI sebelumnya < oversold, sekarang memotong ke atas
+                // Oversold Bounce: RSI sebelumnya <= oversold, sekarang memotong ke atas
                 $rsiTrigger = ($rsi[$i - 1] <= $oversold && $rsi[$i] > $rsi[$i - 1]);
 
-                // Trend filter: Harga saat ini di atas MA50
-                $trendOk = !$trendFilterActive || (isset($ma50[$i]) && $closes[$i] >= $ma50[$i]);
+                // Trend filter: Harga saat ini di atas MA Trend
+                $trendOk = !$trendFilterActive || (isset($maTrend[$i]) && $closes[$i] >= $maTrend[$i]);
 
                 // Candle confirmation: Lilin penutupan hijau
                 $candleOk = empty($params['candle_confirm']) || ($candles[$i]['close'] >= $candles[$i]['open']);
@@ -104,21 +118,24 @@ final class FitnessEvaluatorService
             }
         } elseif ($strategy === ChromosomeFactory::STRATEGY_MULTI) {
             // Multi-indikator Confluence: Stochastic + RSI + Moving Average
-            $periodK = (int) ($params['stoch_k'] ?? 14);
+            $periodK = min((int) ($params['stoch_k'] ?? 14), max(5, (int) floor($n * 0.20)));
             $stochOs = (float) ($params['stoch_os'] ?? 20.0);
             [$kSeries, $dSeries] = $this->calculateStochastic($candles, $periodK, 3, 3);
 
-            $rsiPeriod = (int) ($params['rsi_period'] ?? 14);
+            $rsiPeriod = min((int) ($params['rsi_period'] ?? 14), max(5, (int) floor($n * 0.20)));
             $rsiOs = (float) ($params['rsi_os'] ?? 30.0);
             $rsi = RsiService::calculate($closes, $rsiPeriod);
 
-            $maFast = $this->calculateSma($closes, (int) ($params['ma_fast'] ?? 10));
-            $maSlow = $this->calculateSma($closes, (int) ($params['ma_slow'] ?? 50));
+            $maFastPeriod = min((int) ($params['ma_fast'] ?? 10), max(5, (int) floor($n * 0.15)));
+            $maSlowPeriod = min((int) ($params['ma_slow'] ?? 50), max($maFastPeriod + 5, (int) floor($n * 0.35)));
+
+            $maFast = $this->calculateSma($closes, $maFastPeriod);
+            $maSlow = $this->calculateSma($closes, $maSlowPeriod);
             $minSignals = (int) ($params['min_signals'] ?? 2);
 
-            $start = max($periodK + 6, $rsiPeriod + 2, (int) ($params['ma_slow'] ?? 50));
+            $start = max($periodK + 4, $rsiPeriod + 2, $maSlowPeriod);
 
-            for ($i = $start; $i < $n - 1; $i++) {
+            for ($i = $start; $i < $n; $i++) {
                 $votes = 0;
 
                 // Vote 1: Stoch oversold atau golden cross
@@ -129,7 +146,7 @@ final class FitnessEvaluatorService
                 }
 
                 // Vote 2: RSI oversold atau memantul
-                if ($rsi[$i] !== null && ($rsi[$i] <= $rsiOs || ($rsi[$i] > $rsi[$i - 1] && $rsi[$i] < 50))) {
+                if ($rsi[$i] !== null && ($rsi[$i] <= $rsiOs || ($rsi[$i] > $rsi[$i - 1] && $rsi[$i] < 55))) {
                     $votes++;
                 }
 
@@ -138,7 +155,7 @@ final class FitnessEvaluatorService
                     $votes++;
                 }
 
-                $trendOk = !$trendFilterActive || (isset($ma50[$i]) && $closes[$i] >= $ma50[$i]);
+                $trendOk = !$trendFilterActive || (isset($maTrend[$i]) && $closes[$i] >= $maTrend[$i]);
 
                 if ($votes >= $minSignals && $trendOk) {
                     $signals[$i] = true;
@@ -146,15 +163,15 @@ final class FitnessEvaluatorService
             }
         } else {
             // Default: Stochastic Oscillator
-            $periodK = (int) ($params['periodK'] ?? 14);
+            $periodK = min((int) ($params['periodK'] ?? 14), max(5, (int) floor($n * 0.25)));
             $smoothK = (int) ($params['smoothK'] ?? 3);
             $periodD = (int) ($params['periodD'] ?? 3);
             $oversold = (float) ($params['oversold'] ?? 20.0);
 
             [$kSeries, $dSeries] = $this->calculateStochastic($candles, $periodK, $smoothK, $periodD);
 
-            $start = $periodK + $smoothK + $periodD + 2;
-            for ($i = $start; $i < $n - 1; $i++) {
+            $start = $periodK + $smoothK + $periodD + 1;
+            for ($i = $start; $i < $n; $i++) {
                 if ($kSeries[$i] === null || $dSeries[$i] === null || $kSeries[$i - 1] === null || $dSeries[$i - 1] === null) {
                     continue;
                 }
@@ -166,7 +183,7 @@ final class FitnessEvaluatorService
                 $bounceOversold = ($kSeries[$i - 1] <= $oversold && $kSeries[$i] > $oversold);
 
                 $stochTrigger = $goldenCross || $bounceOversold;
-                $trendOk = !$trendFilterActive || (isset($ma50[$i]) && $closes[$i] >= $ma50[$i]);
+                $trendOk = !$trendFilterActive || (isset($maTrend[$i]) && $closes[$i] >= $maTrend[$i]);
                 $candleOk = empty($params['candle_confirm']) || ($candles[$i]['close'] >= $candles[$i]['open']);
 
                 if ($stochTrigger && $trendOk && $candleOk) {
@@ -184,10 +201,19 @@ final class FitnessEvaluatorService
      * @param array<int, bool> $signals
      * @param array<int, array<string, mixed>> $candles
      * @param array<string, mixed> $params
-     * @return array<int, array{pnl_pct: float, is_win: bool, hold_bars: int}>
+     * @param int $startBarIndex
+     * @param int $endBarIndex
+     * @param string $segmentLabel
+     * @return array<int, array<string, mixed>>
      */
-    private function simulateTrades(array $signals, array $candles, array $params): array
-    {
+    private function simulateTrades(
+        array $signals,
+        array $candles,
+        array $params,
+        int $startBarIndex = 0,
+        int $endBarIndex = PHP_INT_MAX,
+        string $segmentLabel = 'ALL'
+    ): array {
         $n = count($candles);
         $trades = [];
         $tpTargetPct = (float) ($params['tp_target_pct'] ?? 4.0);
@@ -215,18 +241,22 @@ final class FitnessEvaluatorService
 
                 $isExit = false;
                 $exitPrice = $close;
+                $exitReason = 'TIME_EXIT';
 
                 // Cek Target Profit Hit
                 if ($high >= $targetTpPrice) {
                     $exitPrice = $targetTpPrice;
+                    $exitReason = 'TP_HIT';
                     $isExit = true;
                 } elseif ($low <= $currentSl) {
                     // Cek Stop Loss Hit
                     $exitPrice = $currentSl;
+                    $exitReason = 'SL_HIT';
                     $isExit = true;
-                } elseif ($barsHeld >= $maxHoldBars) {
+                } elseif ($barsHeld >= $maxHoldBars || $i === $n - 1) {
                     // Max Hold Timeout Exit
                     $exitPrice = $close;
+                    $exitReason = 'TIME_EXIT';
                     $isExit = true;
                 }
 
@@ -236,9 +266,17 @@ final class FitnessEvaluatorService
                     $netPnlPct = $grossPnlPct - self::TRANSACTION_COST_PCT;
 
                     $trades[] = [
+                        'entry_bar' => $entryBar,
+                        'entry_date' => $candles[$entryBar]['date'] ?? '',
+                        'entry_price' => round($entryPrice, 2),
+                        'exit_bar' => $i,
+                        'exit_date' => $candles[$i]['date'] ?? '',
+                        'exit_price' => round($exitPrice, 2),
                         'pnl_pct' => round($netPnlPct, 2),
                         'is_win' => $netPnlPct > 0.0,
                         'hold_bars' => $barsHeld,
+                        'exit_reason' => $exitReason,
+                        'segment' => $segmentLabel,
                     ];
 
                     $inPosition = false;
@@ -246,13 +284,16 @@ final class FitnessEvaluatorService
             }
 
             // Entry Condition: Terbuka posisi baru di Open bar i jika sinyal bar i-1 aktif
+            // Batasi entry HANYA di dalam jendela segmen [startBarIndex, endBarIndex)
             if (!$inPosition && $i > 0 && !empty($signals[$i - 1])) {
-                $entryPrice = (float) $candles[$i]['open'];
-                if ($entryPrice > 0.0) {
-                    $inPosition = true;
-                    $entryBar = $i;
-                    $targetTpPrice = $entryPrice * (1.0 + ($tpTargetPct / 100.0));
-                    $currentSl = $entryPrice * (1.0 - ($slPct / 100.0));
+                if ($i >= $startBarIndex && $i < $endBarIndex) {
+                    $entryPrice = (float) $candles[$i]['open'];
+                    if ($entryPrice > 0.0) {
+                        $inPosition = true;
+                        $entryBar = $i;
+                        $targetTpPrice = $entryPrice * (1.0 + ($tpTargetPct / 100.0));
+                        $currentSl = $entryPrice * (1.0 - ($slPct / 100.0));
+                    }
                 }
             }
         }
@@ -353,6 +394,7 @@ final class FitnessEvaluatorService
             'max_drawdown' => round($maxDd, 2),
             'sharpe_ratio' => $sharpe,
             'net_return_pct' => $netReturnPct,
+            'trades' => $trades,
         ];
     }
 
@@ -444,6 +486,7 @@ final class FitnessEvaluatorService
             'max_drawdown' => 0.0,
             'sharpe_ratio' => 0.0,
             'net_return_pct' => 0.0,
+            'trades' => [],
         ];
     }
 }

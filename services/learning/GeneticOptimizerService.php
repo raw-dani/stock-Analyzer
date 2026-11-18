@@ -59,13 +59,14 @@ final class GeneticOptimizerService
 
         // 1. Ambil & Pecah Data Lilin (In-Sample vs Out-of-Sample)
         $splitData = $this->validator->loadSplitCandles((int) $stock->id, $timeframe, 500, $splitRatio);
-        $inSample = $splitData['inSample'];
-        $outOfSample = $splitData['outOfSample'];
+        $allCandles = $splitData['allCandles'];
+        $totalBars = count($allCandles);
+        $splitIndex = (int) floor($totalBars * $splitRatio);
 
-        if (count($inSample) < 30) {
+        if ($totalBars < 30) {
             return [
                 'success' => false,
-                'message' => "Data historis {$stock->symbol} tidak mencukupi untuk pembelajaran (butuh minimal 40 candle).",
+                'message' => "Data historis {$stock->symbol} tidak mencukupi untuk pembelajaran (tersedia {$totalBars} candle, butuh minimal 30).",
             ];
         }
 
@@ -84,9 +85,9 @@ final class GeneticOptimizerService
             $evaluatedPopulation = [];
             $fitnessSum = 0.0;
 
-            // Evaluasi fitness seluruh individu di In-Sample
+            // Evaluasi fitness seluruh individu di In-Sample dengan Continuous Warmup
             foreach ($population as $chromosome) {
-                $metrics = $this->evaluator->evaluate($chromosome, $inSample, $strategy);
+                $metrics = $this->evaluator->evaluate($chromosome, $allCandles, $strategy, 0, $splitIndex, 'IN_SAMPLE');
                 $totalEvals++;
                 $f = (float) $metrics['fitness'];
                 $fitnessSum += $f;
@@ -172,10 +173,10 @@ final class GeneticOptimizerService
             $population = $newPopulation;
         }
 
-        // 4. Validasi Independen Out-of-Sample (OOS)
+        // 4. Validasi Independen Out-of-Sample (OOS) dengan Continuous Warmup
         $oosMetrics = [];
-        if (!empty($outOfSample) && count($outOfSample) >= 15 && $bestChromosome !== null) {
-            $oosMetrics = $this->evaluator->evaluate($bestChromosome, $outOfSample, $strategy);
+        if ($bestChromosome !== null && $splitIndex < $totalBars) {
+            $oosMetrics = $this->evaluator->evaluate($bestChromosome, $allCandles, $strategy, $splitIndex, $totalBars, 'OUT_OF_SAMPLE');
         } else {
             $oosMetrics = $bestInSampleMetrics;
         }
@@ -183,7 +184,7 @@ final class GeneticOptimizerService
         $runtime = (int) round(microtime(true) - $startTime);
 
         // 5. Evaluasi Sinyal Terkini (Current Market Setup)
-        $currentSignal = $this->evaluateCurrentSignal($stock, $bestChromosome, $splitData['allCandles'], $strategy);
+        $currentSignal = $this->evaluateCurrentSignal($stock, $bestChromosome, $allCandles, $strategy);
 
         $result = [
             'success' => true,
@@ -200,6 +201,7 @@ final class GeneticOptimizerService
             'total_evals' => $totalEvals,
             'runtime_seconds' => $runtime,
             'current_signal' => $currentSignal,
+            'trades' => array_merge($bestInSampleMetrics['trades'] ?? [], $oosMetrics['trades'] ?? []),
         ];
 
         // Update record StockLearningRun jika ada runId
@@ -263,7 +265,14 @@ final class GeneticOptimizerService
     {
         $n = count($allCandles);
         if ($n < 2) {
-            return ['action' => 'WAIT', 'confidence' => 0, 'reason' => 'Data tidak mencukupi'];
+            return [
+                'action' => 'WAIT',
+                'is_active' => false,
+                'title' => 'Menunggu Data',
+                'badge_class' => 'secondary',
+                'confidence' => 0,
+                'reason' => 'Data lilin tidak mencukupi'
+            ];
         }
 
         $lastCandle = end($allCandles);
@@ -274,8 +283,15 @@ final class GeneticOptimizerService
         $targetPrice = round($currentPrice * (1.0 + ($tpPct / 100.0)), 2);
         $slPrice = round($currentPrice * (1.0 - ($slPct / 100.0)), 2);
 
+        // Periksa apakah lilin terakhir benar-benar memicu sinyal beli
+        $signals = $this->evaluator->generateBuySignals($params, $allCandles, $strategy);
+        $isSignalActive = !empty($signals[$n - 1]) || !empty($signals[$n - 2]);
+
         return [
-            'action' => 'BUY_READY',
+            'action' => $isSignalActive ? 'BUY_ACTIVE' : 'WAIT',
+            'is_active' => $isSignalActive,
+            'title' => $isSignalActive ? 'Sinyal Beli Aktif Sekarang! (Entry Terkonfirmasi)' : 'Status Saat Ini: Menunggu Sinyal Terbentuk (WAIT)',
+            'badge_class' => $isSignalActive ? 'success' : 'warning text-dark',
             'current_price' => $currentPrice,
             'target_price' => $targetPrice,
             'target_pct' => $tpPct,

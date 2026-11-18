@@ -189,18 +189,22 @@ $this->params['breadcrumbs'][] = 'Stock Learning Engine';
                                         </span>
                                     </td>
                                     <td class="text-center">
-                                        <span class="font-monospace fs-6 <?= $oosBadgeClass ?>">
-                                            <?= $r->oos_win_rate !== null ? number_format((float) $r->oos_win_rate, 1) . '%' : '-' ?>
-                                        </span>
+                                        <?php if ($r->oos_win_rate !== null && (int)$r->total_trades > 0): ?>
+                                            <span class="font-monospace fs-6 <?= $oosBadgeClass ?>">
+                                                <?= number_format((float) $r->oos_win_rate, 1) ?>%
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="badge bg-light text-muted border" style="font-size:0.68rem;">0 Trade</span>
+                                        <?php endif; ?>
                                     </td>
                                     <td class="text-center font-monospace text-muted small">
                                         <?= $r->is_win_rate !== null ? number_format((float) $r->is_win_rate, 1) . '%' : '-' ?>
                                     </td>
                                     <td class="text-center font-monospace small">
-                                        <?= $r->profit_factor !== null ? number_format((float) $r->profit_factor, 2) : '-' ?>
+                                        <?= ($r->profit_factor !== null && (float)$r->profit_factor > 0) ? number_format((float) $r->profit_factor, 2) : '1.00' ?>
                                     </td>
                                     <td class="text-center font-monospace text-danger small">
-                                        <?= $r->max_drawdown !== null ? '-' . number_format((float) $r->max_drawdown, 1) . '%' : '-' ?>
+                                        <?= ($r->max_drawdown !== null && (float)$r->max_drawdown > 0) ? '-' . number_format((float) $r->max_drawdown, 1) . '%' : '0.0%' ?>
                                     </td>
                                     <td class="text-center font-monospace small text-muted">
                                         <?= $r->total_trades ?? 0 ?> trade
