@@ -57,6 +57,21 @@ $slTightPct = $curPrice > 0 ? round((($curPrice - $slTight) / $curPrice) * 100, 
 
                 <table class="table table-sm table-borderless align-middle mb-0">
                     <tbody>
+                        <?php if (!empty($pattern['is_quick_rebound'])): ?>
+                            <tr class="table-warning border-bottom">
+                                <td class="fw-bold text-dark py-2">
+                                    <?= \app\helpers\SvgHelper::icon('lightning-charge-fill', ['class' => 'text-warning me-1']) ?> Quick +3% Setup (1H)
+                                </td>
+                                <td class="text-end py-2">
+                                    <span class="badge bg-warning text-dark fw-bold px-2 py-1">
+                                        REBOUND CANDIDATE (Skor: <?= $pattern['quick_rebound_score'] ?? 0 ?>%)
+                                    </span>
+                                    <div class="small text-muted mt-1" style="font-size:0.75rem;">
+                                        Quick Target: <strong>$<?= number_format((float)($pattern['quick_target_price'] ?? 0), 2) ?></strong> (+3.0%) &bull; Cut Loss: <strong>$<?= number_format((float)($pattern['quick_tight_sl'] ?? 0), 2) ?></strong> (-1.2%)
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endif; ?>
                         <tr class="border-bottom">
                             <td class="text-muted py-2"><?= \app\helpers\SvgHelper::icon('star-fill', ['class' => 'text-warning me-1']) ?> Confidence Score</td>
                             <td class="text-end fw-bold fs-5 text-dark py-2"><?= $pattern['confidence'] ?? 50 ?>%</td>

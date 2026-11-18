@@ -34,6 +34,7 @@ $volumeSurgeCount = count(array_filter($allPatterns, fn($r) => !empty($r['volume
 $candleReversalCount = count(array_filter($allPatterns, fn($r) => !empty($r['candle_pattern'])));
 $fibPocketCount = count(array_filter($allPatterns, fn($r) => !empty($r['is_golden_pocket'])));
 $shakeoutCount = count(array_filter($allPatterns, fn($r) => !empty($r['is_shakeout_low']) || ($r['signal_type'] ?? '') === 'BUY_SHAKEOUT_LOW'));
+$quick3PctCount = count(array_filter($allPatterns, fn($r) => !empty($r['is_quick_rebound'])));
 $oversoldWatchCount = count(array_filter($allPatterns, fn($r) => ($r['current_rsi'] ?? 50) <= 35));
 $overboughtWatchCount = count(array_filter($allPatterns, fn($r) => ($r['current_rsi'] ?? 50) >= 65));
 
@@ -174,6 +175,7 @@ $staleDays = $dailyMax ? (int) floor((time() - strtotime($dailyMax . ' 23:59:00'
         <?php
         $filters = [
             'all' => ['label' => 'Semua (' . $totalCount . ')', 'icon' => 'list'],
+            'quick_3pct' => ['label' => '⚡ Quick +3% (' . $quick3PctCount . ')', 'icon' => 'lightning-charge-fill', 'class' => 'btn-warning text-dark fw-bold border-warning'],
             'buy' => ['label' => 'Waktu Beli (' . $buyCount . ')', 'icon' => 'cart-plus-fill'],
             'sell' => ['label' => 'Waktu Jual / TP (' . $sellCount . ')', 'icon' => 'tag-fill'],
             'bull_div' => ['label' => 'Bullish Div (' . $bullDivCount . ')', 'icon' => 'gem'],
@@ -187,9 +189,10 @@ $staleDays = $dailyMax ? (int) floor((time() - strtotime($dailyMax . ' 23:59:00'
         ];
         foreach ($filters as $key => $meta):
             $active = ($statusFilter === $key);
+            $customClass = $meta['class'] ?? '';
         ?>
             <button type="button" 
-                    class="preset-pill btn btn-sm rounded-pill px-3 py-1 <?= $active ? 'active' : '' ?>"
+                    class="preset-pill btn btn-sm rounded-pill px-3 py-1 <?= $active ? 'active' : '' ?> <?= $customClass ?>"
                     onclick="document.getElementById('filter-status-input').value = '<?= $key ?>'; document.getElementById('rsi-filter-form').submit();">
                 <?= \app\helpers\SvgHelper::icon($meta['icon']) ?> <?= $meta['label'] ?>
             </button>
@@ -215,6 +218,7 @@ $staleDays = $dailyMax ? (int) floor((time() - strtotime($dailyMax . ' 23:59:00'
                     <label class="form-label small fw-bold text-dark mb-1">Urutan Hasil (Sorting)</label>
                     <?= Html::dropDownList('sortBy', $sortBy, [
                         'confidence' => 'Confidence Tertinggi',
+                        'quick_score' => '⚡ Skor Quick +3% Tertinggi',
                         'rr' => 'Risk/Reward Tertinggi',
                         'upside' => 'Potential Upside Tertinggi',
                         'current_rsi' => 'RSI Terendah (Oversold)',
@@ -382,6 +386,12 @@ $staleDays = $dailyMax ? (int) floor((time() - strtotime($dailyMax . ' 23:59:00'
                             </td>
                             <td class="text-center">
                                 <div class="d-flex flex-column gap-1 align-items-center">
+                                    <?php if (!empty($r['is_quick_rebound'])): ?>
+                                        <span class="badge bg-warning text-dark border border-warning shadow-sm" title="Quick Rebound Candidate: Potensi pantulan +3% cepat (Skor: <?= $r['quick_rebound_score'] ?? 0 ?>%)">
+                                            <?= \app\helpers\SvgHelper::icon('lightning-charge-fill') ?> QUICK +3% (Skor <?= $r['quick_rebound_score'] ?? 0 ?>%)
+                                        </span>
+                                    <?php endif; ?>
+
                                     <?php if (!empty($r['divergence'])): ?>
                                         <?php 
                                         $divObj = is_array($r['divergence']) ? $r['divergence'] : (is_array($r['divergence_details'] ?? null) ? $r['divergence_details'] : []);

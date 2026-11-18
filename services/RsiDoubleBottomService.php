@@ -651,9 +651,10 @@ final class RsiDoubleBottomService
         }
 
         // Tentukan Target Profit TP1, TP2, TP3 & Stop Loss Berbasis Multi-Strategi untuk Timeframe
+        $is1H = ($tf === self::TIMEFRAME_1H);
         $is2H = ($tf === self::TIMEFRAME_2H);
-        $slBuffer = $is2H ? 0.985 : 0.98; // 1.5% buffer di 2H
-        $slMinPct = $is2H ? 0.975 : 0.965; // min 2.5% di 2H
+        $slBuffer = $is1H ? 0.99 : ($is2H ? 0.985 : 0.98); // 1.0% buffer di 1H, 1.5% di 2H
+        $slMinPct = $is1H ? 0.985 : ($is2H ? 0.975 : 0.965); // min 1.5% di 1H, 2.5% di 2H
 
         $slPrice = round(min($swingLow * $slBuffer, $curPrice * $slMinPct), 2);
         if ($slPrice >= $curPrice) {
@@ -661,11 +662,59 @@ final class RsiDoubleBottomService
         }
         $riskAmount = max(0.01, $curPrice - $slPrice);
 
+        // Fitur Khusus Timeframe 1H: Quick Rebound (+3% Target)
+        // Hitung ATR (Average True Range) 14 bar terakhir
+        $atr14 = 0.0;
+        $trList = [];
+        for ($ti = max(1, $n - 14); $ti < $n; $ti++) {
+            $trHigh = (float) $candles[$ti]['high'];
+            $trLow = (float) $candles[$ti]['low'];
+            $trPrevClose = (float) $candles[$ti - 1]['close'];
+            $tr = max($trHigh - $trLow, abs($trHigh - $trPrevClose), abs($trLow - $trPrevClose));
+            $trList[] = $tr;
+        }
+        if (!empty($trList)) {
+            $atr14 = array_sum($trList) / count($trList);
+        }
+        $atrPct = $curPrice > 0 ? round(($atr14 / $curPrice) * 100, 2) : 0.0;
+
+        // Evaluasi kelayakan Quick +3% Rebound di TF 1H:
+        // Syarat:
+        // 1. Ada katalis bullish (Bullish Div, Shakeout Low, RSI Bounce/Cross, atau Bullish Candle Reversal)
+        // 2. Ruang gerak ke Swing High atau Resistance >= 3.0%
+        // 3. RVOL >= 1.0x dan ATR 1H >= 1.0% (saham cukup aktif bergerak)
+        // 4. RSI berada di area diskon (< 48)
+        $quickTargetPrice = round($curPrice * 1.03, 2);
+        $quickTightSl = round($curPrice * 0.988, 2); // Cut loss ketat -1.2%
+        $roomToResistancePct = $curPrice > 0 ? round((($swingHigh - $curPrice) / $curPrice) * 100, 2) : 0.0;
+        $isQuickBullishCatalyst = in_array($action, ['BUY_NOW', 'MOMENTUM_BUY', 'BUY_PULLBACK'], true) 
+            || $bullDiv !== null 
+            || !empty($dbPattern['is_shakeout_low']) 
+            || $candleSignal === 'BULLISH'
+            || ($curRsi <= 35.0 && $curRsi > $prevRsi);
+
+        $isQuickReboundCandidate = false;
+        $quickReboundScore = 0;
+        if ($is1H && $isQuickBullishCatalyst) {
+            $quickScore = 60;
+            if ($roomToResistancePct >= 3.0) $quickScore += 15;
+            if ($rvol >= 1.2) $quickScore += 10;
+            if ($candleSignal === 'BULLISH') $quickScore += 10;
+            if ($bullDiv !== null || !empty($dbPattern['is_shakeout_low'])) $quickScore += 10;
+            if ($curPrice >= ($curEma20 ?? $curPrice)) $quickScore += 5;
+            $quickReboundScore = min(99, $quickScore);
+
+            if ($quickReboundScore >= 75 && $roomToResistancePct >= 2.5) {
+                $isQuickReboundCandidate = true;
+            }
+        }
+
         // Kalkulasi Target Profit yang Akurat:
-        // TP1 (Konservatif / Swing High / Ratio 1.5R - 1.8R): Kunci profit pertama
-        $candidateTp1 = max($curPrice + ($riskAmount * 1.5), min($swingHigh, $curPrice + ($riskAmount * 1.8)));
+        // TP1 (Konservatif / Swing High / Ratio 1.2R di 1H): Kunci profit pertama
+        $tp1Multiplier = $is1H ? 1.2 : 1.5;
+        $candidateTp1 = max($curPrice + ($riskAmount * $tp1Multiplier), min($swingHigh, $curPrice + ($riskAmount * 1.8)));
         if ($candidateTp1 <= $curPrice) {
-            $candidateTp1 = $curPrice + ($riskAmount * 1.6);
+            $candidateTp1 = $curPrice + ($riskAmount * 1.4);
         }
         $tp1Price = round($candidateTp1, 2);
 
@@ -769,6 +818,14 @@ final class RsiDoubleBottomService
             'has_db_pattern' => ($dbPattern !== null),
             'is_shakeout_low' => !empty($dbPattern['is_shakeout_low']),
             'shakeout_pct' => (float) ($dbPattern['shakeout_pct'] ?? 0.0),
+
+            // Fitur Khusus 1H Quick Rebound (+3% Target)
+            'is_quick_rebound' => $isQuickReboundCandidate,
+            'quick_rebound_score' => $quickReboundScore,
+            'quick_target_price' => $quickTargetPrice,
+            'quick_tight_sl' => $quickTightSl,
+            'room_to_resistance_pct' => $roomToResistancePct,
+            'atr_pct' => $atrPct,
         ];
     }
 

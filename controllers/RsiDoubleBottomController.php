@@ -108,6 +108,9 @@ final class RsiDoubleBottomController extends Controller
             $results = array_filter($results, fn ($r) => !empty($r['breakout']));
         } elseif ($statusFilter === 'shakeout') {
             $results = array_filter($results, fn ($r) => !empty($r['is_shakeout_low']) || ($r['signal_type'] ?? '') === 'BUY_SHAKEOUT_LOW');
+        } elseif ($statusFilter === 'quick_3pct') {
+            // Fitur Khusus 1H: Filter Quick Rebound (+3% Cepat)
+            $results = array_filter($results, fn ($r) => !empty($r['is_quick_rebound']));
         } elseif ($statusFilter === 'high_conf') {
             $results = array_filter($results, fn ($r) => ($r['confidence'] ?? 0) >= 75);
         }
@@ -117,7 +120,9 @@ final class RsiDoubleBottomController extends Controller
         }
 
         // Sorting
-        if ($sortBy === 'rr') {
+        if ($sortBy === 'quick_score') {
+            usort($results, fn ($a, $b) => ($b['quick_rebound_score'] ?? 0) <=> ($a['quick_rebound_score'] ?? 0));
+        } elseif ($sortBy === 'rr') {
             usort($results, fn ($a, $b) => ($b['risk_reward'] ?? 0) <=> ($a['risk_reward'] ?? 0));
         } elseif ($sortBy === 'upside') {
             usort($results, fn ($a, $b) => ($b['potential_upside'] ?? 0) <=> ($a['potential_upside'] ?? 0));
