@@ -43,6 +43,9 @@ $sideMenuGroups = [
         ['label' => '<i class="bi bi-bullseye me-2 text-primary fs-6"></i> Confluence Strategy', 'url' => ['/crypto/confluence'], 'active' => $ctrlId === 'crypto' && $actionId === 'confluence', 'badge' => 'PRO'],
         ['label' => '<i class="bi bi-rocket-takeoff me-2 text-success fs-6"></i> Bullish Patterns', 'url' => ['/crypto/bullish-patterns'], 'active' => $ctrlId === 'crypto' && $actionId === 'bullish-patterns'],
     ],
+    'AI & Learning Engine' => [
+        ['label' => '<i class="bi bi-cpu me-2 text-primary fs-6"></i> Stock Learning Engine', 'url' => ['/stock-learning/index'], 'active' => $ctrlId === 'stock-learning', 'badge' => 'AI'],
+    ],
     'Scanners & Patterns' => [
         ['label' => \app\helpers\SvgHelper::icon('bullseye', ['class' => 'me-2']) . 'Confluence Strategy', 'url' => ['/strategy-confluence/index'], 'active' => $ctrlId === 'strategy-confluence', 'badge' => 'PRO'],
         ['label' => \app\helpers\SvgHelper::icon('rocket-takeoff', ['class' => 'me-2']) . 'Bullish Patterns', 'url' => ['/bullish-pattern/index'], 'active' => $ctrlId === 'bullish-pattern'],

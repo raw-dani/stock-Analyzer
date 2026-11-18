@@ -74,6 +74,9 @@ $tfList = [
             <span id="btn-live-sync-icon"><?= \app\helpers\SvgHelper::icon('arrow-repeat') ?></span>
             <span id="btn-live-sync-text">Get Live Data</span>
         </button>
+        <a href="<?= Url::to(['/stock-learning/detail', 'symbol' => $stock->symbol]) ?>" class="btn btn-warning btn-sm shadow-sm fw-bold text-dark" title="Latih model adaptif Genetic Algorithm untuk mencari parameter trading paling akurat untuk <?= Html::encode($stock->symbol) ?>">
+            <i class="bi bi-cpu"></i> AI Learning
+        </a>
         <a href="<?= Url::to(['/scanner/backtest', 'symbol' => $stock->symbol]) ?>" class="btn btn-outline-success btn-sm shadow-sm fw-bold" title="Uji Empiris Historis Akumulasi (RVOL, CMF, Persistence) untuk <?= Html::encode($stock->symbol) ?>">
             <?= \app\helpers\SvgHelper::icon('graph-up-arrow') ?> Backtest Akumulasi
         </a>
