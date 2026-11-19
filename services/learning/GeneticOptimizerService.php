@@ -301,6 +301,7 @@ final class GeneticOptimizerService
         // Periksa apakah lilin terakhir benar-benar memicu sinyal beli
         $signals = $this->evaluator->generateBuySignals($params, $allCandles, $strategy);
         $isSignalActive = !empty($signals[$n - 1]) || !empty($signals[$n - 2]);
+        $diagnostics = $this->evaluator->diagnoseCurrentSignal($params, $allCandles, $strategy);
 
         return [
             'action' => $isSignalActive ? 'BUY_ACTIVE' : 'WAIT',
@@ -314,6 +315,7 @@ final class GeneticOptimizerService
             'stop_loss_pct' => $slPct,
             'risk_reward' => round($tpPct / max(0.1, $slPct), 2),
             'last_candle_date' => $lastCandle['date'] ?? null,
+            'diagnostics' => $diagnostics,
         ];
     }
 }

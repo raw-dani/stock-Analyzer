@@ -180,9 +180,9 @@ final class ChromosomeFactory
             }
         }
 
-        // 2. Risk/Reward: TP harus selalu lebih besar dari SL
+        // 2. Risk/Reward: TP harus selalu minimal 1.3x - 1.5x lebih besar dari SL
         if (isset($chromosome['tp_target_pct'], $chromosome['sl_pct'])) {
-            if ($chromosome['tp_target_pct'] <= $chromosome['sl_pct'] * 1.1) {
+            if ($chromosome['tp_target_pct'] < $chromosome['sl_pct'] * 1.3) {
                 $chromosome['tp_target_pct'] = round((float) $chromosome['sl_pct'] * 1.5, 2);
             }
         }

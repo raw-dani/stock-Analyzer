@@ -401,12 +401,11 @@ $modelMode = $modelMode ?? 'best_pf';
                                             </span>
                                         </td>
                                         <td class="text-center font-monospace">
-                                            <?php if ($best->oos_win_rate !== null && (float)$best->oos_win_rate > 0): ?>
-                                                <span class="fs-6 <?= $oosBadgeClass ?>">
-                                                    <?= number_format((float) $best->oos_win_rate, 1) ?>%
+                                            <?php if ($best->oos_win_rate !== null): ?>
+                                                <?php $bOosVal = (float)$best->oos_win_rate; ?>
+                                                <span class="fs-6 fw-bold <?= $bOosVal >= 60.0 ? 'text-success' : ($bOosVal >= 40.0 ? 'text-primary' : 'text-danger') ?>">
+                                                    <?= number_format($bOosVal, 1) ?>%
                                                 </span>
-                                            <?php elseif ($best->oos_win_rate !== null && (float)$best->oos_win_rate == 0.0 && $pf > 0 && $pf != 1.0): ?>
-                                                <span class="text-danger fs-6">0.0%</span>
                                             <?php else: ?>
                                                 <span class="badge bg-light text-muted border" style="font-size:0.68rem;" title="Tidak ada sinyal entry pada periode validasi Out-of-Sample">0 Trade (OOS)</span>
                                             <?php endif; ?>
@@ -546,12 +545,11 @@ $modelMode = $modelMode ?? 'best_pf';
                                             </span>
                                         </td>
                                         <td class="text-center font-monospace">
-                                            <?php if ($r->oos_win_rate !== null && (float)$r->oos_win_rate > 0): ?>
-                                                <span class="fs-6 <?= $oosBadgeClass ?>">
-                                                    <?= number_format((float) $r->oos_win_rate, 1) ?>%
+                                            <?php if ($r->oos_win_rate !== null): ?>
+                                                <?php $rOosVal = (float)$r->oos_win_rate; ?>
+                                                <span class="fs-6 fw-bold <?= $rOosVal >= 60.0 ? 'text-success' : ($rOosVal >= 40.0 ? 'text-primary' : 'text-danger') ?>">
+                                                    <?= number_format($rOosVal, 1) ?>%
                                                 </span>
-                                            <?php elseif ($r->oos_win_rate !== null && (float)$r->oos_win_rate == 0.0 && $rPf > 0 && $rPf != 1.0): ?>
-                                                <span class="text-danger fs-6">0.0%</span>
                                             <?php else: ?>
                                                 <span class="badge bg-light text-muted border" style="font-size:0.68rem;" title="Tidak ada sinyal entry pada periode validasi Out-of-Sample">0 Trade (OOS)</span>
                                             <?php endif; ?>

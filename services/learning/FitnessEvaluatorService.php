@@ -204,6 +204,197 @@ final class FitnessEvaluatorService
     }
 
     /**
+     * Diagnosis kondisi teknikal lilin terakhir terhadap parameter optimal strategi.
+     * Memberikan rincian checklist mengapa sinyal aktif atau mengapa masih WAIT,
+     * serta perkiraan kapan sinyal beli akan terpicu.
+     *
+     * @param array<string, mixed> $params
+     * @param array<int, array<string, mixed>> $candles
+     * @param string $strategy
+     * @return array{
+     *     is_active: bool,
+     *     conditions: array<int, array{label: string, current: string, required: string, met: bool, note: string}>,
+     *     summary: string,
+     *     trigger_forecast: string
+     * }
+     */
+    public function diagnoseCurrentSignal(array $params, array $candles, string $strategy): array
+    {
+        $n = count($candles);
+        if ($n < 5) {
+            return [
+                'is_active' => false,
+                'conditions' => [],
+                'summary' => 'Data historis tidak mencukupi untuk diagnosis.',
+                'trigger_forecast' => 'Menunggu data pasar terupdate.',
+            ];
+        }
+
+        $closes = array_column($candles, 'close');
+        $lastIdx = $n - 1;
+        $prevIdx = $n - 2;
+        $currentClose = (float) $candles[$lastIdx]['close'];
+
+        // Trend filter
+        $trendFilterActive = !empty($params['trend_filter']);
+        $trendPeriod = min(50, max(10, (int) floor($n * 0.35)));
+        $maTrend = $trendFilterActive ? $this->calculateSma($closes, $trendPeriod) : [];
+        $currentMa = $maTrend[$lastIdx] ?? null;
+
+        $trendMet = !$trendFilterActive || ($currentMa !== null && $currentClose >= $currentMa);
+        $candleConfirmActive = !empty($params['candle_confirm']);
+        $isGreenCandle = $candles[$lastIdx]['close'] >= $candles[$lastIdx]['open'];
+        $candleMet = !$candleConfirmActive || $isGreenCandle;
+
+        $conditions = [];
+        $indicatorMet = false;
+        $forecast = '';
+
+        if ($strategy === ChromosomeFactory::STRATEGY_RSI) {
+            $period = min((int) ($params['rsi_period'] ?? 14), max(5, (int) floor($n * 0.25)));
+            $oversold = (float) ($params['oversold'] ?? 30.0);
+            $rsi = RsiService::calculate($closes, $period);
+            $currRsi = $rsi[$lastIdx] ?? 50.0;
+            $prevRsi = $rsi[$prevIdx] ?? 50.0;
+
+            $reversal = ($prevRsi <= $oversold && $currRsi > $prevRsi);
+            $pullback = ($prevRsi <= ($oversold + 12.0) && $currRsi > $prevRsi && $currentMa !== null && $currentClose >= $currentMa);
+            $centerline = ($prevRsi <= 50.0 && $currRsi > 50.0 && $currRsi <= 60.0 && $currentMa !== null && $currentClose >= $currentMa);
+            $indicatorMet = ($reversal || $pullback || $centerline);
+
+            $conditions[] = [
+                'label' => "RSI ({$period}) Level & Momentum",
+                'current' => 'RSI: ' . round($currRsi, 1) . ' (Kemarin: ' . round($prevRsi, 1) . ')',
+                'required' => "Oversold <={$oversold} / Momentum Bounce <=" . round($oversold + 12.0, 1) . " / Cross > 50",
+                'met' => $indicatorMet,
+                'note' => $indicatorMet ? 'RSI mengonfirmasi pantulan momentum/reversal' : ($currRsi > 60 ? 'RSI tinggi (menunggu pullback koreksi)' : 'Menunggu RSI memantul dari support momentum/oversold'),
+            ];
+
+            $forecast = $indicatorMet 
+                ? 'Semua kriteria RSI terpenuhi. Sinyal beli terkonfirmasi.'
+                : 'Sinyal beli akan muncul ketika RSI terkoreksi ke zona support (<=' . round($oversold + 12.0, 1) . ') lalu berbalik memantul ke atas saat penutupan bursa harian.';
+
+        } elseif ($strategy === ChromosomeFactory::STRATEGY_MULTI) {
+            // Multi-Indicator Confluence
+            $periodK = min((int) ($params['stoch_k'] ?? 14), max(5, (int) floor($n * 0.20)));
+            $stochOs = (float) ($params['stoch_os'] ?? 20.0);
+            [$kSeries, $dSeries] = $this->calculateStochastic($candles, $periodK, 3, 3);
+            $currK = $kSeries[$lastIdx] ?? 50.0;
+            $currD = $dSeries[$lastIdx] ?? 50.0;
+
+            $rsiPeriod = min((int) ($params['rsi_period'] ?? 14), max(5, (int) floor($n * 0.20)));
+            $rsiOs = (float) ($params['rsi_os'] ?? 30.0);
+            $rsi = RsiService::calculate($closes, $rsiPeriod);
+            $currRsi = $rsi[$lastIdx] ?? 50.0;
+
+            $maFastPeriod = min((int) ($params['ma_fast'] ?? 10), max(5, (int) floor($n * 0.15)));
+            $maSlowPeriod = min((int) ($params['ma_slow'] ?? 50), max($maFastPeriod + 5, (int) floor($n * 0.35)));
+            $maFast = $this->calculateSma($closes, $maFastPeriod);
+            $maSlow = $this->calculateSma($closes, $maSlowPeriod);
+
+            $minSignals = (int) ($params['min_signals'] ?? 2);
+            $votes = 0;
+            if ($currK <= $stochOs || ($currK > $currD && ($kSeries[$prevIdx] ?? 0) <= ($dSeries[$prevIdx] ?? 0))) $votes++;
+            if ($currRsi <= $rsiOs || ($currRsi > ($rsi[$prevIdx] ?? 0) && $currRsi < 55)) $votes++;
+            if (isset($maFast[$lastIdx], $maSlow[$lastIdx]) && $maFast[$lastIdx] > $maSlow[$lastIdx]) $votes++;
+
+            $indicatorMet = ($votes >= $minSignals);
+
+            $conditions[] = [
+                'label' => "Multi-Indicator Confluence ({$minSignals} Sinyal Diperlukan)",
+                'current' => "{$votes} dari 3 sinyal aktif (Stoch: " . round($currK, 1) . ", RSI: " . round($currRsi, 1) . ")",
+                'required' => "Minimal {$minSignals} indikator harus selaras (Bullish)",
+                'met' => $indicatorMet,
+                'note' => $indicatorMet ? 'Konfirmasi keselarasan indikator terpenuhi' : 'Menunggu keselarasan indikator tambahan',
+            ];
+
+            $forecast = $indicatorMet
+                ? 'Minimal ' . $minSignals . ' indikator telah selaras bullish.'
+                : 'Sinyal beli akan muncul jika minimal ' . $minSignals . ' indikator (Stochastic, RSI, dan MA) memberikan sinyal beli bersamaan.';
+
+        } else {
+            // Default: Stochastic Oscillator
+            $periodK = min((int) ($params['periodK'] ?? 14), max(5, (int) floor($n * 0.25)));
+            $smoothK = (int) ($params['smoothK'] ?? 3);
+            $periodD = (int) ($params['periodD'] ?? 3);
+            $oversold = (float) ($params['oversold'] ?? 20.0);
+
+            [$kSeries, $dSeries] = $this->calculateStochastic($candles, $periodK, $smoothK, $periodD);
+            $currK = $kSeries[$lastIdx] ?? 50.0;
+            $currD = $dSeries[$lastIdx] ?? 50.0;
+            $prevK = $kSeries[$prevIdx] ?? 50.0;
+            $prevD = $dSeries[$prevIdx] ?? 50.0;
+
+            $goldenCross = ($prevK <= $prevD && $currK > $currD && $currK <= ($oversold + 15.0));
+            $bounceOversold = ($prevK <= $oversold && $currK > $oversold);
+            $indicatorMet = ($goldenCross || $bounceOversold);
+
+            $isNearOversold = ($currK <= ($oversold + 15.0));
+            $conditions[] = [
+                'label' => "Area Jenuh Jual (%K <= " . round($oversold + 15.0, 1) . ")",
+                'current' => '%K = ' . round($currK, 1) . ' | %D = ' . round($currD, 1),
+                'required' => "Berada di area <= " . round($oversold + 15.0, 1),
+                'met' => $isNearOversold,
+                'note' => $isNearOversold ? 'Harga sudah berada di area jenuh jual (diskon)' : 'Harga belum jenuh jual (masih di atas level ' . round($oversold + 15.0, 1) . ')',
+            ];
+
+            $conditions[] = [
+                'label' => 'Pantulan Golden Cross (%K > %D)',
+                'current' => $currK > $currD ? '%K di atas %D' : '%K masih di bawah/sejajar %D',
+                'required' => 'Garis %K memotong ke atas %D',
+                'met' => ($goldenCross || $bounceOversold),
+                'note' => ($goldenCross || $bounceOversold) ? 'Golden cross / pantulan naik terkonfirmasi' : 'Menunggu garis %K memotong ke atas garis %D',
+            ];
+
+            $forecast = $indicatorMet
+                ? 'Pola Golden Cross Stochastic di area jenuh jual telah terbentuk.'
+                : 'Sinyal beli akan muncul ketika Stochastic (%K) terkoreksi turun ke bawah level ' . round($oversold + 15.0, 1) . ' lalu memotong ke atas garis %D (Golden Cross) pada penutupan lilin harian.';
+        }
+
+        // Syarat Filter Tren
+        if ($trendFilterActive) {
+            $conditions[] = [
+                'label' => "Trend Filter (MA {$trendPeriod})",
+                'current' => 'Harga $' . number_format($currentClose, 2) . ' vs MA $' . number_format($currentMa ?? 0, 2),
+                'required' => "Harga penutupan di atas MA {$trendPeriod}",
+                'met' => $trendMet,
+                'note' => $trendMet ? 'Saham berada dalam tren bullish di atas MA' : 'Harga saham masih di bawah garis MA Trend',
+            ];
+        }
+
+        // Syarat Konfirmasi Lilin Hijau
+        if ($candleConfirmActive) {
+            $conditions[] = [
+                'label' => 'Konfirmasi Lilin Harian',
+                'current' => $isGreenCandle ? 'Lilin Hijau (Close >= Open)' : 'Lilin Merah (Bearish)',
+                'required' => 'Lilin hari ini harus ditutup hijau',
+                'met' => $candleMet,
+                'note' => $candleMet ? 'Lilin harian mengonfirmasi tekanan beli' : 'Menunggu lilin harian ditutup hijau',
+            ];
+        }
+
+        $isActive = ($indicatorMet && $trendMet && $candleMet);
+
+        $unmetLabels = [];
+        foreach ($conditions as $c) {
+            if (!$c['met']) {
+                $unmetLabels[] = $c['label'];
+            }
+        }
+
+        $summary = $isActive
+            ? 'Seluruh kondisi strategi telah terpenuhi. Sinyal beli terkonfirmasi aktif untuk eksekusi!'
+            : 'Belum terpicu karena: ' . implode(', ', $unmetLabels) . '.';
+
+        return [
+            'is_active' => $isActive,
+            'conditions' => $conditions,
+            'summary' => $summary,
+            'trigger_forecast' => $forecast,
+        ];
+    }
+
+    /**
      * Jalankan simulasi trading kronologis (Strictly Anti-Lookahead: Entry di Open bar i+1).
      *
      * @param array<int, bool> $signals
@@ -380,14 +571,16 @@ final class FitnessEvaluatorService
         // 3. Drawdown Penalty (0 - 20 pts)
         $ddScore = max(0.0, 20.0 - ($maxDd * 0.8));
 
-        // 4. Sample Size Penalty (hukum jika trade < 5 atau < 10)
+        // 4. Sample Size Penalty (hukum berat jika trade < 5 atau < 8 agar tidak curve-fitting)
         $tradeCountMultiplier = 1.0;
-        if ($totalTrades < 4) {
-            $tradeCountMultiplier = 0.2;
+        if ($totalTrades < 5) {
+            $tradeCountMultiplier = 0.15;
         } elseif ($totalTrades < 8) {
-            $tradeCountMultiplier = 0.6;
+            $tradeCountMultiplier = 0.40;
         } elseif ($totalTrades < 12) {
-            $tradeCountMultiplier = 0.85;
+            $tradeCountMultiplier = 0.75;
+        } elseif ($totalTrades < 18) {
+            $tradeCountMultiplier = 0.90;
         }
 
         $fitness = round(($winRateScore + $pfScore + $ddScore) * $tradeCountMultiplier, 4);

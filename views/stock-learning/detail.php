@@ -216,6 +216,48 @@ foreach ($generations as $g) {
                             </div>
                         </div>
                     </div>
+
+                    <?php if (!empty($currentSignal['diagnostics']['conditions'])): ?>
+                        <div class="mt-3 pt-3 border-top border-dark border-opacity-10">
+                            <div class="d-flex flex-wrap justify-content-between align-items-center mb-2">
+                                <span class="small fw-bold text-dark d-flex align-items-center gap-1">
+                                    <i class="bi bi-ui-checks text-primary"></i> Checklist Syarat Sinyal Beli (Live Indikator Pasar):
+                                </span>
+                                <small class="text-secondary"><?= Html::encode($currentSignal['diagnostics']['summary'] ?? '') ?></small>
+                            </div>
+                            <div class="row g-2">
+                                <?php foreach ($currentSignal['diagnostics']['conditions'] as $cond): ?>
+                                    <div class="col-md-6 col-12">
+                                        <div class="p-2 px-3 bg-white bg-opacity-75 rounded-3 border d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <div class="small fw-bold text-dark"><?= Html::encode($cond['label']) ?></div>
+                                                <small class="text-muted d-block" style="font-size:0.75rem;">
+                                                    Saat ini: <strong><?= Html::encode($cond['current']) ?></strong> &bull; Syarat: <?= Html::encode($cond['required']) ?>
+                                                </small>
+                                            </div>
+                                            <div>
+                                                <?php if ($cond['met']): ?>
+                                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1">
+                                                        <i class="bi bi-check-circle-fill me-1"></i> Terpenuhi
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="badge bg-warning bg-opacity-10 text-dark border border-warning px-2 py-1">
+                                                        <i class="bi bi-hourglass-split me-1"></i> Menunggu
+                                                    </span>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                            <?php if (!$isSignalActive && !empty($currentSignal['diagnostics']['trigger_forecast'])): ?>
+                                <div class="alert alert-light border mt-2 mb-0 py-2 px-3 small text-muted d-flex align-items-center gap-2">
+                                    <i class="bi bi-info-circle-fill text-primary fs-6"></i>
+                                    <span><strong>Kapan sinyal beli muncul?</strong> <?= Html::encode($currentSignal['diagnostics']['trigger_forecast']) ?></span>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
         <?php endif; ?>
@@ -227,12 +269,11 @@ foreach ($generations as $g) {
                     <div class="card-body p-3">
                         <span class="small text-muted fw-bold text-uppercase d-block mb-1">Out-of-Sample Win-Rate</span>
                         <h3 class="fw-bold mb-0 font-monospace">
-                            <?php if ($latestRun->oos_win_rate !== null && (float)$latestRun->oos_win_rate > 0): ?>
-                                <span class="<?= (float)$latestRun->oos_win_rate >= 60.0 ? 'text-success' : 'text-primary' ?>">
-                                    <?= number_format((float) $latestRun->oos_win_rate, 1) ?>%
+                            <?php if ($latestRun->oos_win_rate !== null): ?>
+                                <?php $oosVal = (float)$latestRun->oos_win_rate; ?>
+                                <span class="<?= $oosVal >= 60.0 ? 'text-success' : ($oosVal >= 40.0 ? 'text-primary' : 'text-danger') ?>">
+                                    <?= number_format($oosVal, 1) ?>%
                                 </span>
-                            <?php elseif ($latestRun->oos_win_rate !== null && (float)$latestRun->oos_win_rate == 0.0 && (float)$latestRun->profit_factor > 0 && (float)$latestRun->profit_factor != 1.0): ?>
-                                <span class="text-danger">0.0%</span>
                             <?php else: ?>
                                 <span class="fs-6 text-muted">0 Trade di OOS</span>
                             <?php endif; ?>
@@ -547,12 +588,11 @@ foreach ($generations as $g) {
                                         <td><span class="badge bg-light text-secondary border"><?= match((int)$r->timeframe) { 1 => '1 Jam (1H)', 4 => '4 Jam (4H)', default => 'Daily (1D)' } ?></span></td>
                                         <td class="text-center small font-monospace"><?= $r->generation_max ?> gen</td>
                                         <td class="text-center font-monospace">
-                                            <?php if ($r->oos_win_rate !== null && (float)$r->oos_win_rate > 0): ?>
-                                                <span class="fw-bold <?= ((float)$r->oos_win_rate >= 60.0 ? 'text-success' : 'text-primary') ?>">
-                                                    <?= number_format((float)$r->oos_win_rate, 1) ?>%
+                                            <?php if ($r->oos_win_rate !== null): ?>
+                                                <?php $rOosVal = (float)$r->oos_win_rate; ?>
+                                                <span class="fw-bold <?= $rOosVal >= 60.0 ? 'text-success' : ($rOosVal >= 40.0 ? 'text-primary' : 'text-danger') ?>">
+                                                    <?= number_format($rOosVal, 1) ?>%
                                                 </span>
-                                            <?php elseif ($r->oos_win_rate !== null && (float)$r->oos_win_rate == 0.0 && (float)$r->profit_factor > 0 && (float)$r->profit_factor != 1.0): ?>
-                                                <span class="text-danger fw-bold">0.0%</span>
                                             <?php else: ?>
                                                 <span class="badge bg-light text-muted border" style="font-size:0.68rem;" title="Tidak ada sinyal entry pada periode validasi Out-of-Sample">0 Trade (OOS)</span>
                                             <?php endif; ?>

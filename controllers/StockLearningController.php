@@ -306,6 +306,7 @@ class StockLearningController extends Controller
 
                     $buySignals = $evaluator->generateBuySignals($params, $candles, (string) $latestRun->strategy_type);
                     $isSignalActive = !empty($buySignals[$n - 1]) || !empty($buySignals[$n - 2]);
+                    $diagnostics = $evaluator->diagnoseCurrentSignal($params, $candles, (string) $latestRun->strategy_type);
 
                     $currentSignal = [
                         'action' => $isSignalActive ? 'BUY_ACTIVE' : 'WAIT',
@@ -319,6 +320,7 @@ class StockLearningController extends Controller
                         'stop_loss_pct' => $slPct,
                         'risk_reward' => round($tpPct / max(0.1, $slPct), 2),
                         'last_candle_date' => $lastCandle['date'] ?? null,
+                        'diagnostics' => $diagnostics,
                     ];
                 }
             }
