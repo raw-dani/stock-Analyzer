@@ -24,15 +24,24 @@ class StockLearningController extends Controller
     /**
      * Halaman Utama: Daftar riwayat pembelajaran seluruh saham (Mendukung Grouped per Saham & All History).
      */
-    public function actionIndex(): string
+    public function actionIndex(): Response|string
     {
         $request = Yii::$app->request;
-        $viewMode = $request->get('view', 'grouped'); // 'grouped' (default) atau 'history'
+        $viewMode = $request->get('view', 'grouped'); // 'grouped' (default), 'screener', atau 'history'
         $sortBy = trim((string) $request->get('sort', 'profit_factor')); // 'profit_factor' (default), 'latest', 'win_rate', 'symbol'
         $modelMode = trim((string) $request->get('model_mode', 'best_pf')); // 'best_pf' (default) atau 'latest'
         $symbolSearch = trim((string) $request->get('symbol', ''));
         $strategyFilter = trim((string) $request->get('strategy', ''));
         $statusFilter = trim((string) $request->get('status', ''));
+
+        // Screener Harian Otomatis
+        $screener = new \app\services\learning\LearningScreenerService();
+        if ($request->get('refresh_screener')) {
+            $screener->screenAll(true);
+            Yii::$app->session->setFlash('success', 'Screening harian AI berhasil diperbarui!');
+            return $this->redirect(['index', 'view' => 'screener']);
+        }
+        $screenerResults = $screener->screenAll(false);
 
         // 1. Data Mode Grouped (1 Baris per Kode Saham — Menampilkan Model Terbaik / Terbaru)
         $groupedData = [];
@@ -211,6 +220,7 @@ class StockLearningController extends Controller
                 ChromosomeFactory::STRATEGY_RSI => 'RSI Momentum & Reversal',
                 ChromosomeFactory::STRATEGY_MULTI => 'Multi-Indicator Confluence',
             ],
+            'screenerResults' => $screenerResults,
         ]);
     }
 

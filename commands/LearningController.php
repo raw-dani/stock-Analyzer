@@ -23,6 +23,7 @@ class LearningController extends Controller
     public int $generations = 50;
     public int $population = 30;
     public ?int $runId = null;
+    public int $force = 0;
 
     public function options($actionID): array
     {
@@ -32,6 +33,7 @@ class LearningController extends Controller
             'generations',
             'population',
             'runId',
+            'force',
         ]);
     }
 
@@ -165,6 +167,76 @@ class LearningController extends Controller
             $this->stdout(strtoupper($r->status) . "\n", $statusColor);
         }
 
+        return ExitCode::OK;
+    }
+
+    /**
+     * Screening otomatis seluruh saham dengan model AI terlatih pasca penutupan bursa.
+     *
+     * Contoh:
+     *   php yii learning/screen
+     *   php yii learning/screen --force=1
+     *
+     * @param int|null $force 1 untuk paksa evaluasi ulang tanpa cache
+     * @return int
+     */
+    public function actionScreen(?int $force = null): int
+    {
+        $forceParam = $force !== null ? (bool)$force : (bool)$this->force;
+        $screener = new \app\services\learning\LearningScreenerService();
+
+        $this->stdout("=== AI Stock Learning Daily Screener ===\n", Console::FG_CYAN, Console::BOLD);
+        $this->stdout("Memindai seluruh saham dengan model AI terlatih terhadap candle harian terbaru...\n");
+
+        $start = microtime(true);
+        $result = $screener->screenAll($forceParam);
+        $duration = round(microtime(true) - $start, 2);
+
+        $this->stdout(sprintf(
+            "Hasil Pemindaian (%s | %s detik):\nTotal Model: %d | Sinyal Beli (BUY): %d | Menunggu (WAIT): %d\n\n",
+            $result['scanned_at_formatted'],
+            $duration,
+            $result['total_scanned'],
+            $result['buy_count'],
+            $result['wait_count']
+        ), Console::BOLD);
+
+        if (!empty($result['buy_signals'])) {
+            $this->stdout("🔥 REKOMENDASI SINYAL BELI HARI INI (BUY):\n", Console::FG_GREEN, Console::BOLD);
+            $this->stdout(str_repeat('-', 90) . "\n");
+            $this->stdout(sprintf("%-6s | %-10s | %-10s | %-10s | %-6s | %-12s | %-6s\n", "SIMBOL", "HARGA", "TARGET", "STOP LOSS", "R:R", "OOS WIN-RATE", "PF"));
+            $this->stdout(str_repeat('-', 90) . "\n");
+
+            foreach ($result['buy_signals'] as $s) {
+                $this->stdout(sprintf(
+                    "%-6s | $%-9.2f | $%-9.2f | $%-9.2f | 1:%-4.1f | %-12s | %-6s\n",
+                    $s['symbol'],
+                    $s['current_price'],
+                    $s['target_price'],
+                    $s['stop_loss'],
+                    $s['risk_reward'],
+                    $s['oos_win_rate'] !== null ? $s['oos_win_rate'] . '%' : '-',
+                    $s['profit_factor'] ?? '-'
+                ), Console::FG_GREEN);
+            }
+            $this->stdout(str_repeat('-', 90) . "\n\n");
+        } else {
+            $this->stdout("ℹ Tidak ada sinyal beli yang aktif hari ini dari saham-saham terlatih.\n\n", Console::FG_YELLOW);
+        }
+
+        if (!empty($result['wait_signals'])) {
+            $this->stdout("⏳ SAHAM DALAM MONITORING (WAIT - Menunggu Syarat Terpenuhi):\n", Console::FG_GREY);
+            foreach (array_slice($result['wait_signals'], 0, 10) as $w) {
+                $note = $w['diagnostics']['summary'] ?? 'Menunggu syarat indikator terpenuhi';
+                $this->stdout(sprintf("  • %-6s : $%-8.2f | %s\n", $w['symbol'], $w['current_price'], $note), Console::FG_GREY);
+            }
+            if (count($result['wait_signals']) > 10) {
+                $this->stdout("  ... dan " . (count($result['wait_signals']) - 10) . " saham lainnya.\n", Console::FG_GREY);
+            }
+            $this->stdout("\n");
+        }
+
+        $this->stdout("✓ Selesai. Hasil screening tersimpan di cache dan siap diakses di web (/stock-learning).\n", Console::FG_CYAN);
         return ExitCode::OK;
     }
 }

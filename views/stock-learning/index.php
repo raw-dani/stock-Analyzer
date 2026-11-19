@@ -13,6 +13,7 @@ declare(strict_types=1);
 /** @var string $statusFilter */
 /** @var array $stats */
 /** @var array $strategies */
+/** @var array $screenerResults */
 
 use yii\bootstrap5\Html;
 use yii\helpers\Url;
@@ -22,6 +23,14 @@ $this->params['breadcrumbs'][] = 'Stock Learning Engine';
 $viewMode = $viewMode ?? 'grouped';
 $sortBy = $sortBy ?? 'profit_factor';
 $modelMode = $modelMode ?? 'best_pf';
+$screenerResults = $screenerResults ?? [
+    'buy_signals' => [],
+    'wait_signals' => [],
+    'buy_count' => 0,
+    'wait_count' => 0,
+    'total_scanned' => 0,
+    'scanned_at' => time(),
+];
 ?>
 
 <div class="container-fluid px-0">
@@ -105,6 +114,28 @@ $modelMode = $modelMode ?? 'best_pf';
             </div>
         </div>
     </div>
+
+    <!-- Banner Notifikasi Sinyal Beli Aktif Hari Ini (AI Daily Screener) -->
+    <?php if (!empty($screenerResults['buy_count']) && $screenerResults['buy_count'] > 0): ?>
+        <div class="alert alert-success border-0 shadow-sm rounded-4 p-3 mb-4 d-flex flex-wrap justify-content-between align-items-center gap-3" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-left: 5px solid #10b981 !important;">
+            <div class="d-flex align-items-center gap-3">
+                <span class="badge bg-success p-2 rounded-circle shadow-xs">
+                    <i class="bi bi-radar text-white fs-5"></i>
+                </span>
+                <div>
+                    <h6 class="fw-bold mb-1 text-success">
+                        🔥 Sinyal Beli Aktif Terdeteksi Hari Ini (<?= $screenerResults['buy_count'] ?> Saham Berpotensi Naik)
+                    </h6>
+                    <p class="small text-muted mb-0">
+                        Berdasarkan lilin penutupan bursa terakhir (04:00 - 05:00 WIB), terdapat <strong><?= $screenerResults['buy_count'] ?> saham</strong> dengan setup beli terkonfirmasi dari model AI terlatih.
+                    </p>
+                </div>
+            </div>
+            <a href="<?= Url::to(['/stock-learning/index', 'view' => 'screener']) ?>" class="btn btn-success btn-sm px-3 fw-bold rounded-pill shadow-xs">
+                Buka AI Daily Screener <i class="bi bi-arrow-right ms-1"></i>
+            </a>
+        </div>
+    <?php endif; ?>
 
     <!-- Quick Train Card -->
     <div class="card border-0 shadow-sm rounded-4 mb-4">
@@ -263,6 +294,17 @@ $modelMode = $modelMode ?? 'best_pf';
             <!-- View Mode Switcher Pills -->
             <ul class="nav nav-pills card-header-pills">
                 <li class="nav-item">
+                    <a class="nav-link small py-1 px-3 fw-bold <?= $viewMode === 'screener' ? 'active bg-danger text-white' : 'text-danger' ?>" 
+                       href="<?= Url::to(['/stock-learning/index', 'view' => 'screener']) ?>">
+                        <i class="bi bi-radar me-1"></i> Sinyal Beli Hari Ini (AI Screener)
+                        <?php if (!empty($screenerResults['buy_count']) && $screenerResults['buy_count'] > 0): ?>
+                            <span class="badge bg-white text-danger ms-1 px-2 fw-bold"><?= $screenerResults['buy_count'] ?> Beli</span>
+                        <?php else: ?>
+                            <span class="badge bg-light text-muted ms-1 px-2">0 Beli</span>
+                        <?php endif; ?>
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link small py-1 px-3 fw-bold <?= $viewMode === 'grouped' ? 'active' : '' ?>" 
                        href="<?= Url::to(['/stock-learning/index', 'view' => 'grouped', 'sort' => $sortBy, 'model_mode' => $modelMode, 'symbol' => $symbolSearch, 'strategy' => $strategyFilter]) ?>">
                         <i class="bi bi-grid-3x3-gap-fill me-1"></i> Ringkasan per Saham (Grouped)
@@ -276,28 +318,43 @@ $modelMode = $modelMode ?? 'best_pf';
                 </li>
             </ul>
 
-            <!-- Quick Sort Pills -->
-            <div class="d-flex align-items-center flex-wrap gap-2">
-                <span class="small text-muted fw-bold d-none d-md-inline"><i class="bi bi-sort-down me-1"></i>Urutkan:</span>
-                <div class="btn-group btn-group-sm" role="group">
-                    <a href="<?= Url::to(['/stock-learning/index', 'view' => $viewMode, 'sort' => 'profit_factor', 'model_mode' => $modelMode, 'symbol' => $symbolSearch, 'strategy' => $strategyFilter]) ?>" 
-                       class="btn btn-sm <?= $sortBy === 'profit_factor' ? 'btn-success fw-bold text-white shadow-xs' : 'btn-outline-secondary' ?>">
-                        <i class="bi bi-trophy-fill text-warning me-1"></i> PF Tertinggi
+            <!-- Quick Sort / Screener Actions -->
+            <?php if ($viewMode === 'screener'): ?>
+                <div class="d-flex align-items-center flex-wrap gap-2">
+                    <a href="<?= Url::to(['/stock-learning/index', 'view' => 'screener', 'refresh_screener' => 1]) ?>" class="btn btn-outline-primary btn-sm rounded-pill fw-bold shadow-xs">
+                        <i class="bi bi-arrow-clockwise me-1"></i> Scan Ulang Sekarang
                     </a>
-                    <a href="<?= Url::to(['/stock-learning/index', 'view' => $viewMode, 'sort' => 'latest', 'model_mode' => $modelMode, 'symbol' => $symbolSearch, 'strategy' => $strategyFilter]) ?>" 
-                       class="btn btn-sm <?= $sortBy === 'latest' ? 'btn-warning fw-bold text-dark shadow-xs' : 'btn-outline-secondary' ?>">
-                        <i class="bi bi-clock-history me-1"></i> Data Terbaru
-                    </a>
-                    <a href="<?= Url::to(['/stock-learning/index', 'view' => $viewMode, 'sort' => 'win_rate', 'model_mode' => $modelMode, 'symbol' => $symbolSearch, 'strategy' => $strategyFilter]) ?>" 
-                       class="btn btn-sm <?= $sortBy === 'win_rate' ? 'btn-primary fw-bold text-white shadow-xs' : 'btn-outline-secondary' ?>">
-                        <i class="bi bi-bullseye me-1"></i> Win Rate
-                    </a>
+                    <span class="badge bg-danger rounded-pill">
+                        <?= count($screenerResults['buy_signals'] ?? []) ?> Beli
+                    </span>
+                    <span class="badge bg-secondary rounded-pill font-monospace">
+                        <?= $screenerResults['total_scanned'] ?? 0 ?> Saham Terlatih
+                    </span>
                 </div>
+            <?php else: ?>
+                <!-- Quick Sort Pills -->
+                <div class="d-flex align-items-center flex-wrap gap-2">
+                    <span class="small text-muted fw-bold d-none d-md-inline"><i class="bi bi-sort-down me-1"></i>Urutkan:</span>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <a href="<?= Url::to(['/stock-learning/index', 'view' => $viewMode, 'sort' => 'profit_factor', 'model_mode' => $modelMode, 'symbol' => $symbolSearch, 'strategy' => $strategyFilter]) ?>" 
+                           class="btn btn-sm <?= $sortBy === 'profit_factor' ? 'btn-success fw-bold text-white shadow-xs' : 'btn-outline-secondary' ?>">
+                            <i class="bi bi-trophy-fill text-warning me-1"></i> PF Tertinggi
+                        </a>
+                        <a href="<?= Url::to(['/stock-learning/index', 'view' => $viewMode, 'sort' => 'latest', 'model_mode' => $modelMode, 'symbol' => $symbolSearch, 'strategy' => $strategyFilter]) ?>" 
+                           class="btn btn-sm <?= $sortBy === 'latest' ? 'btn-warning fw-bold text-dark shadow-xs' : 'btn-outline-secondary' ?>">
+                            <i class="bi bi-clock-history me-1"></i> Data Terbaru
+                        </a>
+                        <a href="<?= Url::to(['/stock-learning/index', 'view' => $viewMode, 'sort' => 'win_rate', 'model_mode' => $modelMode, 'symbol' => $symbolSearch, 'strategy' => $strategyFilter]) ?>" 
+                           class="btn btn-sm <?= $sortBy === 'win_rate' ? 'btn-primary fw-bold text-white shadow-xs' : 'btn-outline-secondary' ?>">
+                            <i class="bi bi-bullseye me-1"></i> Win Rate
+                        </a>
+                    </div>
 
-                <span class="badge bg-secondary rounded-pill ms-1">
-                    <?= $viewMode === 'grouped' ? count($groupedData) . ' Saham Unik' : count($runs) . ' Sesi Tercatat' ?>
-                </span>
-            </div>
+                    <span class="badge bg-secondary rounded-pill ms-1">
+                        <?= $viewMode === 'grouped' ? count($groupedData) . ' Saham Unik' : count($runs) . ' Sesi Tercatat' ?>
+                    </span>
+                </div>
+            <?php endif; ?>
         </div>
         <div class="card-body p-0">
             <?php
@@ -314,7 +371,238 @@ $modelMode = $modelMode ?? 'best_pf';
             };
             ?>
 
-            <?php if ($viewMode === 'grouped'): ?>
+            <?php if ($viewMode === 'screener'): ?>
+                <!-- TAMPILAN 3: AI DAILY SCREENER (Pasca 04:00 - 05:00 WIB) -->
+                <div class="p-3 bg-light border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-danger p-2 rounded-circle shadow-xs">
+                                <i class="bi bi-radar text-white fs-6"></i>
+                            </span>
+                            <h6 class="fw-bold mb-0 text-dark">AI Daily Screener — Hasil Pemindaian Pasca Penutupan Bursa</h6>
+                        </div>
+                        <small class="text-muted">
+                            Data diperbarui setiap pukul 05:00 - 05:30 WIB otomatis via Cron Job. Waktu scan terakhir: 
+                            <strong><?= !empty($screenerResults['scanned_at']) ? date('d M Y, H:i', (int)$screenerResults['scanned_at']) : '-' ?> WIB</strong>
+                            (<?= $screenerResults['total_scanned'] ?? 0 ?> Saham Terlatih Dipindai)
+                        </small>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <a href="<?= Url::to(['/stock-learning/index', 'view' => 'screener', 'refresh_screener' => 1]) ?>" class="btn btn-outline-primary btn-sm rounded-pill fw-bold shadow-xs">
+                            <i class="bi bi-arrow-clockwise me-1"></i> Scan Ulang Sekarang
+                        </a>
+                    </div>
+                </div>
+
+                <div class="p-3 p-md-4">
+                    <!-- Section BUY Signals -->
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-success bg-opacity-10 text-success p-2 rounded-2">
+                                <i class="bi bi-lightning-charge-fill fs-5"></i>
+                            </span>
+                            <div>
+                                <h5 class="fw-bold mb-0 text-dark">Sinyal Beli Aktif Hari Ini (BUY Opportunities)</h5>
+                                <small class="text-muted">Saham yang memenuhi seluruh parameter optimal hasil pelatihan AI untuk potensi kenaikan di sesi berikutnya.</small>
+                            </div>
+                        </div>
+                        <span class="badge bg-success px-3 py-2 rounded-pill fs-6 font-monospace fw-bold">
+                            <?= count($screenerResults['buy_signals'] ?? []) ?> Saham Siap Beli
+                        </span>
+                    </div>
+
+                    <?php if (empty($screenerResults['buy_signals'])): ?>
+                        <div class="card border border-warning border-opacity-25 rounded-4 p-4 text-center mb-4" style="background: linear-gradient(135deg, #fffdf5 0%, #fffbeb 100%);">
+                            <div class="my-2">
+                                <i class="bi bi-hourglass-split text-warning display-5"></i>
+                            </div>
+                            <h6 class="fw-bold text-dark mt-2 mb-1">Belum Ada Sinyal Beli yang Terpicu Hari Ini</h6>
+                            <p class="text-muted small mx-auto mb-3" style="max-width: 620px;">
+                                Seluruh model AI dari saham yang telah dilatih saat ini berstatus <strong>WAIT</strong> (harga belum menyentuh level jenuh jual atau belum terjadi golden cross). Kondisi ini wajar dan membuktikan model AI disiplin menjaga modal, hanya masuk ketika probabilitas tinggi.
+                            </p>
+                            <div>
+                                <a href="#tableWaitList" class="btn btn-outline-secondary btn-sm rounded-pill px-3 shadow-xs">
+                                    <i class="bi bi-eye me-1"></i> Lihat Kondisi <?= count($screenerResults['wait_signals'] ?? []) ?> Saham Dalam Monitoring (WAIT)
+                                </a>
+                            </div>
+                        </div>
+                    <?php else: ?>
+                        <div class="row g-3 mb-4">
+                            <?php foreach ($screenerResults['buy_signals'] as $bs): ?>
+                                <div class="col-12 col-md-6 col-xl-4">
+                                    <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden" style="border-top: 4px solid #10b981 !important; background: #ffffff;">
+                                        <div class="card-body p-3">
+                                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                                <div>
+                                                    <span class="h5 fw-bold text-dark font-monospace mb-0"><?= Html::encode($bs['symbol']) ?></span>
+                                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1 ms-1 fw-bold">
+                                                        <i class="bi bi-check-circle-fill me-1"></i> BUY
+                                                    </span>
+                                                    <small class="text-muted d-block text-truncate" style="max-width: 200px;"><?= Html::encode($bs['name']) ?></small>
+                                                </div>
+                                                <div class="text-end">
+                                                    <span class="badge bg-light text-secondary border px-2 py-1" style="font-size: 0.72rem;">
+                                                        <?= Html::encode($bs['strategy_label']) ?>
+                                                    </span>
+                                                    <span class="badge bg-light text-secondary border px-1" style="font-size: 0.72rem;">1D</span>
+                                                </div>
+                                            </div>
+
+                                            <!-- Trading Plan Box -->
+                                            <div class="bg-light rounded-3 p-2 mb-3">
+                                                <div class="row g-2 text-center">
+                                                    <div class="col-4">
+                                                        <small class="text-muted d-block" style="font-size: 0.7rem;">HARGA ENTRY</small>
+                                                        <strong class="font-monospace text-dark">$<?= number_format((float)$bs['current_price'], 2) ?></strong>
+                                                    </div>
+                                                    <div class="col-4 border-start border-end">
+                                                        <small class="text-success fw-bold d-block" style="font-size: 0.7rem;">TARGET (+<?= $bs['target_pct'] ?>%)</small>
+                                                        <strong class="font-monospace text-success">$<?= number_format((float)$bs['target_price'], 2) ?></strong>
+                                                    </div>
+                                                    <div class="col-4">
+                                                        <small class="text-danger fw-bold d-block" style="font-size: 0.7rem;">STOP LOSS (-<?= $bs['stop_loss_pct'] ?>%)</small>
+                                                        <strong class="font-monospace text-danger">$<?= number_format((float)$bs['stop_loss'], 2) ?></strong>
+                                                    </div>
+                                                </div>
+                                                <div class="text-center mt-2 pt-1 border-top border-secondary border-opacity-10">
+                                                    <small class="text-muted" style="font-size: 0.75rem;">
+                                                        Risk-to-Reward: <strong class="text-primary font-monospace">1 : <?= $bs['risk_reward'] ?></strong>
+                                                    </small>
+                                                </div>
+                                            </div>
+
+                                            <!-- Historical AI Track Record -->
+                                            <div class="d-flex justify-content-between align-items-center mb-2 px-1">
+                                                <small class="text-muted" style="font-size: 0.75rem;">OOS Win Rate:</small>
+                                                <span class="fw-bold font-monospace <?= ($bs['oos_win_rate'] ?? 0) >= 60.0 ? 'text-success' : 'text-primary' ?>" style="font-size: 0.8rem;">
+                                                    <?= $bs['oos_win_rate'] !== null ? number_format((float)$bs['oos_win_rate'], 1) . '%' : '0.0%' ?>
+                                                </span>
+                                            </div>
+                                            <div class="d-flex justify-content-between align-items-center mb-3 px-1">
+                                                <small class="text-muted" style="font-size: 0.75rem;">Profit Factor:</small>
+                                                <span class="badge bg-success text-white px-2 py-1 font-monospace fw-bold" style="font-size: 0.75rem;">
+                                                    <?= number_format((float)($bs['profit_factor'] ?? 1.0), 2) ?>
+                                                </span>
+                                            </div>
+
+                                            <!-- Diagnostic Notes -->
+                                            <?php if (!empty($bs['diagnostics']['summary'])): ?>
+                                                <div class="alert alert-success bg-opacity-10 border border-success border-opacity-25 rounded-3 p-2 mb-3 small" style="font-size: 0.78rem;">
+                                                    <i class="bi bi-check-circle me-1 text-success"></i> <?= Html::encode($bs['diagnostics']['summary']) ?>
+                                                </div>
+                                            <?php endif; ?>
+
+                                            <a href="<?= Url::to(['/stock-learning/detail', 'symbol' => $bs['symbol'], 'run_id' => $bs['run_id']]) ?>" class="btn btn-outline-primary btn-sm w-100 fw-bold rounded-pill shadow-xs">
+                                                Buka Detail Sesi &amp; Chart <i class="bi bi-arrow-right ms-1"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <!-- Table WAIT LIST -->
+                    <div id="tableWaitList" class="mt-4 pt-3 border-top">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-warning bg-opacity-10 text-dark p-2 rounded-2">
+                                    <i class="bi bi-hourglass-split fs-6"></i>
+                                </span>
+                                <div>
+                                    <h6 class="fw-bold mb-0 text-dark">Daftar Saham Dalam Monitoring (Status: WAIT)</h6>
+                                    <small class="text-muted">Saham yang telah memiliki model AI tetapi belum memenuhi syarat entry pada lilin terakhir.</small>
+                                </div>
+                            </div>
+                            <span class="badge bg-light text-secondary border px-2 py-1 font-monospace">
+                                <?= count($screenerResults['wait_signals'] ?? []) ?> Saham
+                            </span>
+                        </div>
+
+                        <?php if (!empty($screenerResults['wait_signals'])): ?>
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+                                    <thead class="table-light small text-uppercase text-secondary">
+                                        <tr>
+                                            <th>Saham</th>
+                                            <th class="text-end">Harga Terakhir</th>
+                                            <th class="text-center">Strategi AI</th>
+                                            <th class="text-center">Track Record (PF / WR)</th>
+                                            <th>Syarat yang Masih Ditunggu</th>
+                                            <th class="text-end">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($screenerResults['wait_signals'] as $ws): ?>
+                                            <tr>
+                                                <td>
+                                                    <span class="fw-bold font-monospace text-dark"><?= Html::encode($ws['symbol']) ?></span>
+                                                    <small class="text-muted d-block"><?= Html::encode($ws['name']) ?></small>
+                                                </td>
+                                                <td class="text-end font-monospace fw-bold">
+                                                    $<?= number_format((float)$ws['current_price'], 2) ?>
+                                                </td>
+                                                <td class="text-center">
+                                                    <span class="badge bg-light text-secondary border px-2 py-1">
+                                                        <?= Html::encode($ws['strategy_label']) ?>
+                                                    </span>
+                                                </td>
+                                                <td class="text-center font-monospace">
+                                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1 me-1">
+                                                        PF <?= number_format((float)($ws['profit_factor'] ?? 1.0), 2) ?>
+                                                    </span>
+                                                    <small class="text-muted">
+                                                        WR <?= $ws['oos_win_rate'] !== null ? number_format((float)$ws['oos_win_rate'], 1) . '%' : '-' ?>
+                                                    </small>
+                                                </td>
+                                                <td>
+                                                    <span class="text-secondary small d-block mb-1">
+                                                        <i class="bi bi-clock me-1 text-warning"></i>
+                                                        <?= Html::encode($ws['diagnostics']['summary'] ?? 'Menunggu kondisi terbentuk') ?>
+                                                    </span>
+                                                    <?php if (!empty($ws['diagnostics']['trigger_forecast'])): ?>
+                                                        <small class="text-muted fst-italic" style="font-size: 0.75rem;">
+                                                            💡 <?= Html::encode($ws['diagnostics']['trigger_forecast']) ?>
+                                                        </small>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td class="text-end">
+                                                    <a href="<?= Url::to(['/stock-learning/detail', 'symbol' => $ws['symbol'], 'run_id' => $ws['run_id']]) ?>" class="btn btn-sm btn-outline-secondary px-2 py-1 shadow-xs" title="Lihat Detail & Checklist Parameter">
+                                                        <i class="bi bi-eye"></i> Detail
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+
+                    <!-- Panduan Otomatisasi Cron CyberPanel -->
+                    <div class="mt-4 pt-3 border-top">
+                        <div class="card border border-info border-opacity-25 rounded-4 p-3 p-md-4" style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <i class="bi bi-gear-fill text-primary fs-5"></i>
+                                <h6 class="fw-bold mb-0 text-dark">Panduan Otomatisasi Screening Setiap Pukul 05:00 - 05:30 WIB (CyberPanel)</h6>
+                            </div>
+                            <p class="text-muted small mb-3">
+                                Bursa saham AS (Wall Street) tutup pukul 16:00 EST = <strong>04:00 WIB (Musim Panas/EDT) atau 05:00 WIB (Musim Dingin/EST)</strong>.
+                                Untuk memastikan data lilin harian sudah final dari Yahoo Finance dan langsung discan sebelum Anda bangun pagi:
+                            </p>
+                            <div class="bg-dark text-white font-monospace p-3 rounded-3 small mb-2 overflow-auto">
+                                <div class="text-warning mb-1"># 1. Update candle harian seluruh saham setiap jam 05:00 WIB (Selasa - Sabtu):</div>
+                                <div class="text-light mb-3">0 5 * * 2-6 /usr/local/bin/php /home/stock.pemain12.com/public_html/yii data/refresh-all > /dev/null 2>&1</div>
+                                <div class="text-warning mb-1"># 2. Jalankan AI Stock Learning Screener setiap jam 05:30 WIB (Selasa - Sabtu):</div>
+                                <div class="text-success">30 5 * * 2-6 /usr/local/bin/php /home/stock.pemain12.com/public_html/yii learning/screen --force=1 > /dev/null 2>&1</div>
+                            </div>
+                            <small class="text-secondary">
+                                *Catatan: Mengapa Selasa s/d Sabtu? Karena hari perdagangan bursa AS (Senin-Jumat EST) berakhir pada hari Selasa s/d Sabtu subuh waktu Indonesia Barat (WIB).
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            <?php elseif ($viewMode === 'grouped'): ?>
                 <!-- TAMPILAN 1: GROUPED PER KODE SAHAM (1 Baris per Saham) -->
                 <?php if (empty($groupedData)): ?>
                     <div class="text-center py-5 text-muted">

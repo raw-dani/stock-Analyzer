@@ -475,8 +475,11 @@ $dailyAdvRatio = $totalDaily > 0 ? round(($gainersCount / $totalDaily) * 100, 1)
                 <span class="text-muted small ms-1">Hasil optimasi algoritma genetika dengan validasi independen Walk-Forward (Anti-Overfitting)</span>
             </div>
             <div class="d-flex gap-2">
+                <a href="<?= Url::to(['/stock-learning/index', 'view' => 'screener']) ?>" class="btn btn-outline-danger btn-sm px-3 fw-bold rounded-pill shadow-xs">
+                    <i class="bi bi-radar me-1"></i> AI Daily Screener
+                </a>
                 <a href="<?= Url::to(['/stock-learning/index']) ?>" class="btn btn-outline-primary btn-sm px-3 fw-bold rounded-pill shadow-xs">
-                    Buka Stock Learning Engine &raquo;
+                    Semua Model AI &raquo;
                 </a>
             </div>
         </div>
