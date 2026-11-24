@@ -49,6 +49,12 @@ $trades = $res['recentTrades'] ?? [];
             <span class="badge bg-light text-secondary border px-2 py-1">
                 Fee + Slip: <?= number_format($p['totalCostPct'], 2) ?>%
             </span>
+            <span class="badge bg-light text-primary border px-2 py-1" title="Minimum Rasio Risk to Reward">
+                Min R:R &ge; <?= number_format($p['minRr'] ?? 1.20, 1) ?>
+            </span>
+            <span class="badge bg-light text-success border px-2 py-1" title="Maksimal jarak breakout dari Neckline">
+                Golden Zone &le; <?= number_format($p['maxBreakoutZone'] ?? 3.5, 1) ?>%
+            </span>
             <a href="#backtest-form-box" class="btn btn-sm btn-outline-primary">
                 <?= \app\helpers\SvgHelper::icon('sliders') ?> Ganti Parameter
             </a>
@@ -299,7 +305,10 @@ $trades = $res['recentTrades'] ?? [];
                                         <?php if (!empty($t['hit_tp2'])): ?>
                                             <span class="badge bg-primary">HIT TP2 (+<?= number_format((float) ($t['tp2_gain_pct'] ?? 0), 1) ?>%)</span>
                                         <?php elseif (($t['exit_reason'] ?? '') === 'TP1_TRAILING_BEP'): ?>
-                                            <span class="badge bg-success">TP1 + Trailing BEP (+<?= number_format((float) ($t['trade_net_ret'] ?? 0), 1) ?>%)</span>
+                                            <?php $isNetPos = ($t['trade_net_ret'] ?? 0) >= 0; ?>
+                                            <span class="badge <?= $isNetPos ? 'bg-success' : 'bg-warning text-dark' ?>">
+                                                TP1 + Trailing (<?= ($isNetPos ? '+' : '') . number_format((float) ($t['trade_net_ret'] ?? 0), 1) ?>%)
+                                            </span>
                                         <?php elseif (!empty($t['hit_tp1'])): ?>
                                             <span class="badge bg-success">HIT TP1 (+<?= number_format((float) ($t['tp1_gain_pct'] ?? 0), 1) ?>%)</span>
                                         <?php elseif (!empty($t['hit_sl'])): ?>

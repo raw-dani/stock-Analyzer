@@ -37,6 +37,8 @@ $btSlippage = (float) Yii::$app->request->get('btSlippage', 0.10);
 $btMode = (string) ($btMode ?? Yii::$app->request->get('btMode', 'breakout'));
 $btTrendFilter = (bool) ($btTrendFilter ?? Yii::$app->request->get('btTrendFilter', 1));
 $btTrailingSl = (bool) ($btTrailingSl ?? Yii::$app->request->get('btTrailingSl', 1));
+$btMinRr = (float) ($btMinRr ?? Yii::$app->request->get('btMinRr', 1.20));
+$btMaxZone = (float) ($btMaxZone ?? Yii::$app->request->get('btMaxZone', 3.5));
 ?>
 
 <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
@@ -121,40 +123,48 @@ $btTrailingSl = (bool) ($btTrailingSl ?? Yii::$app->request->get('btTrailingSl',
             </div>
 
             <!-- Opsi Backtest Bar -->
-            <div class="col-md-3 col-6">
-                <label class="form-label small fw-bold text-primary">Rentang Bar Backtest</label>
+            <div class="col-md-2 col-6">
+                <label class="form-label small fw-bold text-primary">Rentang Bar</label>
                 <?= Html::dropDownList('btLookback', $btLookback, [
-                    150 => '150 Bar Historis',
-                    300 => '300 Bar Historis (Rekomendasi)',
-                    500 => '500 Bar Historis',
-                    1000 => '1000 Bar Historis (Jangka Panjang)',
+                    150 => '150 Bar',
+                    300 => '300 Bar (Standar)',
+                    500 => '500 Bar (Optimal)',
+                    1000 => '1000 Bar',
                 ], ['class' => 'form-select form-select-sm border-primary']) ?>
             </div>
-            <div class="col-md-3 col-6">
-                <label class="form-label small fw-bold text-primary">Mode Eksekusi Backtest</label>
+            <div class="col-md-2 col-6">
+                <label class="form-label small fw-bold text-primary">Mode Eksekusi</label>
                 <?= Html::dropDownList('btMode', $btMode, [
-                    'breakout' => '🚀 Breakout Neckline A+ (Rekomendasi)',
-                    'all' => '⚡ Semua Setup (Breakout + Early)',
-                    'early' => '🎯 Hanya Early Rebound (Lembah 2)',
+                    'breakout' => '🚀 Breakout A+',
+                    'all' => '⚡ Semua Setup',
+                    'early' => '🎯 Rebound Lembah 2',
                 ], ['class' => 'form-select form-select-sm border-primary fw-semibold']) ?>
             </div>
             <div class="col-md-2 col-6">
-                <label class="form-label small fw-bold text-primary">Fee + Slippage (%)</label>
+                <label class="form-label small fw-bold text-primary">Fee + Slip (%)</label>
                 <div class="input-group input-group-sm">
                     <?= Html::input('number', 'btFee', $btFee, ['class' => 'form-control', 'step' => 0.05, 'placeholder' => 'Fee']) ?>
                     <span class="input-group-text">+</span>
                     <?= Html::input('number', 'btSlippage', $btSlippage, ['class' => 'form-control', 'step' => 0.05, 'placeholder' => 'Slip']) ?>
                 </div>
             </div>
-            <div class="col-md-4 col-12 text-end d-flex justify-content-end align-items-center gap-2">
+            <div class="col-md-1 col-6">
+                <label class="form-label small fw-bold text-primary" title="Minimum Rasio Risk to Reward">Min R:R</label>
+                <?= Html::input('number', 'btMinRr', $btMinRr, ['class' => 'form-control form-control-sm border-primary', 'step' => 0.1, 'min' => 0.5, 'max' => 5.0]) ?>
+            </div>
+            <div class="col-md-2 col-6">
+                <label class="form-label small fw-bold text-primary" title="Maksimal jarak harga beli di atas Neckline">Max Zone (%)</label>
+                <?= Html::input('number', 'btMaxZone', $btMaxZone, ['class' => 'form-control form-control-sm border-primary', 'step' => 0.5, 'min' => 1.0, 'max' => 10.0]) ?>
+            </div>
+            <div class="col-md-3 col-12 text-end d-flex justify-content-end align-items-center gap-2">
                 <button type="button" id="btn-live-sync" class="btn btn-sm btn-success fw-bold d-inline-flex align-items-center gap-1 shadow-sm" data-symbol="<?= Html::encode($stock->symbol) ?>" title="Tarik data harga & volume terbaru dari Yahoo Finance">
                     <span id="btn-live-sync-icon"><?= \app\helpers\SvgHelper::icon('arrow-repeat') ?></span>
                     <span id="btn-live-sync-text">Get Live Data</span>
                 </button>
-                <?= Html::submitButton(\app\helpers\SvgHelper::icon('arrow-repeat') . ' Update Analisis', ['class' => 'btn btn-sm btn-outline-secondary px-3']) ?>
-                <button type="submit" name="backtest" value="1" class="btn btn-sm btn-primary fw-bold px-3 d-inline-flex align-items-center gap-1 shadow-sm">
+                <?= Html::submitButton(\app\helpers\SvgHelper::icon('arrow-repeat') . ' Update Analisis', ['class' => 'btn btn-sm btn-outline-secondary px-2']) ?>
+                <button type="submit" name="backtest" value="1" class="btn btn-sm btn-primary fw-bold px-2 d-inline-flex align-items-center gap-1 shadow-sm">
                     <?= \app\helpers\SvgHelper::icon('graph-up-arrow') ?>
-                    <span>Jalankan Backtest</span>
+                    <span>Backtest</span>
                 </button>
             </div>
         <?= Html::endForm() ?>

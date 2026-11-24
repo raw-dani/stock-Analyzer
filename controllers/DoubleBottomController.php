@@ -59,11 +59,13 @@ final class DoubleBottomController extends Controller
         $btMode = (string) Yii::$app->request->get('btMode', \app\services\DoubleBottomBacktestService::MODE_BREAKOUT);
         $btTrendFilter = (bool) Yii::$app->request->get('btTrendFilter', 1);
         $btTrailingSl = (bool) Yii::$app->request->get('btTrailingSl', 1);
+        $btMinRr = (float) Yii::$app->request->get('btMinRr', 1.20);
+        $btMaxZone = (float) Yii::$app->request->get('btMaxZone', 3.5);
 
         if ($runBacktest) {
             $btLookback = (int) Yii::$app->request->get('btLookback', 300);
             $btTolerance = (float) Yii::$app->request->get('btTolerance', round($params['tolerancePercent'], 1));
-            $btFee = (float) Yii::$app->request->get('btFee', 0.30);
+            $btFee = (float) Yii::$app->request->get('btFee', 0.20);
             $btSlippage = (float) Yii::$app->request->get('btSlippage', 0.10);
 
             $btService = new \app\services\DoubleBottomBacktestService();
@@ -79,6 +81,8 @@ final class DoubleBottomController extends Controller
                 'entryMode' => $btMode,
                 'trendFilter' => $btTrendFilter,
                 'trailingSl' => $btTrailingSl,
+                'minRr' => $btMinRr,
+                'maxBreakoutZone' => $btMaxZone,
             ]);
         }
 
@@ -94,6 +98,8 @@ final class DoubleBottomController extends Controller
             'btMode' => $btMode,
             'btTrendFilter' => $btTrendFilter,
             'btTrailingSl' => $btTrailingSl,
+            'btMinRr' => $btMinRr,
+            'btMaxZone' => $btMaxZone,
         ]));
     }
 

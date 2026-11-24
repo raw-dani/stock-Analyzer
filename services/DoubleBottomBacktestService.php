@@ -74,6 +74,8 @@ final class DoubleBottomBacktestService
         $trendFilter = (bool) ($options['trendFilter'] ?? true);
         $volumeFilter = (bool) ($options['volumeFilter'] ?? true);
         $trailingSl = (bool) ($options['trailingSl'] ?? true);
+        $minRr = (float) ($options['minRr'] ?? 1.20);
+        $maxBreakoutZone = (float) ($options['maxBreakoutZone'] ?? 3.5);
 
         // 1. Ambil Candle Berurutan Kronologis (ASC)
         $candles = $this->loadAscCandles((int) $stock->id, $timeframe, $lookbackCandles);
@@ -112,7 +114,10 @@ final class DoubleBottomBacktestService
                 $necklineMinDepth,
                 $entryMode,
                 $trendFilter,
-                $volumeFilter
+                $volumeFilter,
+                $timeframe,
+                $minRr,
+                $maxBreakoutZone
             );
 
             if ($pattern === null) {
@@ -157,6 +162,8 @@ final class DoubleBottomBacktestService
                 'trendFilter' => $trendFilter,
                 'volumeFilter' => $volumeFilter,
                 'trailingSl' => $trailingSl,
+                'minRr' => $minRr,
+                'maxBreakoutZone' => $maxBreakoutZone,
                 'trainRange' => [
                     'start' => $candles[$startBar]['date'] ?? '',
                     'end' => $candles[min($splitIndex - 1, $totalBars - 1)]['date'] ?? '',
@@ -186,7 +193,10 @@ final class DoubleBottomBacktestService
         float $necklineMinDepth,
         string $entryMode,
         bool $trendFilter,
-        bool $volumeFilter
+        bool $volumeFilter,
+        int $timeframe = DoubleBottomService::DEFAULT_TIMEFRAME,
+        float $minRr = 1.20,
+        float $maxBreakoutZone = 3.5
     ): ?array {
         $n = count($slice);
         if ($n < 20) {
@@ -272,6 +282,31 @@ final class DoubleBottomBacktestService
                     continue;
                 }
 
+                $distToNecklinePct = (($currentClose - $neckPrice) / max(0.01, $neckPrice)) * 100;
+
+                // A. Golden Entry Zone: Batasi overextension (jangan beli jika harga sudah terbang > maxBreakoutZone dari neckline)
+                if ($isBreakout && $distToNecklinePct > $maxBreakoutZone) {
+                    continue; // Overextended breakout: skip FOMO entry
+                }
+
+                // B. Breakout Freshness: Pastikan breakout terjadi baru-baru ini (maksimal 2 bar penutupan di atas neckline sejak B2)
+                if ($isBreakout) {
+                    $barsAboveNeck = 0;
+                    for ($bIdx = $b2['index'] + 1; $bIdx < $n - 1; $bIdx++) {
+                        if ((float) $slice[$bIdx]['close'] >= $neckPrice) {
+                            $barsAboveNeck++;
+                        }
+                    }
+                    if ($barsAboveNeck > 2) {
+                        continue; // Breakout sudah terjadi lama, bukan sinyal segar
+                    }
+
+                    $barsSinceB2 = ($n - 1) - $b2['index'];
+                    if ($barsSinceB2 > 30) {
+                        continue;
+                    }
+                }
+
                 // --- 2. FILTER TREND (ANTI PISAU JATUH) ---
                 if ($trendFilter) {
                     // Jangan ambil Early jika harga terjun bebas jauh di bawah SMA20 (> 5%)
@@ -279,12 +314,13 @@ final class DoubleBottomBacktestService
                         continue;
                     }
                     // Pastikan ada tren turun awal sebelum B1 (reversal valid, bukan noise sideways)
-                    $preDropBars = min(20, $b1['index']);
+                    $preDropBars = min(25, $b1['index']);
                     if ($preDropBars >= 5) {
                         $preHigh = max(array_column(array_slice($slice, $b1['index'] - $preDropBars, $preDropBars), 'high'));
                         $dropPct = ($preHigh - $b1['price']) / max($preHigh, 0.01);
-                        if ($dropPct < 0.03) {
-                            continue; // Drop awal kurang signifikan (< 3%)
+                        $minPreDrop = ($timeframe >= 24) ? 0.045 : 0.03; // Daily butuh minimal drop 4.5%
+                        if ($dropPct < $minPreDrop) {
+                            continue; // Drop awal kurang signifikan
                         }
                     }
                 }
@@ -292,8 +328,8 @@ final class DoubleBottomBacktestService
                 // --- 3. FILTER KONFIRMASI VOLUME ---
                 if ($volumeFilter) {
                     if ($isBreakout) {
-                        // Breakout butuh konfirmasi partisipasi (RVOL minimal 1.05x)
-                        if ($currRvol < 1.05) {
+                        // Breakout butuh konfirmasi partisipasi (RVOL minimal 1.15x)
+                        if ($currRvol < 1.15) {
                             continue;
                         }
                     } elseif ($isEarly) {
@@ -315,7 +351,7 @@ final class DoubleBottomBacktestService
                 $entryPrice = $currentClose;
                 
                 // Stop Loss:
-                // Jika Breakout: SL ketat di bawah Neckline (2%) atau bawah low breakout
+                // Jika Breakout: SL di bawah Neckline (2% - 2.5% buffer)
                 // Jika Early: SL di bawah Low Lembah W (1.5% buffer)
                 if ($isBreakout) {
                     $stopLoss = round(max($avgLow * 0.985, $neckPrice * 0.975), 2);
@@ -323,24 +359,42 @@ final class DoubleBottomBacktestService
                     $stopLoss = round(min($b1['price'], $b2['price']) * 0.985, 2);
                 }
 
+                // Batasi risiko maksimal (Max SL Cap) agar tidak pernah terjadi loss masif > 5% pada Daily atau > 3.5% pada Intraday
+                $maxAllowedSlPct = ($timeframe >= 24) ? 0.05 : 0.035;
+                if (($entryPrice - $stopLoss) / $entryPrice > $maxAllowedSlPct) {
+                    $stopLoss = round($entryPrice * (1 - $maxAllowedSlPct), 2);
+                }
+
                 // Proteksi minimum risk 0.8% dari entry
                 if (($entryPrice - $stopLoss) < ($entryPrice * 0.008)) {
                     $stopLoss = round($entryPrice * 0.985, 2);
                 }
 
-                $tp1 = round($neckPrice + ($patternHeight * 0.50), 2);
-                $tp2 = round($neckPrice + ($patternHeight * 1.00), 2);
+                // Target TP1 & TP2:
+                if ($timeframe >= 24) {
+                    // Daily Timeframe: Target penuh untuk menangkap reli swing (100% Measured Move & 161.8% Fib Extension)
+                    $tp1 = round($neckPrice + $patternHeight, 2);
+                    $tp2 = round($neckPrice + ($patternHeight * 1.618), 2);
+                } else {
+                    // Intraday: TP1 75% Measured Move, TP2 100% Measured Move
+                    $tp1 = round($neckPrice + ($patternHeight * 0.75), 2);
+                    $tp2 = round($neckPrice + $patternHeight, 2);
+                }
 
                 if ($tp1 <= $entryPrice) {
-                    $tp1 = round($entryPrice + ($patternHeight * 0.5), 2);
+                    $tp1 = round($entryPrice + max($patternHeight * 0.5, $entryPrice * 0.02), 2);
                 }
                 if ($tp2 <= $tp1) {
-                    $tp2 = round($tp1 + $patternHeight, 2);
+                    $tp2 = round($tp1 + max($patternHeight * 0.5, $entryPrice * 0.02), 2);
                 }
 
                 $risk = max(0.01, $entryPrice - $stopLoss);
-                $reward = max(0.01, $tp2 - $entryPrice);
+                $reward = max(0.01, $tp1 - $entryPrice);
                 $rr = round($reward / $risk, 2);
+
+                if ($rr < $minRr) {
+                    continue; // Tolak trade jika rasio R:R di bawah batas minimum
+                }
 
                 return [
                     'date' => $slice[$n - 1]['date'],
@@ -440,14 +494,24 @@ final class DoubleBottomBacktestService
                     $exitReason = 'TAKE_PROFIT_1';
                     $exitBar = $j;
                     if ($trailingSl) {
-                        // Kunci 50% profit & geser SL sisa posisi ke Breakeven (+ total fee)
-                        $stopLoss = round($entryPrice * (1 + ($totalCostPct / 100) + 0.002), 2);
+                        // Kunci 50% profit. Geser SL sisa posisi ke level aman (Neckline atau Breakeven)
+                        // agar tidak langsung tertutup oleh ekor candle / noise intraday
+                        $necklineRef = (float) ($pattern['neckline_price'] ?? $entryPrice);
+                        $stopLoss = max(round($necklineRef * 0.995, 2), round($entryPrice * 0.995, 2));
                     }
                 }
             } else {
-                // 2. Sudah hit TP1: Trailing stop Breakeven melindungi sisa posisi dari kerugian
+                // 2. Sudah hit TP1: Trailing stop melindungi sisa posisi
+                if ($trailingSl) {
+                    // Jika harga terus naik melebihi TP1, naikkan trailing stop bertahap mengikuti reli
+                    $trailingLevel = round($cHigh - ($pattern['pattern_height'] * 0.40), 2);
+                    if ($trailingLevel > $stopLoss) {
+                        $stopLoss = $trailingLevel;
+                    }
+                }
+
                 if ($cLow <= $stopLoss && $trailingSl) {
-                    // 50% dieksekusi di TP1, 50% di breakeven stop loss
+                    // 50% dieksekusi di TP1, 50% di trailing stop
                     $exitPrice = round(($tp1 + $stopLoss) / 2, 2);
                     $exitReason = 'TP1_TRAILING_BEP';
                     $exitBar = $j;
