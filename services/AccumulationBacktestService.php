@@ -62,6 +62,7 @@ final class AccumulationBacktestService
         $netBuyLb = (int) ($options['netBuyLookback'] ?? 5);
         $obvPeriod = (int) ($options['obvSlopePeriod'] ?? 10);
         $accWindow = (int) ($options['accWindow'] ?? 10);
+        $maxRangePct = (float) ($options['maxRangePct'] ?? 25.0);
 
         $feePct = (float) ($options['feePct'] ?? 0.30); // 0.3% per putaran (buy+sell)
         $slippagePct = (float) ($options['slippagePct'] ?? 0.10); // 0.1% slippage
@@ -114,7 +115,8 @@ final class AccumulationBacktestService
                     $persistence,
                     $netBuyLb,
                     $obvPeriod,
-                    $accWindow
+                    $accWindow,
+                    $maxRangePct
                 );
 
                 if ($isSignal) {
@@ -169,6 +171,10 @@ final class AccumulationBacktestService
         $symbol = !empty($options['symbol']) ? strtoupper(trim((string) $options['symbol'])) : null;
         $exchange = !empty($options['exchange']) ? trim((string) $options['exchange']) : null;
         $maxStocks = (int) ($options['maxStocks'] ?? 15);
+        $feePct = (float) ($options['feePct'] ?? 0.30);
+        $slippagePct = (float) ($options['slippagePct'] ?? 0.10);
+        $splitRatio = (float) ($options['splitRatio'] ?? 0.70);
+        $maxRangePct = (float) ($options['maxRangePct'] ?? 25.0);
 
         // Ambil sampel kombinasi utama yang disarankan user
         $testVariations = [
@@ -191,6 +197,10 @@ final class AccumulationBacktestService
                 'netBuyLookback' => $var['netBuy'],
                 'obvSlopePeriod' => $var['obv'],
                 'accWindow' => $var['win'],
+                'maxRangePct' => $maxRangePct,
+                'feePct' => $feePct,
+                'slippagePct' => $slippagePct,
+                'splitRatio' => $splitRatio,
                 'maxStocks' => $maxStocks,
             ]);
 
@@ -281,7 +291,8 @@ final class AccumulationBacktestService
         int $persistence,
         int $netBuyLb,
         int $obvPeriod,
-        int $accWindow
+        int $accWindow,
+        float $maxRangePct = 25.0
     ): bool {
         // 1. Cek RVOL terhadap rata-rata 20 bar sebelumnya
         $volSlice = array_slice($p['volumes'], max(0, $idx - 20), 20);
@@ -338,8 +349,8 @@ final class AccumulationBacktestService
             $maxWin = max($winCloses);
             $minWin = min($winCloses);
             $rangePct = $minWin > 0 ? (($maxWin - $minWin) / $minWin) * 100 : 0.0;
-            // Rentang harga sideways/basis akumulasi tidak boleh terlalu liar (<= 15%)
-            if ($rangePct > 15.0) {
+            // Rentang harga sideways/basis akumulasi tidak boleh terlalu liar
+            if ($rangePct > $maxRangePct) {
                 return false;
             }
         }
@@ -378,7 +389,16 @@ final class AccumulationBacktestService
      */
     private function calculateForwardOutcome(array $p, int $idx, float $costPct): array
     {
-        $entryPrice = $p['closes'][$idx];
+        $entryPrice = (float) ($p['closes'][$idx] ?? 0.0);
+        if ($entryPrice <= 0.0) {
+            return [
+                'ret3d' => 0.0, 'netRet3d' => -$costPct,
+                'ret5d' => 0.0, 'netRet5d' => -$costPct,
+                'ret10d' => 0.0, 'netRet10d' => -$costPct,
+                'mae' => 0.0, 'mfe' => 0.0,
+                'win3d' => false, 'win5d' => false, 'win10d' => false,
+            ];
+        }
 
         // Forward returns
         $close3 = $p['closes'][$idx + 3] ?? $entryPrice;

@@ -21,14 +21,14 @@ $comb = $res['combined'];
 
 <div class="container-fluid px-0">
     <!-- Header Banner -->
-    <div class="card border-0 shadow-sm mb-4 bg-gradient text-white" style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">
+    <div class="card border-0 shadow-sm mb-4 text-white" style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: #ffffff;">
         <div class="card-body p-4">
             <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
                 <div>
-                    <h3 class="fw-bold mb-1">
+                    <h3 class="fw-bold mb-1 text-white">
                         <?= \app\helpers\SvgHelper::icon('graph-up-arrow', ['class' => 'me-2']) ?> Validasi &amp; Backtesting Pola Akumulasi
                     </h3>
-                    <p class="mb-0 text-white-50">
+                    <p class="mb-0" style="color: rgba(255, 255, 255, 0.85);">
                         Uji empiris historis (Walk-Forward Validation, Anti-Lookahead Bias) untuk menemukan parameter optimal RVOL, CMF, Persistence &amp; Net Buy.
                     </p>
                 </div>

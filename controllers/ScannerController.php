@@ -347,6 +347,9 @@ final class ScannerController extends Controller
         $comparisonResults = $backtestService->runParameterComparison([
             'symbol' => $symbol ?: null,
             'exchange' => $exchange ?: null,
+            'feePct' => $feePct,
+            'slippagePct' => $slippagePct,
+            'splitRatio' => $splitRatio,
             'maxStocks' => min(20, $maxStocks),
         ]);
 
