@@ -170,24 +170,42 @@ final class RsiBacktestService
         $open = (float) $curCandle['open'];
         $low = (float) $curCandle['low'];
         $high = (float) $curCandle['high'];
+        $barRange = max(0.0001, $high - $low);
+        $closePosInBar = ($close - $low) / $barRange;
 
-        // --- FILTER 1: Trend Protection Filter ---
-        if ($trendFilter && $idx >= 30) {
-            $recentCloses = array_map(fn ($c) => (float) $c['close'], array_slice($candles, $idx - 29, 30));
-            $sma30 = array_sum($recentCloses) / 30;
-            // Jika harga sedang free-fall di bawah 92% SMA30 dan di bawah bar sebelumnya, tolak knife-catching
-            if ($close < ($sma30 * 0.92) && $close < (float) $prevCandle['close']) {
-                return null;
+        // Hitung RVOL terhadap rata-rata 20 bar sebelumnya (anti-lookahead)
+        $volSlice = array_map(fn ($c) => (float) ($c['volume'] ?? 0), array_slice($candles, max(0, $idx - 20), 20));
+        $avgVol20 = !empty($volSlice) ? max(1.0, array_sum($volSlice) / count($volSlice)) : 1.0;
+        $rvol = ((float) ($curCandle['volume'] ?? 0)) / $avgVol20;
+
+        // --- FILTER 1: Trend Protection Filter (Anti-Falling Knife) ---
+        if ($trendFilter && $idx >= 35) {
+            $recentCloses30 = array_map(fn ($c) => (float) $c['close'], array_slice($candles, $idx - 29, 30));
+            $prevCloses30 = array_map(fn ($c) => (float) $c['close'], array_slice($candles, $idx - 34, 30));
+            $sma30 = array_sum($recentCloses30) / 30;
+            $sma30Prev = array_sum($prevCloses30) / 30;
+            $isSma30Falling = $sma30 < $sma30Prev;
+
+            $recentCloses20 = array_slice($recentCloses30, -20);
+            $sma20 = array_sum($recentCloses20) / 20;
+
+            // Jika tren menengah sedang jatuh tajam (>6% di bawah SMA30 yang menurun), tolak entry
+            // kecuali ada konfirmasi volume & candle hijau kuat (capitulation reversal)
+            if ($close < ($sma30 * 0.94) && $isSma30Falling) {
+                $hasStrongReversalVolume = ($rvol >= 1.1 && $closePosInBar >= 0.50 && $close > $open);
+                if (!$hasStrongReversalVolume) {
+                    return null;
+                }
             }
         }
 
         // --- FILTER 2: Bullish Reversal Confirmation ---
         if ($candleConfirmation) {
-            // Candle harus bullish (close >= open) ATAU close melompat di atas close bar sebelumnya
             $isBullishBody = ($close >= $open);
             $isReclaimPrev = ($close > (float) $prevCandle['close']);
-            if (!$isBullishBody && !$isReclaimPrev) {
-                return null; // Abaikan candle merah yang terus ambles
+            $hasStrongClose = ($closePosInBar >= 0.40);
+            if ((!$isBullishBody && !$isReclaimPrev) || !$hasStrongClose) {
+                return null; // Abaikan candle lemah / tekanan jual di penutupan
             }
         }
 
@@ -195,26 +213,26 @@ final class RsiBacktestService
         $signalName = null;
         $badgeClass = 'success';
 
-        // 1. Bullish Divergence Reversal (Harga Low lebih rendah / swing low baru, tapi RSI membentuk Higher Low di zona oversold < 45)
+        // 1. Bullish Divergence Reversal (Harga Low lebih rendah, tapi RSI membentuk Higher Low & sudah berbalik naik)
         $div = $this->checkBarBullishDivergence($candles, $rsi, $idx);
         if ($div !== null) {
             $signalType = 'BULLISH_DIVERGENCE';
             $signalName = 'Bullish Divergence (' . $div['desc'] . ')';
             $badgeClass = 'primary';
         }
-        // 2. Oversold Cross Up 30 (RSI rebound menembus 30 ke atas dari zona oversold)
-        elseif ($prevRsi <= 30.5 && $curRsi > 30.5 && $curRsi <= 45.0) {
+        // 2. Oversold Cross Up 30 (RSI rebound menembus 30 ke atas dengan momentum >= +1.0)
+        elseif ($prevRsi <= 30.5 && $curRsi > 30.5 && $curRsi <= 45.0 && ($curRsi - $prevRsi) >= 1.0) {
             $signalType = 'OVERSOLD_CROSS_UP';
             $signalName = 'RSI Oversold Cross Up (30)';
             $badgeClass = 'success';
         }
-        // 3. Oversold Bounce Reversal (RSI memantul dari titik nadir < 33 dan candle hijau)
-        elseif ($prev2Rsi !== null && $prev2Rsi <= 33.0 && $curRsi > $prevRsi && $curRsi <= 45.0 && $close >= (float) $curCandle['open']) {
+        // 3. Oversold Bounce Reversal (RSI memantul dari titik nadir < 33, naik >= +1.0, dan candle hijau)
+        elseif ($prev2Rsi !== null && $prev2Rsi <= 33.0 && $curRsi > $prevRsi && ($curRsi - $prevRsi) >= 1.0 && $curRsi <= 45.0 && $close >= $open) {
             $signalType = 'OVERSOLD_BOUNCE';
             $signalName = 'RSI Oversold Bounce Reversal';
             $badgeClass = 'info text-dark';
         }
-        // 4. RSI Double Bottom Pattern (W-Pattern) di sub-window 30 bar
+        // 4. RSI Double Bottom Pattern (W-Pattern) dengan konfirmasi pantulan naik
         else {
             $db = $this->checkBarDoubleBottom($candles, $rsi, $idx);
             if ($db !== null) {
@@ -222,25 +240,52 @@ final class RsiBacktestService
                 $signalName = 'RSI Double Bottom Reversal';
                 $badgeClass = 'warning text-dark';
             }
+            // 5. Uptrend Pullback Bounce (Saham di atas SMA30 yang naik, RSI memantul dari zona support 38-48)
+            elseif ($idx >= 35) {
+                $recent30 = array_map(fn ($c) => (float) $c['close'], array_slice($candles, $idx - 29, 30));
+                $sma30Now = array_sum($recent30) / 30;
+                if ($close >= $sma30Now && $prevRsi >= 36.0 && $prevRsi <= 46.0 && $curRsi > $prevRsi + 1.0 && $curRsi <= 52.0 && $close >= $open) {
+                    $signalType = 'UPTREND_PULLBACK';
+                    $signalName = 'RSI Uptrend Pullback Bounce';
+                    $badgeClass = 'primary';
+                }
+            }
         }
 
         if ($signalType === null) {
             return null;
         }
 
-        // Tentukan Target TP1, TP2 dan SL (di bawah swing low terdekat)
+        // Hitung ATR(14) untuk Stop Loss proporsional terhadap volatilitas saham
+        $atrSum = 0.0;
+        $atrCount = 0;
+        for ($k = max(1, $idx - 13); $k <= $idx; $k++) {
+            $tr = max(
+                (float) $candles[$k]['high'] - (float) $candles[$k]['low'],
+                abs((float) $candles[$k]['high'] - (float) $candles[$k - 1]['close']),
+                abs((float) $candles[$k]['low'] - (float) $candles[$k - 1]['close'])
+            );
+            $atrSum += $tr;
+            $atrCount++;
+        }
+        $atr14 = $atrCount > 0 ? ($atrSum / $atrCount) : ($close * 0.02);
+
+        // Tentukan Stop Loss berbasis Swing Low (6 bar) & 2.0x ATR, dibatasi 3.0% - 6.5%
         $windowLow = (float) $curCandle['low'];
-        for ($k = max(0, $idx - 10); $k <= $idx; $k++) {
+        for ($k = max(0, $idx - 5); $k <= $idx; $k++) {
             $windowLow = min($windowLow, (float) $candles[$k]['low']);
         }
-        $stopLoss = round(min($windowLow * 0.985, $close * 0.965), 2);
+        $rawSl = min($windowLow * 0.99, $close - (2.0 * $atr14));
+        $minSl = $close * 0.935; // Maksimal risiko 6.5%
+        $maxSl = $close * 0.970; // Minimal ruang napas 3.0%
+        $stopLoss = round(max($minSl, min($maxSl, $rawSl)), 2);
         $risk = max(0.01, $close - $stopLoss);
 
         if ($tpModel === 'adaptive') {
             // Adaptive TP untuk Swing & Intraday:
-            // TP1 = 1.2R (area realistis tercapai untuk mengamankan 50% cuan)
+            // TP1 = 1.4R (realistis tercapai untuk amankan 50% posisi + geser BEP)
             // TP2 = 2.5R (target ekstensi lanjutan)
-            $tp1 = round($close + ($risk * 1.2), 2);
+            $tp1 = round($close + ($risk * 1.4), 2);
             $tp2 = round($close + ($risk * 2.5), 2);
         } else {
             // Standard / Long-term Model
@@ -309,7 +354,7 @@ final class RsiBacktestService
         $hitTp1 = false;
         $hitTp2 = false;
         $hitSl = false;
-        $exitPrice = $entryPrice;
+        $exitPrice = (float) ($candles[$maxForward]['close'] ?? $entryPrice);
         $exitReason = 'TIME_EXIT';
         $exitBar = $maxForward;
 
@@ -320,14 +365,20 @@ final class RsiBacktestService
             $minLowForward = min($minLowForward, $cLow);
             $maxHighForward = max($maxHighForward, $cHigh);
 
-            // Trailing Break-Even Rule: Jika TP1 sudah kena di mode adaptive, SL digeser ke Entry Price (BEP)
-            $activeSl = ($hitTp1 && $tpModel === 'adaptive') ? $entryPrice : $stopLoss;
+            // Trailing Break-Even Rule: Jika TP1 sudah kena, SL sisa 50% posisi digeser ke Entry Price (BEP)
+            $activeSl = $hitTp1 ? $entryPrice : $stopLoss;
 
             // Cek Hit SL
-            if ($cLow <= $activeSl && !$hitSl) {
-                $hitSl = true;
-                $exitPrice = $activeSl;
-                $exitReason = ($activeSl === $entryPrice) ? 'BREAK_EVEN' : 'STOP_LOSS';
+            if ($cLow <= $activeSl) {
+                if ($hitTp1) {
+                    // 50% sudah profit di TP1, 50% sisa keluar di BEP
+                    $exitPrice = ($tp1 + $entryPrice) / 2.0;
+                    $exitReason = 'TP1_PARTIAL_BEP';
+                } else {
+                    $hitSl = true;
+                    $exitPrice = $stopLoss;
+                    $exitReason = 'STOP_LOSS';
+                }
                 $exitBar = $j;
                 break;
             }
@@ -335,22 +386,26 @@ final class RsiBacktestService
             // Cek Hit TP1
             if ($cHigh >= $tp1 && !$hitTp1) {
                 $hitTp1 = true;
-                $exitPrice = $tp1;
                 $exitReason = 'TAKE_PROFIT_1';
                 $exitBar = $j;
-                if ($tpModel === 'adaptive') {
-                    // Di model adaptive, setelah TP1 kita geser SL ke BEP dan biarkan 50% posisi mengincar TP2
-                }
             }
 
             // Cek Hit TP2
             if ($cHigh >= $tp2 && !$hitTp2) {
                 $hitTp2 = true;
-                $exitPrice = $tp2;
+                $exitPrice = ($tp1 + $tp2) / 2.0;
                 $exitReason = 'TAKE_PROFIT_2';
                 $exitBar = $j;
                 break;
             }
+        }
+
+        // Jika sampai bar ke-20 tidak hit TP2 maupun SL, gunakan harga penutupan bar ke-20 (atau blended 50% TP1 + 50% Close)
+        if ($exitReason === 'TAKE_PROFIT_1') {
+            $finalClose = (float) ($candles[$maxForward]['close'] ?? $tp1);
+            $exitPrice = ($tp1 + $finalClose) / 2.0;
+        } elseif ($exitReason === 'TIME_EXIT') {
+            $exitPrice = (float) ($candles[$maxForward]['close'] ?? $entryPrice);
         }
 
         $tradeGrossRet = round((($exitPrice - $entryPrice) / $entryPrice) * 100, 2);
@@ -461,17 +516,26 @@ final class RsiBacktestService
     }
 
     /**
-     * Cek Bullish Divergence pada bar $idx tanpa lookahead.
+     * Cek Bullish Divergence pada bar $idx tanpa lookahead (dengan konfirmasi RSI berbalik naik).
      */
     private function checkBarBullishDivergence(array $candles, array $rsi, int $idx): ?array
     {
         $curRsi = $rsi[$idx] ?? null;
-        if ($curRsi === null || $curRsi > 45.0) {
+        $prevRsi = $rsi[$idx - 1] ?? null;
+        if ($curRsi === null || $prevRsi === null || $curRsi > 45.0) {
+            return null;
+        }
+
+        // Wajib konfirmasi RSI sudah mulai berbalik naik (mencegah entry saat masih jatuh bebas)
+        if ($curRsi <= $prevRsi) {
             return null;
         }
 
         // Lookback 5 s/d 25 bar ke belakang untuk mencari swing trough sebelumnya
-        $p2 = (float) $candles[$idx]['low'];
+        $p2 = min(
+            (float) $candles[$idx]['low'],
+            (float) ($candles[$idx - 1]['low'] ?? $candles[$idx]['low'])
+        );
         $r2 = (float) $curRsi;
 
         for ($k = $idx - 5; $k >= max(0, $idx - 25); $k--) {
@@ -488,7 +552,7 @@ final class RsiBacktestService
                 $r1 = (float) $prevR;
 
                 // Harga membuat Lower Low ($p2 < $p1), RSI membuat Higher Low ($r2 > $r1)
-                if ($p2 < $p1 * 0.998 && $r2 >= $r1 + 1.2) {
+                if ($p2 < $p1 * 0.998 && $r2 >= $r1 + 1.5) {
                     return [
                         'desc' => "RSI: " . round($r1, 1) . ' -> ' . round($r2, 1),
                         'bars_ago' => $idx - $k,
@@ -501,12 +565,13 @@ final class RsiBacktestService
     }
 
     /**
-     * Cek RSI Double Bottom pada bar $idx tanpa lookahead.
+     * Cek RSI Double Bottom pada bar $idx tanpa lookahead (dengan konfirmasi pantulan naik).
      */
     private function checkBarDoubleBottom(array $candles, array $rsi, int $idx): ?array
     {
         $curRsi = $rsi[$idx] ?? null;
-        if ($curRsi === null || $curRsi > 48.0) {
+        $prevRsi = $rsi[$idx - 1] ?? null;
+        if ($curRsi === null || $prevRsi === null || $curRsi > 48.0 || $curRsi <= $prevRsi) {
             return null;
         }
 
@@ -523,7 +588,7 @@ final class RsiBacktestService
                 for ($m = $k + 1; $m < $idx; $m++) {
                     $neck = max($neck, (float) ($rsi[$m] ?? 0));
                 }
-                if ($neck >= max($r1, $r2) + 2.0) {
+                if ($neck >= max($r1, $r2) + 2.5) {
                     return [
                         'r1' => $r1,
                         'r2' => $r2,
