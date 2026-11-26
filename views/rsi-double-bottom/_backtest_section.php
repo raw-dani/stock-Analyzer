@@ -294,6 +294,8 @@ $trades = $res['recentTrades'] ?? [];
                                     <td>
                                         <?php if (!empty($t['hit_tp2'])): ?>
                                             <span class="badge bg-success">HIT TP2 (+<?= number_format($t['tp2_gain_pct'], 1) ?>%)</span>
+                                        <?php elseif (($t['exit_reason'] ?? '') === 'TP1_PARTIAL_BEP'): ?>
+                                            <span class="badge bg-success">TP1 + BEP</span>
                                         <?php elseif (!empty($t['hit_tp1'])): ?>
                                             <span class="badge bg-success">HIT TP1 (+<?= number_format($t['tp1_gain_pct'], 1) ?>%)</span>
                                         <?php elseif (!empty($t['hit_sl'])): ?>
