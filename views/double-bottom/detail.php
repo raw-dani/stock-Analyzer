@@ -70,7 +70,7 @@ $btMaxZone = (float) ($btMaxZone ?? Yii::$app->request->get('btMaxZone', 3.5));
                 'bottom2' => $pattern['low2_price'] ?? ($pattern['bottom2'] ?? null),
                 'target_1' => $pattern['tp1_price'] ?? null,
                 'target_2' => $pattern['tp2_price'] ?? ($pattern['target_price'] ?? null),
-                'stop_loss' => $pattern['stop_loss_tight'] ?? ($pattern['stop_loss'] ?? null),
+                'stop_loss' => $pattern['stop_loss_tight'] ?? ($pattern['stop_loss_swing'] ?? ($pattern['stop_loss'] ?? null)),
                 'trade_status' => $pattern['trade_status'] ?? null,
                 'rvol' => $pattern['rvol'] ?? null,
             ],
@@ -239,7 +239,7 @@ $btMaxZone = (float) ($btMaxZone ?? Yii::$app->request->get('btMaxZone', 3.5));
                     ['target_price', 'TP2 (100%)', '#198754', 'solid'],
                     ['tp3_price', 'TP3 (1.618)', '#0f5132', 'dotted'],
                     ['stop_loss_tight', 'Tight SL', '#fd7e14', 'dashed'],
-                    ['stop_loss', 'Swing SL', '#dc3545', 'solid'],
+                    ['stop_loss_swing', 'Swing SL', '#dc3545', 'solid'],
                 ];
                 foreach ($levels as [$key, $label, $color, $type]) {
                     if (isset($pattern[$key])) {

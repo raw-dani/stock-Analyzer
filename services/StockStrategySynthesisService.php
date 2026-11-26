@@ -376,18 +376,24 @@ final class StockStrategySynthesisService
                     if ($r === null) {
                         return $this->buildFallbackResult('Tidak terdeteksi formasi Double Bottom');
                     }
-                    $isBuy = ($r['breakout'] ?? false) || in_array($r['trade_action'] ?? '', ['BUY', 'ENTRY'], true);
+                    $tradeStatus = $r['trade_status'] ?? '';
+                    $isBuy = in_array($tradeStatus, ['buy_zone', 'retest', 'early_setup'], true);
+                    $slUsed = match ($tradeStatus) {
+                        'retest'      => (float) ($r['stop_loss_retest'] ?? $r['stop_loss_tight'] ?? $r['stop_loss'] ?? 0),
+                        'buy_zone'    => (float) ($r['stop_loss_tight'] ?? $r['stop_loss'] ?? 0),
+                        default       => (float) ($r['stop_loss_swing'] ?? $r['stop_loss'] ?? 0),
+                    };
                     return [
                         'status' => 'success',
                         'action' => $isBuy ? 'BUY' : 'WATCH',
                         'action_type' => $isBuy ? 'BUY' : 'WAIT',
-                        'signal_title' => ($r['breakout'] ?? false) ? 'Double Bottom Breakout' : 'Double Bottom Formation',
+                        'signal_title' => $r['trade_action'] ?? (($r['breakout'] ?? false) ? 'Double Bottom Breakout' : 'Double Bottom Formation'),
                         'score' => $r['confidence'] ?? 60,
                         'entry' => isset($r['entry_zone_min']) ? ('$' . number_format($r['entry_zone_min'], 2) . ' - $' . number_format($r['entry_zone_max'], 2)) : ('$' . number_format($r['neckline'] ?? 0, 2)),
-                        'stop_loss' => '$' . number_format($r['stop_loss'] ?? 0, 2),
+                        'stop_loss' => '$' . number_format($slUsed, 2),
                         'target' => '$' . number_format($r['target_price'] ?? 0, 2),
                         'rr_ratio' => ($r['best_rr'] ?? ($r['risk_reward'] ?? 1.5)) . 'x',
-                        'description' => 'Neckline: $' . number_format($r['neckline'] ?? 0, 2) . ' (Confidence: ' . ($r['confidence'] ?? 0) . '%)',
+                        'description' => 'Neckline: $' . number_format($r['neckline'] ?? 0, 2) . ' | Status: ' . ($r['trade_action'] ?? '-') . ' (Conf: ' . ($r['confidence'] ?? 0) . '%)',
                     ];
 
                 case 'triple_bottom':

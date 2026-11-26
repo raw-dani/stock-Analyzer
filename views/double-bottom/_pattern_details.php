@@ -13,12 +13,16 @@ $tp1 = (float) ($pattern['tp1_price'] ?? ($neckline + (($targetPrice - $neckline
 $tp2 = (float) ($pattern['tp2_price'] ?? $targetPrice);
 $tp3 = (float) ($pattern['tp3_price'] ?? ($neckline + (($targetPrice - $neckline) * 1.618)));
 $stopLossTight = (float) ($pattern['stop_loss_tight'] ?? round($neckline * 0.98, 2));
-$stopLossSwing = (float) ($pattern['stop_loss'] ?? round((($pattern['low1_price'] + $pattern['low2_price']) / 2) * 0.98, 2));
+$stopLossSwing = (float) ($pattern['stop_loss_swing'] ?? ($pattern['stop_loss'] ?? round((($pattern['low1_price'] + $pattern['low2_price']) / 2) * 0.98, 2)));
 $distPct = (float) ($pattern['distance_neckline_pct'] ?? 0);
 $bestRr = (float) ($pattern['best_rr'] ?? ($pattern['risk_reward'] ?? 0));
 $rvol = (float) ($pattern['rvol'] ?? 1.0);
+$breakoutRvol = (float) ($pattern['breakout_rvol'] ?? $rvol);
 $volDryUp = !empty($pattern['volume_dry_up']);
-$volConfirmed = !empty($pattern['volume_confirmed']) || $rvol >= 1.3;
+$boVolConfirmed = !empty($pattern['breakout_volume_confirmed']);
+$hasValidDowntrend = !empty($pattern['prior_downtrend']['valid']);
+$isMidClean = $pattern['mid_pattern_clean'] ?? true;
+$accountCapitalDefault = (int) round((float) ($pattern['position_sizing']['account_capital'] ?? 10000));
 
 $isBreakout = !empty($pattern['breakout']);
 $effectiveSl = ($isBreakout && $currentPrice > $stopLossTight) ? $stopLossTight : $stopLossSwing;
@@ -231,14 +235,18 @@ $lossSwingPct = $currentPrice > 0 ? abs(($currentPrice - $stopLossSwing) / $curr
                 <h5 class="mb-0 fw-bold"><?= \app\helpers\SvgHelper::icon('compass-fill', ['class' => 'text-success']) ?> Rencana Eksekusi Trading</h5>
             </div>
             <div class="card-body">
-                <div class="alert <?= $tradeStatus === 'buy_zone' || $tradeStatus === 'retest' ? 'alert-success' : ($tradeStatus === 'overextended' ? 'alert-danger' : 'alert-warning') ?> mb-3">
+                <div class="alert <?= in_array($tradeStatus, ['buy_zone', 'retest', 'early_setup'], true) ? 'alert-success' : ($tradeStatus === 'overextended' ? 'alert-danger' : 'alert-warning') ?> mb-3">
                     <h6 class="fw-bold mb-1"><?= \app\helpers\SvgHelper::icon('arrow-right-circle-fill') ?> Instruksi Eksekusi:</h6>
                     <?php if ($tradeStatus === 'buy_zone'): ?>
                         Saham berada di <strong>Golden Buy Zone</strong>. Anda dapat mengambil posisi beli saat ini di harga $<?= number_format($currentPrice, 2) ?> dengan target TP1 $<?= number_format($tp1, 2) ?> dan Stop Loss ketat di $<?= number_format($stopLossTight, 2) ?>.
                     <?php elseif ($tradeStatus === 'retest'): ?>
                         Harga sedang melakukan <strong>Pullback / Retest</strong> di area Neckline. Ini merupakan titik entri berprobabilitas tinggi dengan rasio R:R optimal.
+                    <?php elseif ($tradeStatus === 'early_setup'): ?>
+                        Saham menunjukkan <strong>Early Rebound</strong> di Lembah 2 ($<?= number_format($pattern['low2_price'] ?? $currentPrice, 2) ?>) dengan tekanan jual mengering. Opsi beli agresif dengan target awal Neckline $<?= number_format($neckline, 2) ?> dan Swing SL ketat di $<?= number_format($stopLossSwing, 2) ?>.
+                    <?php elseif ($tradeStatus === 'extended'): ?>
+                        Harga sudah mulai menjauh <strong>(+<?= number_format($distPct, 1) ?>% di atas Neckline)</strong>. Disarankan tahan untuk tidak mengejar di pucuk; tunggu koreksi ke area retest Neckline ($<?= number_format($neckline, 2) ?>).
                     <?php elseif ($tradeStatus === 'overextended'): ?>
-                        <strong>JANGAN BELI SEKARANG!</strong> Harga sudah naik lebih dari 6% dari titik breakout. Pasang alert atau limit order di area retest neckline ($<?= number_format($neckline, 2) ?>).
+                        <strong>JANGAN BELI SEKARANG!</strong> Harga sudah naik lebih dari 6.5% dari titik breakout. Pasang alert atau limit order di area retest neckline ($<?= number_format($neckline, 2) ?>).
                     <?php elseif ($tradeStatus === 'approaching'): ?>
                         Harga sedang mendekati Neckline ($<?= number_format($neckline, 2) ?>). Anda dapat memasang <strong>Buy Stop Order</strong> di $<?= number_format($neckline * 1.005, 2) ?> untuk otomatis membeli begitu breakout terkonfirmasi.
                     <?php else: ?>
@@ -250,8 +258,12 @@ $lossSwingPct = $currentPrice > 0 ? abs(($currentPrice - $stopLossSwing) / $curr
                 <h6 class="fw-bold text-dark mb-2">5-Point Trading Checklist:</h6>
                 <ul class="list-group list-group-flush border rounded mb-3 small">
                     <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <span>1. Bentuk Pola W Simetris &amp; Valid</span>
-                        <span class="badge bg-success">Lulus ✓</span>
+                        <span>1. Bentuk Pola W Valid &amp; Didahului Downtrend</span>
+                        <?php if ($hasValidDowntrend && $isMidClean): ?>
+                            <span class="badge bg-success">Lulus ✓ (Drop <?= number_format((float)($pattern['prior_downtrend']['drop_pct'] ?? 0), 1) ?>%)</span>
+                        <?php else: ?>
+                            <span class="badge bg-warning text-dark">Lemah ⚠️</span>
+                        <?php endif; ?>
                     </li>
                     <li class="list-group-item d-flex justify-content-between align-items-center">
                         <span>2. Volume Low 2 Mengering (Supply Dry-up)</span>
@@ -270,11 +282,13 @@ $lossSwingPct = $currentPrice > 0 ? abs(($currentPrice - $stopLossSwing) / $curr
                         <?php endif; ?>
                     </li>
                     <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <span>4. Lonjakan Volume Breakout (RVOL &gt; 1.3x)</span>
-                        <?php if ($volConfirmed): ?>
-                            <span class="badge bg-success">Lulus ✓ (RVOL <?= number_format($rvol, 1) ?>x)</span>
+                        <span>4. Lonjakan Volume Breakout (RVOL &ge; 1.3x)</span>
+                        <?php if (!$isBreakout && $tradeStatus !== 'retest'): ?>
+                            <span class="badge bg-secondary">Menunggu Breakout (RVOL <?= number_format($rvol, 1) ?>x)</span>
+                        <?php elseif ($boVolConfirmed): ?>
+                            <span class="badge bg-success">Lulus ✓ (Breakout RVOL <?= number_format($breakoutRvol, 1) ?>x)</span>
                         <?php else: ?>
-                            <span class="badge bg-warning text-dark">Rendah (RVOL <?= number_format($rvol, 1) ?>x)</span>
+                            <span class="badge bg-warning text-dark">Rendah (Breakout RVOL <?= number_format($breakoutRvol, 1) ?>x)</span>
                         <?php endif; ?>
                     </li>
                     <li class="list-group-item d-flex justify-content-between align-items-center">
@@ -298,7 +312,7 @@ $lossSwingPct = $currentPrice > 0 ? abs(($currentPrice - $stopLossSwing) / $curr
                 <div class="row g-2 mb-3">
                     <div class="col-md-6">
                         <label class="form-label small fw-bold">Total Modal Portofolio ($)</label>
-                        <input type="number" id="calc-capital" class="form-control form-control-sm" value="10000" min="100" step="500">
+                        <input type="number" id="calc-capital" class="form-control form-control-sm" value="<?= $accountCapitalDefault ?>" min="100" step="500">
                     </div>
                     <div class="col-md-6">
                         <label class="form-label small fw-bold">Maks. Risiko Per Trade (%)</label>

@@ -124,7 +124,7 @@ $filterWith = fn(array $overrides) => \yii\helpers\Url::to(array_merge(['/double
         <a href="<?= $filterWith(['statusFilter' => 'buy_zone']) ?>" class="kpi-card-unified card border-0 shadow-sm text-decoration-none h-100 kpi-accent-emerald <?= $statusFilter === 'buy_zone' ? 'kpi-selected border border-success' : '' ?>">
             <div class="card-body p-3 d-flex flex-column justify-content-between">
                 <div class="kpi-header d-flex justify-content-between align-items-center mb-1">
-                    <span class="kpi-label small fw-bold text-uppercase text-success">Golden Buy Zone (0-3%)</span>
+                    <span class="kpi-label small fw-bold text-uppercase text-success">Golden Buy Zone (0-3.5%)</span>
                     <?= \app\helpers\SvgHelper::icon('check-circle', ['class' => 'text-success']) ?>
                 </div>
                 <div class="kpi-value h3 fw-bold mb-1 text-success"><?= $buyZoneCount ?></div>
@@ -176,7 +176,7 @@ $filterWith = fn(array $overrides) => \yii\helpers\Url::to(array_merge(['/double
             ) ?>
 
             <?= Html::a(
-                \app\helpers\SvgHelper::icon('check-circle-fill') . ' In Buy Zone (0-3%)',
+                \app\helpers\SvgHelper::icon('check-circle-fill') . ' In Buy Zone (0-3.5%)',
                 $filterWith(['statusFilter' => 'buy_zone']),
                 ['class' => 'preset-pill btn btn-sm rounded-pill px-3 py-1 ' . ($statusFilter === 'buy_zone' ? 'active btn-primary text-white border-primary shadow-sm' : 'btn-light text-secondary border')]
             ) ?>
@@ -394,9 +394,9 @@ $filterWith = fn(array $overrides) => \yii\helpers\Url::to(array_merge(['/double
                             <strong class="text-primary">$<?= number_format($r['current_price'], 2) ?></strong>
                         </td>
                         <td class="text-center">
-                            <?php if ($dist >= 0 && $dist <= 3.0): ?>
+                            <?php if ($dist >= 0 && $dist <= 3.5): ?>
                                 <span class="badge bg-success text-white">+<?= number_format($dist, 1) ?>%</span>
-                            <?php elseif ($dist > 3.0): ?>
+                            <?php elseif ($dist > 3.5): ?>
                                 <span class="badge bg-warning text-dark">+<?= number_format($dist, 1) ?>%</span>
                             <?php else: ?>
                                 <span class="badge bg-light text-secondary border"><?= number_format($dist, 1) ?>%</span>
@@ -459,7 +459,7 @@ $filterWith = fn(array $overrides) => \yii\helpers\Url::to(array_merge(['/double
             <div class="col-md-4">
                 <h6 class="fw-bold text-success"><?= \app\helpers\SvgHelper::icon('check-circle-fill') ?> 1. Kapan Harus Masuk Posisi (Entry)?</h6>
                 <ul class="small text-muted ps-3 mb-0">
-                    <li><strong>Golden Buy Zone:</strong> Masuk saat harga berada di antara <code>Neckline</code> s/d <code>Neckline + 2.5%</code> sesaat setelah breakout terkonfirmasi.</li>
+                    <li><strong>Golden Buy Zone:</strong> Masuk saat harga berada di antara <code>Neckline</code> s/d <code>Neckline + 3.5%</code> sesaat setelah breakout terkonfirmasi.</li>
                     <li><strong>Retest Entry:</strong> Jika harga sudah terlanjur naik tinggi, JANGAN KEJAR! Tunggu harga kembali menguji neckline dengan volume mengecil.</li>
                 </ul>
             </div>

@@ -74,8 +74,9 @@ final class DoubleBottomServiceTest extends Unit
         $this->assertGreaterThanOrEqual(70, $res['confidence']);
         // target = neckline + (neckline - avgLow) = 102 + (102-90.25) = 113.75
         $this->assertEqualsWithDelta(113.75, $res['target_price'], 0.001);
-        // stop loss = avgLow * (1 - buffer 2%)
-        $this->assertEqualsWithDelta(90.25 * 0.98, $res['stop_loss'], 0.001);
+        // stop loss harus selaras dengan stop_loss_swing di bawah min(low1, low2)
+        $this->assertSame($res['stop_loss_swing'], $res['stop_loss']);
+        $this->assertLessThan(min($res['low1_price'], $res['low2_price']), $res['stop_loss']);
     }
 
     public function testFlatSidewaysIsRejected(): void
@@ -169,6 +170,132 @@ final class DoubleBottomServiceTest extends Unit
         $candles[count($candles) - 1]['close'] = 75.0; // breakdown support
         $res = $this->find->invoke($this->service, $candles, 0.02, 3, 10, 0.015);
         $this->assertNull($res, 'Pola dengan breakdown support harus ditolak');
+    }
+
+    public function testMidPatternLowerLowIsRejected(): void
+    {
+        // Di antara B1 (90) dan B2 (90.5) ada candle yang jebol jauh ke 83 -> bukan Double Bottom valid
+        $candles = $this->candles(
+            [95, 90, 96, 98, 83, 96, 90.5, 98],
+            [97, 95, 102, 104, 89, 100, 95, 105]
+        );
+        $candles[count($candles) - 1]['close'] = 105.0;
+        $res = $this->find->invoke($this->service, $candles, 0.025, 3, 10, 0.015);
+        $this->assertNull($res, 'Pola dengan lembah lebih dalam di tengah L1-L2 harus ditolak');
+    }
+
+    public function testShallowPriorDowntrendIsRejectedOnFullHistory(): void
+    {
+        // 20 bar datar sebelum B1 (penurunan < 2% sebelum B1) -> tidak memenuhi syarat pola reversal
+        $candles = [];
+        for ($i = 0; $i < 22; $i++) {
+            $candles[] = [
+                'open' => 100.0,
+                'high' => 101.0,
+                'low' => 99.5,
+                'close' => 100.0,
+                'volume' => 1000,
+                'date' => sprintf('2026-09-%02d', $i + 1),
+            ];
+        }
+        // Bentuk B1=98.5 (drop dari 101 hanya ~2.5%), N=108, B2=98.8, breakout=109
+        $candles[12]['low'] = 98.5;
+        $candles[15]['high'] = 108.0;
+        $candles[18]['low'] = 98.8;
+        $candles[21]['close'] = 109.0;
+        $candles[21]['high'] = 109.5;
+        $res = $this->find->invoke($this->service, $candles, 0.025, 3, 12, 0.02);
+        $this->assertNull($res, 'Pola tanpa prior downtrend memadai harus ditolak');
+    }
+
+    public function testBottomDiffStrictlyEnforcedEvenOnHighAtr(): void
+    {
+        // High ATR (~10%) tetapi selisih L1=90 vs L2=94 (4.35%) > toleransi 2% -> harus ditolak tanpa bypass ATR
+        $candles = [];
+        $highs = [110, 108, 106, 104, 102, 100, 100, 99, 103, 105, 108, 104, 101, 100, 102, 106, 110];
+        $lows  = [102, 100, 98,  96,  94,  92,  90,  93, 96,  98,  100, 97,  95,  94,  96,  99,  103];
+        foreach ($lows as $i => $l) {
+            $candles[] = [
+                'open' => ($l + $highs[$i]) / 2,
+                'high' => (float) $highs[$i],
+                'low' => (float) $l,
+                'close' => ($l + $highs[$i]) / 2,
+                'volume' => 1000,
+                'date' => sprintf('2026-09-%02d', $i + 1),
+            ];
+        }
+        $candles[16]['close'] = 109.5;
+        $res = $this->find->invoke($this->service, $candles, 0.02, 4, 12, 0.02);
+        $this->assertNull($res, 'Selisih L1-L2 > toleransi tidak boleh lolos lewat bypass ATR');
+    }
+
+    public function testCompletedTp2PatternIsRejected(): void
+    {
+        // W: downtrend dari 115 -> B1=90 (idx 7) -> N=100 (idx 10) -> B2=90.5 (idx 13) -> rally melewati TP2=110 (idx 16 high=115) lalu turun kembali ke 101
+        $candles = [];
+        $data = [
+            [115, 110], [114, 108], [112, 105], [108, 100], [104, 96], [100, 93], [96, 91],
+            [95, 90],   // idx 7: B1
+            [97, 92], [99, 95],
+            [100, 96],  // idx 10: N
+            [98, 93], [95, 91],
+            [96, 90.5], // idx 13: B2
+            [99, 94], [104, 99],
+            [115, 105], // idx 16: sudah tembus TP2 (110)
+            [108, 103], [104, 100.5],
+        ];
+        foreach ($data as $i => [$h, $l]) {
+            $candles[] = [
+                'open' => ($h + $l) / 2,
+                'high' => (float) $h,
+                'low' => (float) $l,
+                'close' => ($i === 18) ? 101.0 : (($h + $l) / 2),
+                'volume' => 1000,
+                'date' => sprintf('2026-10-%02d', $i + 1),
+            ];
+        }
+        $res = $this->find->invoke($this->service, $candles, 0.025, 3, 12, 0.02);
+        $this->assertNull($res, 'Pola yang sudah mencapai target penuh TP2 sebelumnya tidak boleh muncul sebagai setup aktif');
+    }
+
+    public function testSessionAwareIntradayAggregationDoesNotMixDays(): void
+    {
+        $agg = new \ReflectionMethod(DoubleBottomService::class, 'aggregate');
+        $agg->setAccessible(true);
+
+        $bars = [
+            ['open' => 100, 'high' => 102, 'low' => 99,  'close' => 101, 'volume' => 100, 'date' => '2026-11-24 14:30:00'],
+            ['open' => 101, 'high' => 103, 'low' => 100, 'close' => 102, 'volume' => 200, 'date' => '2026-11-24 15:30:00'],
+            ['open' => 105, 'high' => 106, 'low' => 104, 'close' => 105, 'volume' => 300, 'date' => '2026-11-25 09:30:00'],
+            ['open' => 105, 'high' => 107, 'low' => 104, 'close' => 106, 'volume' => 400, 'date' => '2026-11-25 10:30:00'],
+        ];
+        $res = $agg->invoke($this->service, $bars, 4);
+        $this->assertCount(2, $res, 'Agregasi 4H wajib dipisah per hari perdagangan agar tidak menggabungkan dua hari berbeda');
+        $this->assertSame('2026-11-24 15:30:00', $res[0]['date']);
+        $this->assertSame('2026-11-25 10:30:00', $res[1]['date']);
+    }
+
+    public function testBreakoutVolumeConfirmedTracksBreakoutBarRvolNotDryUp(): void
+    {
+        // B2 dry-up (vol B2 < 90% B1), tapi breakout RVOL rendah (0.5x) -> breakout_volume_confirmed harus FALSE
+        $candles = $this->candles(
+            [95, 90, 96, 96, 96, 90.5, 97],
+            [97, 96, 101, 102, 101, 96, 98]
+        );
+        foreach ($candles as &$c) {
+            $c['volume'] = 2000;
+        }
+        unset($c);
+        $candles[1]['volume'] = 3000; // B1
+        $candles[5]['volume'] = 1000; // B2 dry-up
+        $candles[6]['close'] = 103.0; // breakout
+        $candles[6]['volume'] = 1000; // RVOL 0.5x -> lemah
+
+        $res = $this->find->invoke($this->service, $candles, 0.02, 3, 10, 0.015);
+        $this->assertIsArray($res);
+        $this->assertTrue($res['volume_dry_up']);
+        $this->assertFalse($res['breakout_volume_confirmed']);
+        $this->assertFalse($res['volume_confirmed']);
     }
 }
 
