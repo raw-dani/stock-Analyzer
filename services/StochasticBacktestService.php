@@ -69,6 +69,172 @@ final class StochasticBacktestService
             ];
         }
 
+        return $this->runBacktestOnCandles($stock, $candles, [
+            'timeframe' => $timeframe,
+            'periodK' => $periodK,
+            'smoothK' => $smoothK,
+            'periodD' => $periodD,
+            'lookbackCandles' => $lookbackCandles,
+            'feePct' => $feePct,
+            'slippagePct' => $slippagePct,
+            'totalCostPct' => $totalCostPct,
+            'splitRatio' => $splitRatio,
+            'trendFilter' => $trendFilter,
+            'candleConfirmation' => $candleConfirmation,
+            'tpModel' => $tpModel,
+        ]);
+    }
+
+    /**
+     * Learning / Optimasi Parameter (%K, Smooth, %D) terbaik untuk 1 saham menggunakan Grid Search Walk-Forward.
+     *
+     * @param Stock $stock
+     * @param array $options
+     * @return array<string, mixed>
+     */
+    public function optimizeParameters(Stock $stock, array $options = []): array
+    {
+        $timeframe = (int) ($options['timeframe'] ?? self::TIMEFRAME_1D);
+        $lookbackCandles = (int) ($options['lookbackCandles'] ?? 300);
+        $feePct = (float) ($options['feePct'] ?? 0.30);
+        $slippagePct = (float) ($options['slippagePct'] ?? 0.10);
+        $totalCostPct = $feePct + $slippagePct;
+        $splitRatio = (float) ($options['splitRatio'] ?? 0.70);
+        $trendFilter = (bool) ($options['trendFilter'] ?? true);
+        $candleConfirmation = (bool) ($options['candleConfirmation'] ?? true);
+        $tpModel = (string) ($options['tpModel'] ?? ($timeframe === self::TIMEFRAME_1D ? 'standard' : 'adaptive'));
+
+        $candles = $this->loadAscCandles((int) $stock->id, $timeframe, $lookbackCandles);
+        $totalBars = count($candles);
+        if ($totalBars < 50) {
+            return [
+                'success' => false,
+                'message' => "Data historis {$stock->symbol} tidak mencukupi untuk parameter learning (tersedia {$totalBars} bar, butuh minimal 50).",
+            ];
+        }
+
+        // Grid kombinasi (%K, SmoothK, %D) representatif dari cepat hingga lambat
+        $kCandidates = [5, 8, 10, 14, 18, 21];
+        $smoothCandidates = [1, 2, 3, 5];
+        $dCandidates = [2, 3, 5];
+
+        $leaderboard = [];
+        foreach ($kCandidates as $k) {
+            foreach ($smoothCandidates as $sk) {
+                foreach ($dCandidates as $d) {
+                    // Hindari kombinasi terlalu lambat atau tidak proporsional (smooth > k)
+                    if ($sk > $k || ($k + $sk + $d + 20) > $totalBars) {
+                        continue;
+                    }
+                    // Skip beberapa kombinasi redundan untuk menjaga kecepatan eksekusi < 1.5 detik
+                    if ($sk === 2 && $d === 5) {
+                        continue;
+                    }
+                    if ($sk === 5 && $d === 2) {
+                        continue;
+                    }
+
+                    $res = $this->runBacktestOnCandles($stock, $candles, [
+                        'timeframe' => $timeframe,
+                        'periodK' => $k,
+                        'smoothK' => $sk,
+                        'periodD' => $d,
+                        'lookbackCandles' => $lookbackCandles,
+                        'feePct' => $feePct,
+                        'slippagePct' => $slippagePct,
+                        'totalCostPct' => $totalCostPct,
+                        'splitRatio' => $splitRatio,
+                        'trendFilter' => $trendFilter,
+                        'candleConfirmation' => $candleConfirmation,
+                        'tpModel' => $tpModel,
+                    ]);
+
+                    if (empty($res['success'])) {
+                        continue;
+                    }
+
+                    $comb = $res['combined'];
+                    $test = $res['test'];
+                    $train = $res['train'];
+                    $totalSig = (int) $comb['total_signals'];
+                    if ($totalSig === 0) {
+                        continue;
+                    }
+
+                    // Skor komposit anti-overfitting: prioritaskan OOS + konsistensi sample size
+                    $oosWr = (float) $test['win_rate'];
+                    $oosPf = min(5.0, (float) $test['profit_factor']);
+                    $combPf = min(5.0, (float) $comb['profit_factor']);
+                    $combRet = (float) $comb['total_net_return'];
+                    $sampleMultiplier = $totalSig >= 6 ? 1.0 : ($totalSig >= 3 ? 0.75 : 0.40);
+
+                    $score = (
+                        ($oosWr * 0.35)
+                        + ($oosPf * 12.0)
+                        + ((float) $comb['win_rate'] * 0.20)
+                        + ($combPf * 8.0)
+                        + max(-20.0, min(30.0, $combRet))
+                    ) * $sampleMultiplier;
+
+                    $leaderboard[] = [
+                        'periodK' => $k,
+                        'smoothK' => $sk,
+                        'periodD' => $d,
+                        'score' => round($score, 2),
+                        'total_signals' => $totalSig,
+                        'oos_signals' => (int) $test['total_signals'],
+                        'oos_win_rate' => (float) $test['win_rate'],
+                        'oos_profit_factor' => (float) $test['profit_factor'],
+                        'oos_avg_net' => (float) $test['avg_net_return'],
+                        'train_win_rate' => (float) $train['win_rate'],
+                        'comb_win_rate' => (float) $comb['win_rate'],
+                        'comb_profit_factor' => (float) $comb['profit_factor'],
+                        'comb_total_return' => (float) $comb['total_net_return'],
+                        'backtest' => $res,
+                    ];
+                }
+            }
+        }
+
+        if (empty($leaderboard)) {
+            return [
+                'success' => false,
+                'message' => "Tidak ditemukan kombinasi (%K, Smooth, %D) yang menghasilkan sinyal pada {$stock->symbol}. Coba matikan filter atau perbesar histori backtest.",
+            ];
+        }
+
+        usort($leaderboard, fn ($a, $b) => $b['score'] <=> $a['score']);
+        $top5 = array_slice($leaderboard, 0, 5);
+        $best = $top5[0];
+
+        return [
+            'success' => true,
+            'tested_combinations' => count($leaderboard),
+            'best' => $best,
+            'leaderboard' => $top5,
+        ];
+    }
+
+    /**
+     * Eksekusi backtest pada array candles yang sudah dimuat (tanpa query DB ulang).
+     */
+    private function runBacktestOnCandles(Stock $stock, array $candles, array $cfg): array
+    {
+        $timeframe = (int) $cfg['timeframe'];
+        $periodK = (int) $cfg['periodK'];
+        $smoothK = (int) $cfg['smoothK'];
+        $periodD = (int) $cfg['periodD'];
+        $lookbackCandles = (int) $cfg['lookbackCandles'];
+        $feePct = (float) $cfg['feePct'];
+        $slippagePct = (float) $cfg['slippagePct'];
+        $totalCostPct = (float) $cfg['totalCostPct'];
+        $splitRatio = (float) $cfg['splitRatio'];
+        $trendFilter = (bool) $cfg['trendFilter'];
+        $candleConfirmation = (bool) $cfg['candleConfirmation'];
+        $tpModel = (string) $cfg['tpModel'];
+
+        $totalBars = count($candles);
+
         // 2. Hitung Stochastic secara penuh di sepanjang bar
         $highs = array_map(fn ($c) => (float) $c['high'], $candles);
         $lows = array_map(fn ($c) => (float) $c['low'], $candles);
@@ -86,14 +252,18 @@ final class StochasticBacktestService
 
         for ($i = $startBar; $i < $totalBars; $i++) {
             $sliceCandles = array_slice($candles, 0, $i + 1);
+            $sliceCloses = array_slice($closes, 0, $i + 1);
             $sliceK = array_slice($kSeries, 0, $i + 1);
             $sliceD = array_slice($dSeries, 0, $i + 1);
 
             $signal = $this->evaluateBarSignal(
+                $stochService,
                 $sliceCandles,
+                $sliceCloses,
                 $sliceK,
                 $sliceD,
                 $i,
+                $timeframe,
                 $trendFilter,
                 $candleConfirmation,
                 $tpModel
@@ -160,10 +330,13 @@ final class StochasticBacktestService
      * Evaluasi ada/tidaknya sinyal Beli Stochastic pada bar ke-i (tanpa melihat masa depan).
      */
     private function evaluateBarSignal(
+        StochasticService $stochService,
         array $candles,
+        array $closes,
         array $kSeries,
         array $dSeries,
         int $idx,
+        int $timeframe,
         bool $trendFilter = false,
         bool $candleConfirmation = false,
         string $tpModel = 'adaptive'
@@ -184,13 +357,27 @@ final class StochasticBacktestService
         $open  = (float) $curCandle['open'];
         $low   = (float) $curCandle['low'];
         $high  = (float) $curCandle['high'];
+        $barRange = max(0.0001, $high - $low);
+        $closePosInBar = ($close - $low) / $barRange;
 
-        // Filter Trend
-        if ($trendFilter && $idx >= 30) {
-            $recentCloses = array_map(fn ($c) => (float) $c['close'], array_slice($candles, $idx - 29, 30));
-            $sma30 = array_sum($recentCloses) / 30;
-            if ($close < ($sma30 * 0.92) && $close < (float) $prevCandle['close']) {
-                return null;
+        $volSlice = array_map(fn ($c) => (float) ($c['volume'] ?? 0), array_slice($candles, max(0, $idx - 20), 20));
+        $avgVol20 = !empty($volSlice) ? max(1.0, array_sum($volSlice) / count($volSlice)) : 1.0;
+        $rvol = ((float) ($curCandle['volume'] ?? 0)) / $avgVol20;
+
+        // Filter Trend (Anti-Falling Knife)
+        if ($trendFilter && $idx >= 35) {
+            $recentCloses30 = array_slice($closes, $idx - 29, 30);
+            $prevCloses30 = array_slice($closes, $idx - 34, 30);
+            $sma30 = array_sum($recentCloses30) / 30;
+            $sma30Prev = array_sum($prevCloses30) / 30;
+            $isSma30Falling = $sma30 < $sma30Prev;
+
+            // Tolak entry jika jatuh >6% di bawah SMA30 yang menurun, kecuali konfirmasi volume & candle kuat
+            if ($close < ($sma30 * 0.94) && $isSma30Falling) {
+                $hasStrongReversalVolume = ($rvol >= 1.1 && $closePosInBar >= 0.50 && $close > $open);
+                if (!$hasStrongReversalVolume) {
+                    return null;
+                }
             }
         }
 
@@ -198,7 +385,8 @@ final class StochasticBacktestService
         if ($candleConfirmation) {
             $isBullishBody = ($close >= $open);
             $isReclaimPrev = ($close > (float) $prevCandle['close']);
-            if (!$isBullishBody && !$isReclaimPrev) {
+            $hasStrongClose = ($closePosInBar >= 0.40);
+            if ((!$isBullishBody && !$isReclaimPrev) || !$hasStrongClose) {
                 return null;
             }
         }
@@ -210,7 +398,6 @@ final class StochasticBacktestService
         $isCrossUp = ($prevK <= $prevD && $curK > $curD);
 
         // 1. Shakeout Low / Liquidity Sweep (Wyckoff Spring)
-        $stochService = new StochasticService();
         $shakeout = $stochService->detectShakeoutLow($candles, $kSeries, $dSeries, 30);
         if (!empty($shakeout['detected'])) {
             $signalType = 'SHAKEOUT_LOW';
@@ -223,10 +410,9 @@ final class StochasticBacktestService
             $signalName = 'Stochastic GC in Oversold (%K ' . round($curK, 1) . ')';
             $badgeClass = 'success';
         }
-        // 3. Regular Bullish Divergence
+        // 3. Regular Bullish Divergence (wajib %K sedang naik)
         else {
-            $closes = array_map(fn ($c) => (float) $c['close'], $candles);
-            $div = $stochService->detectDivergence($closes, $kSeries, 30);
+            $div = ($curK > $prevK) ? $stochService->detectDivergence($closes, $kSeries, 30) : ['type' => 'NONE'];
             if ($div['type'] === 'BULLISH_REGULAR') {
                 $signalType = 'BULLISH_DIVERGENCE';
                 $signalName = 'Bullish Divergence (%K ' . round($curK, 1) . ')';
@@ -244,16 +430,33 @@ final class StochasticBacktestService
             return null;
         }
 
-        // Tentukan Target TP1, TP2 dan SL
+        // Hitung ATR(14) untuk Stop Loss proporsional terhadap volatilitas saham
+        $atrSum = 0.0;
+        $atrCount = 0;
+        for ($k = max(1, $idx - 13); $k <= $idx; $k++) {
+            $tr = max(
+                (float) $candles[$k]['high'] - (float) $candles[$k]['low'],
+                abs((float) $candles[$k]['high'] - (float) $candles[$k - 1]['close']),
+                abs((float) $candles[$k]['low'] - (float) $candles[$k - 1]['close'])
+            );
+            $atrSum += $tr;
+            $atrCount++;
+        }
+        $atr14 = $atrCount > 0 ? ($atrSum / $atrCount) : ($close * 0.02);
+
         $windowLow = (float) $curCandle['low'];
-        for ($k = max(0, $idx - 10); $k <= $idx; $k++) {
+        for ($k = max(0, $idx - 5); $k <= $idx; $k++) {
             $windowLow = min($windowLow, (float) $candles[$k]['low']);
         }
-        $stopLoss = round(min($windowLow * 0.988, $close * 0.975), 2);
+        $isIntraday = ($timeframe < self::TIMEFRAME_1D);
+        $minSl = $close * ($isIntraday ? 0.950 : 0.935); // Maks risk 5.0% intraday / 6.5% daily
+        $maxSl = $close * ($isIntraday ? 0.978 : 0.970); // Min ruang napas 2.2% intraday / 3.0% daily
+        $rawSl = min($windowLow * 0.99, $close - (2.0 * $atr14));
+        $stopLoss = round(max($minSl, min($maxSl, $rawSl)), 2);
         $risk = max(0.01, $close - $stopLoss);
 
         if ($tpModel === 'adaptive') {
-            $tp1 = round($close + ($risk * 1.2), 2);
+            $tp1 = round($close + ($risk * 1.3), 2);
             $tp2 = round($close + ($risk * 2.5), 2);
         } else {
             $tp1 = round($close + ($risk * 1.6), 2);
@@ -322,7 +525,7 @@ final class StochasticBacktestService
         $hitTp1 = false;
         $hitTp2 = false;
         $hitSl = false;
-        $exitPrice = $entryPrice;
+        $exitPrice = (float) ($candles[$maxForward]['close'] ?? $entryPrice);
         $exitReason = 'TIME_EXIT';
         $exitBar = $maxForward;
 
@@ -333,30 +536,41 @@ final class StochasticBacktestService
             $minLowForward = min($minLowForward, $cLow);
             $maxHighForward = max($maxHighForward, $cHigh);
 
-            $activeSl = ($hitTp1 && $tpModel === 'adaptive') ? $entryPrice : $stopLoss;
+            $activeSl = $hitTp1 ? $entryPrice : $stopLoss;
 
-            if ($cLow <= $activeSl && !$hitSl) {
-                $hitSl = true;
-                $exitPrice = $activeSl;
-                $exitReason = ($activeSl === $entryPrice) ? 'BREAK_EVEN' : 'STOP_LOSS';
+            if ($cLow <= $activeSl) {
+                if ($hitTp1) {
+                    $exitPrice = ($tp1 + $entryPrice) / 2.0;
+                    $exitReason = 'TP1_PARTIAL_BEP';
+                } else {
+                    $hitSl = true;
+                    $exitPrice = $stopLoss;
+                    $exitReason = 'STOP_LOSS';
+                }
                 $exitBar = $j;
                 break;
             }
 
             if ($cHigh >= $tp1 && !$hitTp1) {
                 $hitTp1 = true;
-                $exitPrice = $tp1;
                 $exitReason = 'TAKE_PROFIT_1';
                 $exitBar = $j;
             }
 
             if ($cHigh >= $tp2 && !$hitTp2) {
                 $hitTp2 = true;
-                $exitPrice = $tp2;
+                $exitPrice = ($tp1 + $tp2) / 2.0;
                 $exitReason = 'TAKE_PROFIT_2';
                 $exitBar = $j;
                 break;
             }
+        }
+
+        if ($exitReason === 'TAKE_PROFIT_1') {
+            $finalClose = (float) ($candles[$maxForward]['close'] ?? $tp1);
+            $exitPrice = ($tp1 + $finalClose) / 2.0;
+        } elseif ($exitReason === 'TIME_EXIT') {
+            $exitPrice = (float) ($candles[$maxForward]['close'] ?? $entryPrice);
         }
 
         $tradeGrossRet = round((($exitPrice - $entryPrice) / $entryPrice) * 100, 2);

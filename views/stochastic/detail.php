@@ -104,7 +104,7 @@ $chartId = 'stochastic-echarts-container';
                 <?= \app\helpers\SvgHelper::icon('stopwatch') ?> <?= Html::encode($timeframes[$currentTimeframe] ?? 'Daily') ?>
             </span>
             <span class="badge bg-dark fs-6 px-3 py-1 shadow-sm">
-                Stoch (14, 3, 3)
+                Stoch (<?= (int) ($params['periodK'] ?? 14) ?>, <?= (int) ($params['smoothK'] ?? 3) ?>, <?= (int) ($params['periodD'] ?? 3) ?>)
             </span>
             <?php if (!empty($analysis['shakeout_low']['detected'])): ?>
                 <span class="badge bg-warning text-dark fs-6 px-3 py-1 shadow-sm border border-warning">
@@ -176,6 +176,8 @@ $chartId = 'stochastic-echarts-container';
 <?php if ($runBacktest && !empty($backtestResult)): ?>
     <?= $this->render('_backtest_section', [
         'backtestResult' => $backtestResult,
+        'optimizeResult' => $optimizeResult ?? null,
+        'params' => $params,
         'stock' => $stock,
     ]) ?>
 <?php endif; ?>
@@ -240,12 +242,18 @@ $chartId = 'stochastic-echarts-container';
                     <label class="form-check-label small" for="btCandleConfirmCheck">Bullish Bar</label>
                 </div>
             </div>
-            <div class="col-12 text-end d-flex justify-content-end gap-2 mt-3">
+            <div class="col-12 text-end d-flex flex-wrap justify-content-end gap-2 mt-3">
                 <?= Html::submitButton(\app\helpers\SvgHelper::icon('arrow-repeat') . ' Update Analisis', ['class' => 'btn btn-sm btn-outline-secondary px-3 shadow-sm']) ?>
                 <?= Html::submitButton(\app\helpers\SvgHelper::icon('graph-up-arrow') . ' Jalankan Backtest', [
                     'name' => 'backtest',
                     'value' => '1',
                     'class' => 'btn btn-sm btn-success fw-bold px-3 shadow-sm'
+                ]) ?>
+                <?= Html::submitButton(\app\helpers\SvgHelper::icon('cpu') . ' Auto-Learning (%K, Smooth, %D)', [
+                    'name' => 'optimize',
+                    'value' => '1',
+                    'class' => 'btn btn-sm btn-primary fw-bold px-3 shadow-sm',
+                    'title' => 'Uji puluhan kombinasi %K, Smooth, %D secara Walk-Forward untuk menemukan setup terbaik saham ini',
                 ]) ?>
             </div>
         <?= Html::endForm() ?>

@@ -2,11 +2,14 @@
 
 /** @var yii\web\View $this */
 /** @var array $backtestResult */
+/** @var array|null $optimizeResult */
+/** @var array|null $params */
 /** @var \app\models\Stock $stock */
 
 use yii\bootstrap5\Html;
 use yii\helpers\Url;
 
+$optimizeResult = $optimizeResult ?? null;
 $res = $backtestResult;
 if (!$res['success']) {
     echo '<div class="alert alert-warning mb-4 shadow-sm">' . Html::encode($res['message']) . '</div>';
@@ -35,6 +38,9 @@ $trades = $res['recentTrades'] ?? [];
             </div>
         </div>
         <div class="d-flex align-items-center gap-2 flex-wrap">
+            <span class="badge bg-dark text-white px-2 py-1">
+                Stoch (<?= (int) ($p['periodK'] ?? 14) ?>, <?= (int) ($p['smoothK'] ?? 3) ?>, <?= (int) ($p['periodD'] ?? 3) ?>)
+            </span>
             <span class="badge bg-light text-secondary border px-2 py-1">
                 Fee + Slip: <?= number_format($p['totalCostPct'], 2) ?>%
             </span>
@@ -54,6 +60,85 @@ $trades = $res['recentTrades'] ?? [];
     </div>
 
     <div class="card-body p-3 p-md-4">
+        <?php if (!empty($optimizeResult['success']) && !empty($optimizeResult['leaderboard'])): ?>
+            <div class="card border border-primary border-opacity-25 shadow-sm mb-4" style="background: linear-gradient(135deg, #f8faff 0%, #eef5ff 100%);">
+                <div class="card-header bg-transparent py-2 px-3 d-flex flex-wrap justify-content-between align-items-center gap-2 border-bottom border-primary border-opacity-10">
+                    <div>
+                        <strong class="text-primary small">
+                            <?= \app\helpers\SvgHelper::icon('cpu', ['class' => 'me-1']) ?> Hasil Parameter Learning (%K, Smooth, %D) — Top 5 Setup Optimal <?= Html::encode($stock->symbol) ?>
+                        </strong>
+                        <small class="text-muted d-block">
+                            Menguji <strong><?= (int) ($optimizeResult['tested_combinations'] ?? 0) ?></strong> kombinasi secara Walk-Forward. Setup #1 otomatis diterapkan pada Chart &amp; Trading Plan.
+                        </small>
+                    </div>
+                    <span class="badge bg-primary text-white">Best: (<?= (int) $optimizeResult['best']['periodK'] ?>, <?= (int) $optimizeResult['best']['smoothK'] ?>, <?= (int) $optimizeResult['best']['periodD'] ?>)</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover align-middle mb-0 text-center small">
+                        <thead class="table-light text-muted">
+                            <tr>
+                                <th class="ps-3 text-start">Peringkat</th>
+                                <th>Period (%K, Smooth, %D)</th>
+                                <th>Total Sinyal</th>
+                                <th>OOS Win Rate</th>
+                                <th>OOS Profit Factor</th>
+                                <th>Train Win Rate</th>
+                                <th>Total Net Return</th>
+                                <th class="pe-3 text-end">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($optimizeResult['leaderboard'] as $idx => $row): ?>
+                                <?php $isCurrent = ((int)$row['periodK'] === (int)($p['periodK'] ?? 14) && (int)$row['smoothK'] === (int)($p['smoothK'] ?? 3) && (int)$row['periodD'] === (int)($p['periodD'] ?? 3)); ?>
+                                <tr class="<?= $isCurrent ? 'table-primary fw-semibold' : '' ?>">
+                                    <td class="ps-3 text-start">
+                                        <?php if ($idx === 0): ?>
+                                            <span class="badge bg-warning text-dark">#1 Optimal</span>
+                                        <?php else: ?>
+                                            <span class="badge bg-light text-dark border">#<?= $idx + 1 ?></span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="font-monospace fw-bold">
+                                        (<?= (int) $row['periodK'] ?>, <?= (int) $row['smoothK'] ?>, <?= (int) $row['periodD'] ?>)
+                                    </td>
+                                    <td><?= (int) $row['total_signals'] ?> (<?= (int) $row['oos_signals'] ?> OOS)</td>
+                                    <td class="fw-bold <?= $row['oos_win_rate'] >= 50 ? 'text-success' : 'text-danger' ?>">
+                                        <?= number_format((float) $row['oos_win_rate'], 1) ?>%
+                                    </td>
+                                    <td class="fw-bold"><?= number_format((float) $row['oos_profit_factor'], 2) ?></td>
+                                    <td><?= number_format((float) $row['train_win_rate'], 1) ?>%</td>
+                                    <td class="fw-bold <?= $row['comb_total_return'] >= 0 ? 'text-success' : 'text-danger' ?>">
+                                        <?= ($row['comb_total_return'] >= 0 ? '+' : '') . number_format((float) $row['comb_total_return'], 2) ?>%
+                                    </td>
+                                    <td class="pe-3 text-end">
+                                        <?php if ($isCurrent): ?>
+                                            <span class="badge bg-success">Aktif</span>
+                                        <?php else: ?>
+                                            <a href="<?= Url::to([
+                                                '/stochastic/detail',
+                                                'symbol' => $stock->symbol,
+                                                'timeframe' => $p['timeframe'],
+                                                'periodK' => $row['periodK'],
+                                                'smoothK' => $row['smoothK'],
+                                                'periodD' => $row['periodD'],
+                                                'btLookback' => $p['lookbackCandles'],
+                                                'btTpModel' => $p['tpModel'],
+                                                'btTrendFilter' => !empty($p['trendFilter']) ? 1 : 0,
+                                                'btCandleConfirm' => !empty($p['candleConfirmation']) ? 1 : 0,
+                                                'backtest' => 1,
+                                            ]) ?>" class="btn btn-outline-primary btn-sm py-0 px-2" style="font-size:0.75rem;">
+                                                Pakai Setup
+                                            </a>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        <?php endif; ?>
+
         <!-- 3 KPI Cards: Combined, Train (In-Sample), Test (Out-of-Sample) -->
         <div class="row g-3 mb-4">
             <!-- Out-of-Sample Test Card (Paling Utama) -->
@@ -294,6 +379,8 @@ $trades = $res['recentTrades'] ?? [];
                                     <td>
                                         <?php if (!empty($t['hit_tp2'])): ?>
                                             <span class="badge bg-primary">HIT TP2 (+<?= number_format((float) ($t['tp2_gain_pct'] ?? 0), 1) ?>%)</span>
+                                        <?php elseif (($t['exit_reason'] ?? '') === 'TP1_PARTIAL_BEP'): ?>
+                                            <span class="badge bg-success">TP1 + BEP</span>
                                         <?php elseif (!empty($t['hit_tp1'])): ?>
                                             <span class="badge bg-success">HIT TP1 (+<?= number_format((float) ($t['tp1_gain_pct'] ?? 0), 1) ?>%)</span>
                                         <?php elseif (!empty($t['hit_sl'])): ?>

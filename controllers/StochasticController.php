@@ -252,14 +252,11 @@ final class StochasticController extends Controller
             'lookback'  => (int) $request->get('lookback', 80),
         ];
 
-        $analysis = $this->stochasticService->analyzeStock((int) $stock->id, $params);
-        if ($analysis === null) {
-            throw new NotFoundHttpException("Data historis tidak mencukupi untuk menganalisis {$symbol}.");
-        }
-
-        // Backtesting Engine Execution
-        $runBacktest = (bool) $request->get('backtest', false);
+        $runOptimize = (bool) $request->get('optimize', false);
+        $runBacktest = (bool) $request->get('backtest', false) || $runOptimize;
         $backtestResult = null;
+        $optimizeResult = null;
+
         if ($runBacktest) {
             $btLookback = (int) $request->get('btLookback', 300);
             $btFeePct = (float) $request->get('btFee', 0.30);
@@ -269,18 +266,44 @@ final class StochasticController extends Controller
             $btTpModel = (string) $request->get('btTpModel', $params['timeframe'] === StochasticService::TIMEFRAME_1D ? 'standard' : 'adaptive');
 
             $backtestService = new \app\services\StochasticBacktestService();
-            $backtestResult = $backtestService->runStockBacktest($stock, [
-                'timeframe' => $params['timeframe'],
-                'periodK' => $params['periodK'],
-                'smoothK' => $params['smoothK'],
-                'periodD' => $params['periodD'],
-                'lookbackCandles' => $btLookback,
-                'feePct' => $btFeePct,
-                'slippagePct' => $btSlippage,
-                'trendFilter' => $btTrendFilter,
-                'candleConfirmation' => $btCandleConfirm,
-                'tpModel' => $btTpModel,
-            ]);
+
+            if ($runOptimize) {
+                $optimizeResult = $backtestService->optimizeParameters($stock, [
+                    'timeframe' => $params['timeframe'],
+                    'lookbackCandles' => $btLookback,
+                    'feePct' => $btFeePct,
+                    'slippagePct' => $btSlippage,
+                    'trendFilter' => $btTrendFilter,
+                    'candleConfirmation' => $btCandleConfirm,
+                    'tpModel' => $btTpModel,
+                ]);
+                if (!empty($optimizeResult['success']) && !empty($optimizeResult['best'])) {
+                    $params['periodK'] = (int) $optimizeResult['best']['periodK'];
+                    $params['smoothK'] = (int) $optimizeResult['best']['smoothK'];
+                    $params['periodD'] = (int) $optimizeResult['best']['periodD'];
+                    $backtestResult = $optimizeResult['best']['backtest'];
+                } else {
+                    $backtestResult = $optimizeResult;
+                }
+            } else {
+                $backtestResult = $backtestService->runStockBacktest($stock, [
+                    'timeframe' => $params['timeframe'],
+                    'periodK' => $params['periodK'],
+                    'smoothK' => $params['smoothK'],
+                    'periodD' => $params['periodD'],
+                    'lookbackCandles' => $btLookback,
+                    'feePct' => $btFeePct,
+                    'slippagePct' => $btSlippage,
+                    'trendFilter' => $btTrendFilter,
+                    'candleConfirmation' => $btCandleConfirm,
+                    'tpModel' => $btTpModel,
+                ]);
+            }
+        }
+
+        $analysis = $this->stochasticService->analyzeStock((int) $stock->id, $params);
+        if ($analysis === null) {
+            throw new NotFoundHttpException("Data historis tidak mencukupi untuk menganalisis {$symbol}.");
         }
 
         return $this->render('detail', [
@@ -290,6 +313,7 @@ final class StochasticController extends Controller
             'timeframes' => StochasticService::getTimeframes(),
             'runBacktest' => $runBacktest,
             'backtestResult' => $backtestResult,
+            'optimizeResult' => $optimizeResult,
         ]);
     }
 }
